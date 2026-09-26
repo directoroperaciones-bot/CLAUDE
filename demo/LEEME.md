@@ -37,6 +37,10 @@ los hoteles).
   mismo viaje ofrece partir de ella; si no, lo arma con el servicio del voucher. Lo que se pega después se suma a lo que ya venía: Claude
   recibe los datos previos y la app los fusiona. «Mis documentos» agrupa por viaje: CA3311,
   CAM-2026-3311 y CAM-VCH-3311-01 son el mismo expediente.
+- **Traer de la base** (confirmación): con el consecutivo de la app de operación (2900 o CA2900) la app
+  lee, SOLO LECTURA, la hoja «NO BORRAR - DATOS HERRAMIETA» con GOOGLESHEETS_BATCH_GET vía Composio
+  (única herramienta permitida en `leerBase`) y llena pasajeros, fechas, tiquetes con localizador,
+  servicios y pagos. De PASAJEROS solo se leen id y nombre. Lo que la base no trae queda marcado.
 - `ejemplos/Itinerario-CA2790.html` — el ejemplo del plugin (Tailandia y Europa) en
   versión interactiva.
 - `iconos/` — íconos de `lucide-static@0.445.0` (licencia ISC en `iconos/LICENSE`).

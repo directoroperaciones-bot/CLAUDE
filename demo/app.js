@@ -886,7 +886,7 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
       nombre: 'Confirmación', titulo: 'Nueva <span class="c">confirmación</span>', eyebrow: 'Confirmación de reserva', icono: 'badge-check',
       desc: 'Confirma la reserva con los números de vuelo, hotel y traslados.', hojas: '3 hojas',
       boton: 'Generar la confirmación', archivo: 'Confirmacion', codigo: d => d.codigo_reserva, tituloDe: d => d.titulo_viaje, clienteDe: d => d.nombre_viajero,
-      armar: armarConfirmacion, flujo: { limite: 1178, juntar: true, compacto: true },
+      armar: armarConfirmacion, flujo: { limite: 1178, juntar: true, compacto: true }, desdeBase: true,
       pegar: 'Pega aquí las reservas del sistema',
       ayuda: ['Las reservas copiadas del sistema: tiquete, récord, vuelos', 'Confirmaciones de hoteles y traslados', 'Pagos recibidos y lo que falta por pagar'],
       grupos: [
@@ -925,7 +925,8 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
           f.push(['estado_pago', 'Hay pagos recibidos: el estado de la reserva debería ser «Abono recibido» o «Pagado en su totalidad»']);
         return f;
       },
-      preparar: d => ({ ...d, asesor: vacio(d.asesor) ? ASESOR.nombre : d.asesor, asesor_correo: vacio(d.asesor_correo) ? ASESOR.correo : d.asesor_correo, asesor_telefono: vacio(d.asesor_telefono) ? ASESOR.telefono : d.asesor_telefono }),
+      // Los datos de ejemplo de la asesora solo se usan si no viene ninguno (si vienen de la base, lo que falte queda marcado).
+      preparar: d => (vacio(d.asesor) && vacio(d.asesor_correo) ? { ...d, asesor: ASESOR.nombre, asesor_correo: ASESOR.correo, asesor_telefono: vacio(d.asesor_telefono) ? ASESOR.telefono : d.asesor_telefono } : { ...d }),
       meta: d => `Viaje del ${rango(d.fecha_salida, d.fecha_regreso)}`,
       ejemploTexto: `Confirmación para enviar a Laura Pineda (reserva CAM-2026-3140), viaje a San Andrés.
 2 adultos: Laura Pineda y Andrés Pineda.
@@ -1339,6 +1340,7 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
     $('#doc-titulo').innerHTML = d.titulo;
     $('#pegado-lbl').textContent = d.pegar;
     $('#ayuda-lista').innerHTML = d.ayuda.map(a => `<li><span class="check"><i data-lucide="check"></i></span>${esc(a)}</li>`).join('');
+    iconos($('#ayuda-lista'));
     $('#btn-generar').innerHTML = `<i data-lucide="file-text"></i>${esc(d.boton)}`;
     ir('doc');
     if (datos) {
@@ -1351,6 +1353,8 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
     }
     $('#pegado').value = d.ejemploTexto;
     estado1('Texto de ejemplo. Reemplázalo por la información real.');
+    $('#desde-base').hidden = !d.desdeBase;
+    $('#estado-base').textContent = '';
     paso(1);
   }
   document.addEventListener('click', ev => {
@@ -1958,6 +1962,128 @@ ${texto}
         : c === 'server_unavailable' || c === 'upstream_error'
           ? 'No tuvimos respuesta a tiempo. Puede que sí se haya publicado: espera un minuto y abre el enlace; si no cambió, vuelve a publicar.'
           : 'No se pudo publicar. Inténtalo de nuevo.');
+    } finally { btn.disabled = false; }
+  });
+
+
+  // ================= base de operación (AppSheet → Google Sheets), SOLO LECTURA =================
+  // La app consulta la hoja «NO BORRAR - DATOS HERRAMIETA» con la herramienta de lectura de Google Sheets
+  // a través de Composio. Nunca escribe: `leerBase` es la única función que toca la base y solo puede
+  // llamar a GOOGLESHEETS_BATCH_GET sobre esta hoja; no hay en el código ninguna llamada de escritura a ella.
+  // De PASAJEROS solo se leen el id y el nombre (columnas A a C): nada de documentos ni datos personales.
+  const BASE = { hoja: '1k32N3e4r5jS0iWvyPWsUGr6XLY7homB5sEhJIj9Bjbg', herramienta: 'GOOGLESHEETS_BATCH_GET' };
+  const RANGOS_BASE = ['PIPELINE!A1:AM2000', 'SERVICIOS!A1:AG5000', 'PASAJEROS!A1:C5000', 'CONTROL_PAGOS!A1:K5000',
+    'PROVEEDORES!A1:D1000', 'CLIENTES!A1:C1000', 'PANEL_DE_COSTEOS!A1:F1000', 'ASESORES!A1:B100'];
+  async function leerBase() {
+    if (!mcp) throw { code: 'sin_mcp' };
+    const r = await mcp.callTool(COMPOSIO, 'COMPOSIO_MULTI_EXECUTE_TOOL', {
+      tools: [{ tool_slug: BASE.herramienta, arguments: { spreadsheet_id: BASE.hoja, ranges: RANGOS_BASE } }],
+      sync_response_to_workbench: false, thought: 'Leer (solo lectura) la venta en la base de operación.', current_step: 'LEER_BASE',
+    });
+    let p = r?.payload;
+    if (typeof p === 'string') { try { p = JSON.parse(p); } catch (_) {} }
+    const res = p?.data?.results?.[0]?.response;
+    const rangos = res?.data?.valueRanges;
+    if (!res?.successful || !Array.isArray(rangos)) throw { code: 'no_leida', message: res?.error || p?.error || '' };
+    const tablas = {};
+    rangos.forEach((vr, i) => {
+      const nombre = RANGOS_BASE[i].split('!')[0], v = vr.values || [], h = (v[0] || []).map(x => String(x).trim());
+      tablas[nombre] = v.slice(1).filter(f => f && String(f[0] || '').trim()).map(f => Object.fromEntries(h.map((k, j) => [k, String(f[j] ?? '').trim()])));
+    });
+    return tablas;
+  }
+  const isoDeBase = f => { const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(f || ''); return m ? `${m[3]}-${dosDig(m[2])}-${dosDig(m[1])}` : (RE_ISO.test(f || '') ? f : ''); };
+  const pesos = n => { const v = Math.round(Number(String(n).replace(/[^\d.-]/g, ''))); return Number.isFinite(v) && String(n).trim() ? '$' + v.toLocaleString('es-CO').replace(/,/g, '.') : ''; };
+  const MINUS = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e', 'da', 'van', 'von']);
+  const nombrePropio = t => String(t || '').toLowerCase().replace(/\s+/g, ' ').trim().split(' ')
+    .map((w, i) => (i > 0 && MINUS.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
+  const oracion = t => { const x = String(t || '').toLowerCase().trim(); return x.charAt(0).toUpperCase() + x.slice(1); };
+
+  function confirmacionDesdeBase(tab, consecutivo) {
+    const num = String(consecutivo).toUpperCase().replace(/^CA-?/, '').trim();
+    const venta = (tab.PIPELINE || []).find(v => String(v.Numero_Consecutivo).trim() === num || String(v.Codigo_Visual_VYE).toUpperCase() === 'CA' + num);
+    if (!venta) return null;
+    const idV = venta.ID_Venta;
+    const servicios = (tab.SERVICIOS || []).filter(x => x.ID_Venta === idV);
+    const nombreDe = Object.fromEntries((tab.PASAJEROS || []).map(x => [x.ID_Pasajero, nombrePropio(x.Nombre_Completo)]));
+    const proveedor = Object.fromEntries((tab.PROVEEDORES || []).map(x => [x['ID Proveedor'], nombrePropio(x['Nombre Comercial'] || x['Razón Social'])]));
+    const idsPax = String(venta.Pasajeros_Viajando || '').split(/\s*,\s*/).filter(Boolean);
+    const pax = [...new Set([...idsPax, ...servicios.map(x => x.ID_Pasajero).filter(Boolean)])].map(i => nombreDe[i]).filter(Boolean);
+    const titular = nombrePropio(nombreDe[venta.Titular_Vacacional] || venta.Titular_Vacacional || '') || pax[0] || '';
+    const ida = isoDeBase(venta.Fecha_Ida), regreso = isoDeBase(venta.Fecha_Regreso);
+    const plan = (tab.PANEL_DE_COSTEOS || []).find(x => x.ID_Costeo && x.ID_Costeo === venta.Paquete_Religioso);
+    const asesora = (tab.ASESORES || []).find(x => x.Email === venta.Agente);
+    // Vuelos: un tiquete por localizador; los trayectos salen de la ruta («BOG-IPI // PSO-BOG»). La base no trae
+    // número de vuelo, fecha ni horas por trayecto: quedan para completar.
+    const porLoc = new Map();
+    servicios.filter(x => x.Tipo_Servicio === 'Vuelo').forEach(x => {
+      const k = x.Localizador || x.ID_Servicio;
+      if (!porLoc.has(k)) porLoc.set(k, { x, tiquetes: [] });
+      if (x.Tiquete) porLoc.get(k).tiquetes.push(x.Tiquete.replace(/[‐–]/g, '-'));
+    });
+    const tramos = ruta => String(ruta || '').split(/\s*\/\/\s*/).flatMap(seg => {
+      const pts = seg.split(/\s*-\s*/).map(s => s.trim()).filter(Boolean);
+      const lugar = t => (/^[A-Za-z]{3}$/.test(t) ? t.toUpperCase() : nombrePropio(t)); // código de aeropuerto o nombre de ciudad
+      return pts.slice(1).map((d, i) => ({ vuelo: '', fecha: '', ruta: `${lugar(pts[i])} — ${lugar(d)}`, sale: '', llega: '' }));
+    });
+    const aereo = [...porLoc.values()].map(({ x, tiquetes }) => ({
+      aerolinea: String(x['Aerolínea'] || '').split(',')[0].trim(), record: x.Localizador || '',
+      tiquete: tiquetes.length <= 4 ? tiquetes.join(' · ') : `${tiquetes.slice(0, 3).join(' · ')} y ${tiquetes.length - 3} más`,
+      trayectos: tramos(x.Ruta),
+    }));
+    const acomodacion = (servicios.find(x => x.Tipo_Acomodacion) || {}).Tipo_Acomodacion || venta.Acomodacion_Religiosa || '';
+    const hoteles = [...new Map(servicios.filter(x => x.Tipo_Servicio === 'Hotel').map(x => [x.Proveedor + x.Localizador, {
+      hotel: proveedor[x.Proveedor] || '', entrada: ida, salida: regreso, acomodacion: x.Tipo_Acomodacion || acomodacion, confirmacion: x.Localizador || '' }])).values()];
+    const unico = (tipo, texto) => [...new Set(servicios.filter(x => x.Tipo_Servicio === tipo).map(texto).filter(Boolean))];
+    const servicios_confirmados = [
+      ...unico('Vuelo', x => `Tiquetes aéreos ${String(x['Aerolínea'] || '').split(',')[0].trim()}`.trim()),
+      ...unico('Plan Terrestre', x => `Plan terrestre${proveedor[x.Proveedor] ? ' con ' + proveedor[x.Proveedor] : ''}${x.Tipo_Acomodacion ? ` (acomodación ${x.Tipo_Acomodacion.toLowerCase()})` : ''}`),
+      ...unico('Hotel', x => proveedor[x.Proveedor] ? `Alojamiento en ${proveedor[x.Proveedor]}` : 'Alojamiento'),
+      ...unico('Asistencia', () => 'Tarjeta de asistencia médica'),
+    ];
+    const pagos = (tab.CONTROL_PAGOS || []).filter(x => x.ID_Venta === idV).map(x => ({
+      concepto: `Abono del ${fecha(isoDeBase(x.Fecha_Abono), 'de') || x.Fecha_Abono}${x.Metodo_Pago ? ' · ' + oracion(x.Metodo_Pago) : ''}`,
+      valor: pesos(x.Monto), estado: normalEstadoPago(x.Estado_Pago) }));
+    // La columna Saldo_Pendiente de la base no es confiable para saber si ya se pagó todo: sin pagos es
+    // «Pendiente de pago»; con pagos, la asesora elige entre «Abono recibido» y «Pagado en su totalidad».
+    const recibidos = pagos.filter(x => x.estado === 'Pagado');
+    const estado_pago = recibidos.length ? '' : 'Pendiente de pago';
+    const n = pax.length || Number(venta.Numero_Pasajeros_Estimados) || 0;
+    return {
+      codigo_reserva: `CAM-${(ida || hoy()).slice(0, 4)}-${num}`,
+      titulo_viaje: plan ? nombrePropio(plan.Nombre_Plan) : venta.Destino || '', nombre_viajero: titular, parrafo_confirmacion: '',
+      destino: venta.Destino || '', pasajeros: n ? `${n} ${n === 1 ? 'persona' : 'personas'}${pax.length > 1 && pax.length <= 6 ? ': ' + pax.join(', ') : ''}` : '',
+      estado_pago, fecha_salida: ida, fecha_regreso: regreso, aereo, hoteles, traslados: [], servicios_confirmados, pagos, nota_importante: '',
+      asesor: asesora ? nombrePropio(asesora.Nombre) : '', asesor_correo: venta.Agente || '', asesor_telefono: '',
+    };
+  }
+  const MENSAJES_BASE = {
+    sin_mcp: 'Traer de la base funciona al abrir la app desde claude.ai con el conector Composio.',
+    no_leida: 'No pudimos leer la base. Revisa que la cuenta de Google conectada en Composio tenga acceso a la hoja.',
+  };
+  $('#btn-base').addEventListener('click', async () => {
+    const cons = $('#base-cons').value.trim(), out = $('#estado-base'), btn = $('#btn-base');
+    const pinta = (txt, tipo) => { out.className = 'estado' + (tipo ? ' ' + tipo : ''); out.innerHTML = (tipo === 'girando' ? '<i data-lucide="loader-circle"></i>' : '') + `<span>${esc(txt)}</span>`; iconos(out); };
+    if (!/^(CA-?)?\d{3,}$/i.test(cons)) { pinta('Escribe el consecutivo de la venta, por ejemplo 2900 o CA2900.', 'error'); return; }
+    btn.disabled = true;
+    pinta('Consultando la base (solo lectura)…', 'girando');
+    try {
+      const datos = confirmacionDesdeBase(await leerBase(), cons);
+      if (!datos) { pinta(`No encontramos la venta ${cons.toUpperCase()} en la base. Revisa el consecutivo.`, 'error'); return; }
+      out.textContent = '';
+      const faltan = [];
+      if (datos.aereo.some(a => a.trayectos.some(t => !t.vuelo))) faltan.push('número de vuelo, fecha y horas de cada trayecto');
+      if (!datos.estado_pago) faltan.push('el estado de pago (la base no dice si ya se pagó todo: elige «Abono recibido» o «Pagado en su totalidad»)');
+      if (!datos.hoteles.length) faltan.push('hoteles, si los hay (la venta no tiene hoteles registrados)');
+      else faltan.push('el nombre y las fechas exactas de cada hotel');
+      if (!datos.asesor_telefono) faltan.push('tu teléfono');
+      abrirConvertido('confirmacion', datos, {
+        desde: `la venta ${cons.toUpperCase().replace(/^(\d)/, 'CA$1')} de la base`, pegar: 'Pegar la reserva para completar',
+        texto: `Trajimos de la base los pasajeros, las fechas, los tiquetes con su localizador, los servicios y los pagos con su estado. Revisa y completa lo que la base no tiene: ${faltan.join('; ')}. Puedes pegar la reserva del sistema y Claude lo suma.`,
+      });
+    } catch (err) {
+      const c = err?.code;
+      pinta(MENSAJES_BASE[c] || MENSAJES_MCP[c] || (c === 'tool_error' ? 'Composio respondió con un error al leer la base.' : 'No pudimos consultar la base. Inténtalo de nuevo.'), 'error');
     } finally { btn.disabled = false; }
   });
 

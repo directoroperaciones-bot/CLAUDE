@@ -262,6 +262,13 @@
   tr.exp-fila td { background:var(--coral-suave); padding:10px 18px; border-bottom:0; }
   tr.exp-fila .exp-cod { font-weight:700; color:var(--coral); margin-right:10px; }
   tr.exp-fila .exp-docs { color:var(--pizarra); font-size:13px; }
+  .desde-base { margin-bottom: 18px; }
+  .desde-base[hidden] { display: none; }
+  .base-fila { display: flex; gap: 10px; flex-wrap: wrap; }
+  .base-fila .campo { flex: 1 1 200px; }
+  .base-nota { margin: 6px 0 0; font-size: 13px; color: var(--pizarra); }
+  .base-o { display: flex; align-items: center; gap: 12px; margin: 18px 0 4px; color: var(--pizarra); font-size: 13px; }
+  .base-o::before, .base-o::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
 </style>
 
 <header class="top">
@@ -362,6 +369,16 @@
     <div class="etapa" id="paso-1">
       <div class="cols">
         <div class="papel bloque">
+          <div class="desde-base" id="desde-base" hidden>
+            <label class="lbl" for="base-cons">¿Ya está en la app de operación? Trae la venta con su consecutivo</label>
+            <div class="base-fila">
+              <input class="campo" id="base-cons" placeholder="Ej.: 2900 o CA2900" autocomplete="off" inputmode="text">
+              <button type="button" class="btn btn-pri" id="btn-base"><i data-lucide="download"></i>Traer de la base</button>
+            </div>
+            <p class="estado" id="estado-base" aria-live="polite"></p>
+            <p class="base-nota">Solo lectura: la app consulta la base, nunca la modifica.</p>
+            <div class="base-o"><span>o pega la información</span></div>
+          </div>
           <label class="lbl" for="pegado" id="pegado-lbl">Pega aquí la información</label>
           <textarea class="campo" id="pegado" spellcheck="false"></textarea>
           <div class="acciones">
