@@ -3202,29 +3202,77 @@ ${texto}
 
   // ================= base de operación (AppSheet → Google Sheets), SOLO LECTURA =================
   // La app consulta la hoja «NO BORRAR - DATOS HERRAMIETA» con la herramienta de lectura de Google Sheets
-  // a través de Composio. Nunca escribe: `leerBase` es la única función que toca la base y solo puede
+  // a través de Composio. Nunca escribe: `lecturaBase` es la única función que toca la base y solo puede
   // llamar a GOOGLESHEETS_BATCH_GET sobre esta hoja; no hay en el código ninguna llamada de escritura a ella.
   // De PASAJEROS solo se leen el id y el nombre (columnas A a C): nada de documentos ni datos personales.
   const BASE = { hoja: '1k32N3e4r5jS0iWvyPWsUGr6XLY7homB5sEhJIj9Bjbg', herramienta: 'GOOGLESHEETS_BATCH_GET' };
-  const RANGOS_BASE = ['PIPELINE!A1:AM2000', 'SERVICIOS!A1:AG5000', 'PASAJEROS!A1:C5000', 'CONTROL_PAGOS!A1:K5000',
-    'PROVEEDORES!A1:D1000', 'CLIENTES!A1:C1000', 'PANEL_DE_COSTEOS!A1:F1000', 'ASESORES!A1:B100'];
-  async function leerBase() {
+  // Composio devuelve los datos completos solo si la respuesta es corta (si es grande, la guarda en su espacio y
+  // entrega una muestra). Por eso la lectura va por pasos pequeños y trae solo las filas de la venta pedida.
+  async function lecturaBase(rangos) {
     if (!mcp) throw { code: 'sin_mcp' };
     const r = await mcp.callTool(COMPOSIO, 'COMPOSIO_MULTI_EXECUTE_TOOL', {
-      tools: [{ tool_slug: BASE.herramienta, arguments: { spreadsheet_id: BASE.hoja, ranges: RANGOS_BASE } }],
+      tools: [{ tool_slug: BASE.herramienta, arguments: { spreadsheet_id: BASE.hoja, ranges: rangos } }],
       sync_response_to_workbench: false, thought: 'Leer (solo lectura) la venta en la base de operación.', current_step: 'LEER_BASE',
     });
     let p = r?.payload;
     if (typeof p === 'string') { try { p = JSON.parse(p); } catch (_) {} }
     const res = p?.data?.results?.[0]?.response;
-    const rangos = res?.data?.valueRanges;
-    if (!res?.successful || !Array.isArray(rangos)) throw { code: 'no_leida', message: res?.error || p?.error || '' };
-    const tablas = {};
-    rangos.forEach((vr, i) => {
-      const nombre = RANGOS_BASE[i].split('!')[0], v = vr.values || [], h = (v[0] || []).map(x => String(x).trim());
-      tablas[nombre] = v.slice(1).filter(f => f && String(f[0] || '').trim()).map(f => Object.fromEntries(h.map((k, j) => [k, String(f[j] ?? '').trim()])));
-    });
-    return tablas;
+    if (res?.successful && !res.data && res.data_preview) throw { code: 'muy_grande' };
+    const vr = res?.data?.valueRanges;
+    if (!res?.successful || !Array.isArray(vr)) throw { code: 'no_leida', message: res?.error || p?.error || '' };
+    return vr.map(x => x.values || []);
+  }
+  // Une rangos de columnas de una misma hoja (cada uno con su fila de títulos) en filas con nombre de columna.
+  function tablaDe(partes, desdeFila = 1) {
+    const anchos = partes.map(pt => (pt[0] || []).length), titulos = partes.flatMap(pt => (pt[0] || []).map(x => String(x).trim()));
+    const n = Math.max(0, ...partes.map(pt => pt.length));
+    const filas = [];
+    for (let i = desdeFila; i < n; i++) {
+      const f = partes.flatMap((pt, j) => { const x = pt[i] || []; return Array.from({ length: anchos[j] }, (_, k) => String(x[k] ?? '').trim()); });
+      if (f.some(Boolean)) filas.push(Object.fromEntries(titulos.map((t, k) => [t, f[k]])));
+    }
+    return filas;
+  }
+  // Filas de la hoja (numeradas desde 1) cuyo valor en una columna leída está en el conjunto buscado.
+  const filasCon = (col, buscados) => col.map((f, i) => [i + 1, String((f || [])[0] ?? '').trim()]).filter(([n, v]) => n > 1 && buscados.has(v)).map(([n]) => n);
+  // Agrupa números de fila seguidos en tramos, de a lo sumo `max` filas cada uno.
+  function tramosDe(nums, max = 40) {
+    const t = [];
+    for (const n of [...nums].sort((a, b) => a - b)) { const u = t.at(-1); if (u && n === u[1] + 1 && n - u[0] < max) u[1] = n; else t.push([n, n]); }
+    return t;
+  }
+  // Lee de una hoja solo las filas indicadas y solo las columnas indicadas (con sus títulos).
+  async function filasDeHoja(hoja, columnas, nums) {
+    const tramos = tramosDe(nums);
+    const titulos = await lecturaBase(columnas.map(c => `${hoja}!${c[0]}1:${c[1]}1`));
+    const filas = [];
+    for (let i = 0; i < tramos.length; i += 3) { // pocos tramos por llamada, para que la respuesta sea corta
+      const grupo = tramos.slice(i, i + 3);
+      const vals = await lecturaBase(grupo.flatMap(([a, b]) => columnas.map(c => `${hoja}!${c[0]}${a}:${c[1]}${b}`)));
+      grupo.forEach((_, g) => filas.push(...tablaDe(columnas.map((_, k) => [titulos[k][0] || [], ...vals[g * columnas.length + k]]))));
+    }
+    return filas;
+  }
+  async function leerVentaDeBase(consecutivo, avance = () => {}) {
+    const num = String(consecutivo).toUpperCase().replace(/^CA-?/, '').trim();
+    avance('Buscando la venta…');
+    // 1) PIPELINE: solo las columnas que usa la confirmación.
+    const PL = await lecturaBase(['A', 'C', 'F', 'I:K', 'V', 'X', 'AB:AC', 'AG:AH'].map(c => { const [a, b = a] = c.split(':'); return `PIPELINE!${a}1:${b}3000`; }));
+    const venta = tablaDe(PL).find(v => String(v.Numero_Consecutivo).trim() === num || String(v.Codigo_Visual_VYE).toUpperCase() === 'CA' + num);
+    if (!venta) return null;
+    const idV = venta.ID_Venta;
+    avance('Leyendo servicios y pagos…');
+    // 2) Qué filas son de esta venta (solo se leen las columnas de códigos).
+    const [colSv, colPg, provs, planes, asesores] = await lecturaBase(['SERVICIOS!B1:B6000', 'CONTROL_PAGOS!B1:B6000', 'PROVEEDORES!A1:C1000', 'PANEL_DE_COSTEOS!A1:B1000', 'ASESORES!A1:B100']);
+    const ids = new Set([idV]);
+    const SERVICIOS = await filasDeHoja('SERVICIOS', [['A', 'H'], ['X', 'X'], ['AE', 'AE']], filasCon(colSv, ids));
+    const CONTROL_PAGOS = await filasDeHoja('CONTROL_PAGOS', [['B', 'F']], filasCon(colPg, ids));
+    // 3) Pasajeros: solo id y nombre de los de esta venta.
+    avance('Leyendo pasajeros…');
+    const idsPax = new Set([...String(venta.Pasajeros_Viajando || '').split(/\s*,\s*/), venta.Titular_Vacacional, ...SERVICIOS.map(x => x.ID_Pasajero)].filter(Boolean));
+    const [colPax] = await lecturaBase(['PASAJEROS!A1:A6000']);
+    const PASAJEROS = idsPax.size ? await filasDeHoja('PASAJEROS', [['A', 'C']], filasCon(colPax, idsPax)) : [];
+    return { PIPELINE: [venta], SERVICIOS, CONTROL_PAGOS, PASAJEROS, PROVEEDORES: tablaDe([provs]), PANEL_DE_COSTEOS: tablaDe([planes]), ASESORES: tablaDe([asesores]) };
   }
   const isoDeBase = f => { const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(f || ''); return m ? `${m[3]}-${dosDig(m[2])}-${dosDig(m[1])}` : (RE_ISO.test(f || '') ? f : ''); };
   const pesos = n => { const v = Math.round(Number(String(n).replace(/[^\d.-]/g, ''))); return Number.isFinite(v) && String(n).trim() ? '$' + v.toLocaleString('es-CO').replace(/,/g, '.') : ''; };
@@ -3294,6 +3342,7 @@ ${texto}
   const MENSAJES_BASE = {
     sin_mcp: 'Traer de la base funciona al abrir la app desde claude.ai con el conector Composio.',
     no_leida: 'No pudimos leer la base. Revisa que la cuenta de Google conectada en Composio tenga acceso a la hoja.',
+    muy_grande: 'La respuesta de la base llegó incompleta (demasiados datos en una sola consulta). Inténtalo de nuevo; si se repite, avísanos.',
   };
   $('#btn-base').addEventListener('click', async () => {
     const cons = $('#base-cons').value.trim(), out = $('#estado-base'), btn = $('#btn-base');
@@ -3302,7 +3351,8 @@ ${texto}
     btn.disabled = true;
     pinta('Consultando la base (solo lectura)…', 'girando');
     try {
-      const datos = confirmacionDesdeBase(await leerBase(), cons);
+      const tab = await leerVentaDeBase(cons, t => pinta(`${t} (solo lectura)`, 'girando'));
+      const datos = tab && confirmacionDesdeBase(tab, cons);
       if (!datos) { pinta(`No encontramos la venta ${cons.toUpperCase()} en la base. Revisa el consecutivo.`, 'error'); return; }
       out.textContent = '';
       const faltan = [];
