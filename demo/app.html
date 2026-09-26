@@ -157,6 +157,10 @@
   .subgrupo-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .subgrupo-head .lbl { margin: 0; color: var(--carbon); }
   .rejilla > .filas-wrap { grid-column: span 12; }
+  .rejilla > .filas-wrap + .filas-wrap { margin-top: 12px; }
+  input[type="file"].campo { padding: 9px 12px; font-size: 14px; color: var(--pizarra); }
+  .foto-vista:not(:empty) { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+  .foto-mini { width: 96px; height: 64px; border-radius: 10px; background-size: cover; background-position: center; box-shadow: var(--sombra-reposo); }
   .quitar { width: 44px; height: 46px; border-radius: 10px; border: 1px solid var(--hairline); background: var(--blanco); color: var(--pizarra); display: grid; place-items: center; cursor: pointer; }
   .quitar:hover { color: var(--coral); border-color: var(--coral); }
   .quitar svg { width: 18px; height: 18px; }
@@ -178,10 +182,6 @@
   .escala-in { transform-origin: top left; width: 1061px; }
   #doc-frame { width: 1061px; border: 0; display: block; background: transparent; }
 
-  /* próximamente */
-  .proximo { padding: 36px; max-width: 760px; margin-top: 28px; }
-  .proximo ul { margin: 14px 0 0; padding-left: 20px; }
-  .proximo li + li { margin-top: 6px; }
 
   .pie { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--hairline); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--pizarra); }
   .pie b { color: var(--carbon); font-weight: 600; }
@@ -312,20 +312,6 @@
       <div class="lienzo">
         <div class="escala" id="escala"><div class="escala-in" id="escala-in"><iframe id="doc-frame" title="Vista previa del documento"></iframe></div></div>
       </div>
-    </div>
-  </section>
-
-  <!-- ================= OTROS DOCUMENTOS ================= -->
-  <section id="v-proximo" hidden>
-    <button type="button" class="enlace volver" data-ir="inicio"><i data-lucide="arrow-left"></i>Inicio</button>
-    <span class="eyebrow" style="display:block;" id="px-eyebrow"></span>
-    <h1 class="display" id="px-titulo"></h1>
-    <div class="papel proximo">
-      <span class="tag tag-pronto">En la versión completa</span>
-      <p style="margin:16px 0 0;" id="px-texto"></p>
-      <p style="margin:16px 0 0;"><b style="color:var(--carbon);">Lo que te pedirá la app:</b></p>
-      <ul id="px-pide"></ul>
-      <div class="acciones"><button type="button" class="btn btn-sec" data-doc="cotizacion"><i data-lucide="file-text"></i>Probar la cotización</button></div>
     </div>
   </section>
 

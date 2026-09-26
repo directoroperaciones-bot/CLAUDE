@@ -8,6 +8,8 @@
   const ICONOS = "__ICONOS__";
   // Poppins Regular, Medium y Bold del plugin (fuentes/), incrustadas para que el documento mida igual que en el motor.
   const FUENTES = "__FUENTES__";
+  // Logos, estrella y degradado de protección del itinerario, por su ruta en la plantilla.
+  const RECURSOS = "__RECURSOS__";
 
   const ASESOR = { nombre: 'Andrea Gómez', correo: 'andrea@agenciacaminos.com.co', telefono: '+57 300 000 0000' };
 
@@ -232,7 +234,11 @@
   // tarjetas y listas repitiendo su encabezado, mantiene cada título con su primer elemento y,
   // si hace falta, abre una hoja de continuación con el mismo encabezado y pie.
   const ALTO_PAGINA = 1373;
-  function fluir(doc, { limite = 1178, etiqueta = null, pegarNota = false } = {}) {
+  // Los límites del motor (1178 px, y 1156 en la cotización) se miden sobre la tinta del PDF;
+  // aquí se mide la caja, que queda unos píxeles más abajo, así que se usan 6 px más.
+  const HOLGURA_CAJA = 6;
+  function fluir(doc, { limite: limiteMotor = 1178, etiqueta = null, pegarNota = false } = {}) {
+    const limite = limiteMotor + HOLGURA_CAJA;
     const esPol = p => !!p.querySelector('.pol-cols');
     const paginas = () => [...doc.querySelectorAll('section.page')];
     const raiz = p => (p.querySelector(':scope > .hdr') ? p : p.children[1]);
@@ -322,6 +328,258 @@
       if (c) c.textContent = c.textContent.replace(/· \d+ de \d+/, `· ${i + 1} de ${total}`);
     });
     return total;
+  }
+
+  // ================= motor: itinerario (skills/caminos-itinerario/scripts/generar.py + empaquetador.py) =================
+  // El plugin estima la altura de cada bloque y corrige midiendo el PDF. Aquí se mide cada bloque
+  // dibujándolo con la misma hoja de estilos, se apilan con el mismo repartidor y al final se
+  // verifica el documento completo; si una hoja se pasa, se reparte otra vez con más margen.
+  const TPL_IT = PLANTILLAS.itinerario;
+  const PIE_IT = /<!-- PIE_Y_FRANJA[^\n]*\n([\s\S]*?)\n-->/.exec(TPL_IT)[1];
+  const POL_IT = (() => { const i = TPL_IT.indexOf('<!-- ========== PÁGINA — INFORMACIÓN ADICIONAL'); return TPL_IT.slice(i, TPL_IT.indexOf('</section>', i) + 10); })();
+  const CSS_IT = TPL_IT.slice(TPL_IT.indexOf('<style>'), TPL_IT.indexOf('</style>') + 8);
+  const CHECK_IT = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  // El motor mide dónde termina la tinta en el PDF y exige que no pase de 1178 px (el pie
+  // empieza en 1184). Aquí se mide la caja de cada bloque, que siempre queda unos píxeles por
+  // debajo de la tinta, así que el límite equivalente es el inicio del pie.
+  const ALTO_HERO = 400, LIMITE = 1184;
+  const conRecursos = h => Object.entries(RECURSOS).reduce((a, [k, v]) => rep(a, k, v), h);
+  const cssFoto = url => `background-image:url('${url}');background-size:cover;background-position:center;`;
+  const pieIt = (doc, pag) => rep(rep(PIE_IT, 'CÓDIGO_DOCUMENTO', doc), 'N de TOTAL', pag);
+  const polIt = (cod, doc, pag) => rep(rep(rep(POL_IT, 'CÓDIGO_DOCUMENTO', doc), 'N de TOTAL', pag), 'CÓDIGO', cod);
+  const MES = m => MESES[m - 1];
+  const isoP = v => { const m = RE_ISO.exec(String(v || '')); return m ? [+m[1], +m[2], +m[3]] : null; };
+  const d2 = n => String(n).padStart(2, '0');
+  function rangoHero(a, b) {
+    const x = isoP(a), y = isoP(b);
+    if (!x || !y) return `${a} al ${b}`;
+    if (x.join() === y.join()) return `${d2(x[2])} de ${MES(x[1])} de ${x[0]}`;
+    if (x[0] !== y[0]) return `${d2(x[2])} de ${MES(x[1])} de ${x[0]} al ${d2(y[2])} de ${MES(y[1])} de ${y[0]}`;
+    if (x[1] !== y[1]) return `${d2(x[2])} de ${MES(x[1])} al ${d2(y[2])} de ${MES(y[1])} de ${y[0]}`;
+    return `${d2(x[2])} al ${d2(y[2])} de ${MES(y[1])} de ${y[0]}`;
+  }
+  const fechaDia = v => { const f = isoP(v); return f ? `${d2(f[2])} de ${MES(f[1])}` : e(v); };
+  const fechaVuelo = v => { const f = isoP(v); return f ? `${d2(f[2])}/${d2(f[1])}/${f[0]}` : e(v); };
+  const cabIt = (a, b) => `  <h2 class="blq">${a} <span style="color:#F25061;">${b}</span></h2>\n  <span class="dash" style="margin-top:14px;"></span>\n`;
+  function tarjetasFoto(items) {
+    return items.map(([url, titulo, sub], k) =>
+      `<div style="width:31.5%;margin-right:${k % 3 === 2 ? '0' : '2.75%'};margin-bottom:22px;">` +
+      `<div style="height:190px;border-radius:18px;overflow:hidden;box-shadow:0 12px 32px rgba(31,32,36,.14);${cssFoto(url)}"></div>` +
+      `<div style="margin-top:14px;font:600 17px/1.3 'Poppins',sans-serif;color:#1F2024;">${titulo}</div>` +
+      `<div style="margin-top:4px;font:400 14px/1.4 'Poppins',sans-serif;color:#7E859A;">${sub}</div></div>`);
+  }
+  const tagsHtml = tags => tags ? '<div class="dia-tags">' + tags.map(([t, hotel]) => `<span class="tag${hotel ? ' tag-hotel' : ''}">${t}</span>`).join('') + '</div>\n' : '';
+
+  // Constructores de bloque: {html, et} o, si se puede partir, {div, n, wrap(a, b, conCab), min, et, cab}.
+  const bIt = {
+    datos: campos => ({ et: 'Tu viaje', html: '<div style="display:flex;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid #E2E0DD;">' +
+      campos.map(([k, v]) => `<div style="width:50%;margin-bottom:18px;padding-right:20px;"><span class="meta-label">${k}</span><span class="meta-value">${v}</span></div>`).join('') + '</div>' }),
+    fotoDestino: (url, lugar) => ({ et: 'Tu viaje', html: `<div class="blq-sep" style="position:relative;height:230px;border-radius:18px;overflow:hidden;box-shadow:0 12px 32px rgba(31,32,36,.14);${cssFoto(url)}">` +
+      (lugar ? `<span style="position:absolute;left:24px;bottom:22px;display:inline-flex;align-items:center;background:rgba(255,255,255,.92);border-radius:999px;padding:9px 18px;font:600 13px/1 'Poppins',sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:#1F2024;">${lugar}</span>` : '') + '</div>' }),
+    bienvenida: t => ({ et: 'Tu viaje', html: `<div class="blq-sep">\n  <h2 class="blq">Te damos la <span style="color:#F25061;">bienvenida</span></h2>\n  <span class="dash" style="margin-top:14px;"></span>\n  <div style="margin-top:18px;font:400 17px/1.6 'Poppins',sans-serif;color:#3A3C42;">${t}</div>\n</div>` }),
+    frase: t => ({ et: 'Tu viaje', html: `<div class="blq-sep" style="padding:24px 30px;background:#FDE9EB;border-radius:26px;"><p style="margin:0;font:700 19px/1.45 'Poppins',sans-serif;color:#1F2024;">${t}</p></div>` }),
+    vuelos: (titulo, filas) => {
+      const fs = filas.map(f => `<tr><td style="padding:13px 16px;font:600 16px/1.45 'Poppins',sans-serif;color:#F25061">${f[0]}</td><td style="padding:13px 16px">${f[1]}</td>` +
+        `<td style="padding:13px 16px;font:600 16px/1.45 'Poppins',sans-serif;color:#1F2024">${f[2]}</td><td style="padding:13px 16px;font:600 16px/1.45 'Poppins',sans-serif;color:#1F2024">${f[3]}</td>` +
+        `<td style="padding:13px 16px">${f[4]}</td><td style="padding:13px 16px">${f[5]}</td></tr>`).join('');
+      return { et: 'Vuelos', html: `<div class="blq-sep">\n  <h2 class="blq">Vuelos <span style="color:#F25061;">${titulo}</span></h2>\n  <span class="dash" style="margin-top:14px;"></span>\n` +
+        `  <table style="margin-top:18px;">\n    <thead><tr><th style="width:110px;">Vuelo</th><th style="width:150px;">Fecha</th><th>Origen</th><th>Destino</th><th style="width:100px;">Sale</th><th style="width:150px;">Llega</th></tr></thead>\n    <tbody>${fs}</tbody>\n  </table>\n</div>` };
+    },
+    tituloDias: () => ({ et: 'Itinerario día a día', html: '<h2 class="blq" style="margin-top:30px;margin-bottom:22px;">Itinerario <span style="color:#F25061;">día a día</span></h2>' }),
+    dia(num, fechaTxt, titulo, texto, tags, foto) {
+      const cuerpo = `<div class="dia-head"><span class="dia-pill">Día ${num}</span><span class="dia-fecha">${fechaTxt}</span></div>\n    <h3 class="dia-titulo">${titulo}</h3>\n    <p class="dia-texto">${texto}</p>\n    ${tagsHtml(tags)}`;
+      if (!foto) return { et: 'Itinerario día a día', html: `<div class="dia">\n  ${cuerpo}</div>` };
+      return { et: 'Itinerario día a día', html: `<div class="dia">\n  <div style="display:flex;align-items:flex-start;">\n   <div style="flex:1;padding-right:28px;">\n    ${cuerpo}   </div>\n` +
+        `   <div style="width:300px;height:200px;flex:0 0 auto;border-radius:18px;overflow:hidden;box-shadow:0 12px 32px rgba(31,32,36,.14);${cssFoto(foto)}"></div>\n  </div>\n</div>` };
+    },
+    fotosHoteles(items) {
+      const tj = tarjetasFoto(items);
+      const filas = []; for (let i = 0; i < tj.length; i += 3) filas.push(tj.slice(i, i + 3).join(''));
+      return { div: true, n: filas.length, min: 1, et: 'Alojamiento',
+        wrap: (a, b, cc) => `<div class="blq-sep">\n${cc ? cabIt('Tus', 'hoteles') : ''}  <div style="display:flex;flex-wrap:wrap;margin-top:22px;">${filas.slice(a, b).join('')}</div>\n</div>` };
+    },
+    lista(ta, tb, items, check = true) {
+      const els = items.map(it => Array.isArray(it) ? `<div class="grupo-h">${it[1]}</div>`
+        : check ? `<div class="li2"><span class="bolita">${CHECK_IT}</span><span class="txt">${it}</span></div>`
+          : `<div class="li2"><span class="punto"></span><span class="txt" style="color:#3A3C42">${it}</span></div>`);
+      return { div: true, n: els.length, min: 4, et: 'Qué incluye tu viaje', cab: items.map(Array.isArray),
+        wrap: (a, b, cc) => `<div class="blq-sep">\n${cc ? cabIt(ta, tb) : ''}  <div class="lista2">${els.slice(a, b).join('')}</div>\n</div>` };
+    },
+    hoteles(filas) {
+      const fs = filas.map(f => `<tr><td style="padding:13px 16px;font:600 16px/1.4 'Poppins',sans-serif;color:#1F2024">${f[0]}</td><td style="padding:13px 16px">${f[1]}</td><td style="padding:13px 16px;font-size:15px">${f[2]}</td><td style="padding:13px 16px;font-size:15px">${f[3]}</td></tr>`);
+      const thead = '    <thead><tr><th>Hotel</th><th style="width:170px;">Ciudad</th><th style="width:330px;">Dirección</th><th style="width:180px;">Teléfono</th></tr></thead>\n';
+      return { div: true, n: fs.length, min: 2, et: 'Alojamiento',
+        wrap: (a, b, cc) => `<div class="blq-sep">\n${cc ? cabIt('Hoteles', 'confirmados') : ''}  <table style="margin-top:18px;">\n${thead}    <tbody>${fs.slice(a, b).join('')}</tbody>\n  </table>\n</div>` };
+    },
+    recom(grupos) {
+      const gs = grupos.map(([t, items]) => `<div class="rec-grupo"><p class="rec-h">${t}</p>${items.map(x => `<div class="rec-item"><span class="punto"></span><span class="t">${x}</span></div>`).join('')}</div>`);
+      return { div: true, n: gs.length, min: 2, et: 'Antes de viajar',
+        wrap: (a, b, cc) => `<div class="blq-sep">\n${cc ? cabIt('Recomendaciones', 'del viaje') : ''}  <div class="rec-grid">${gs.slice(a, b).join('')}</div>\n</div>` };
+    },
+    nota: t => ({ et: null, html: `<div class="nota" style="margin-top:20px;padding:20px 28px;"><span style="font-size:15px;">${t}</span></div>` }),
+  };
+  function heroIt(sub, titulo, fechas, foto) {
+    let h = `<div style="position:relative;height:400px;overflow:hidden;background:#F25061;">\n  <img src="../assets/brand/estrella-crema.svg" style="position:absolute;right:-117px;top:-104px;height:416px;opacity:.10;">\n` +
+      `  <div style="position:absolute;top:42px;left:68px;right:68px;display:flex;align-items:center;justify-content:space-between;">\n    <img src="../assets/logos/caminos-logo-white.svg" alt="Caminos" style="height:46px;">\n` +
+      `    <span style="display:inline-flex;align-items:center;background:rgba(255,255,255,.92);border-radius:999px;padding:11px 23px;font:600 14px/1 'Poppins',sans-serif;letter-spacing:0.16em;text-transform:uppercase;color:#1F2024;">Itinerario de viaje</span>\n` +
+      `  </div>\n  <div style="position:absolute;left:68px;right:68px;bottom:38px;">\n    <span style="font:600 14px/1.3 'Poppins',sans-serif;letter-spacing:0.16em;text-transform:uppercase;color:#FFFFFF;">${sub}</span>\n` +
+      `    <h1 style="margin:16px 0 0;font:700 48px/1.06 'Poppins',sans-serif;letter-spacing:-0.02em;color:#FFFFFF;">${titulo}</h1>\n` +
+      `    <span style="display:inline-flex;align-items:center;margin-top:18px;background:rgba(255,255,255,.18);border-radius:999px;padding:10px 22px;font:700 17px/1 'Poppins',sans-serif;color:#FFFFFF;">${fechas}</span>\n  </div>\n</div>`;
+    if (foto) {
+      // Portada con foto: el degradado de protección reemplaza la estrella (que no va sobre la foto).
+      h = h.replace(/<img src="\.\.\/assets\/brand\/estrella-crema\.svg"[^>]*>/, () =>
+        `<div style="position:absolute;left:0;top:0;right:0;bottom:0;${cssFoto(foto)}"></div>\n    <img src="proteccion.png" style="position:absolute;left:0;bottom:0;width:100%;height:${ALTO_HERO}px;">`);
+      h = h.replace('background:#F25061;', 'background:#1F2024;');
+    }
+    return h;
+  }
+  function bloquesIt(d) {
+    const out = [];
+    const campos = [['Grupo', 'grupo'], ['Acompañamiento espiritual', 'acompanamiento'], ['Pasajero', 'pasajero'], ['Acomodación', 'acomodacion']]
+      .filter(([, k]) => !vacio(d[k])).map(([n, k]) => [n, e(d[k])]);
+    out.push(bIt.datos(campos));
+    if (d.foto_portada && d.estilo_foto === 'cuerpo') out.push(bIt.fotoDestino(d.foto_portada, e(d.destino || '')));
+    if (!vacio(d.bienvenida)) out.push(bIt.bienvenida(String(d.bienvenida).trim().split(/\n\s*\n/).filter(p => p.trim()).map(e).join('<br><br>')));
+    if (!vacio(d.frase)) out.push(bIt.frase(e(d.frase)));
+    for (const [k, t] of [['vuelos', 'confirmados'], ['vuelos_internos', 'internos']]) {
+      const filas = (d[k] || []).filter(v => !vacio(v.vuelo) || !vacio(v.origen)).map(v => [e(v.vuelo), fechaVuelo(v.fecha), e(v.origen), e(v.destino), e(v.sale), e(v.llega)]);
+      if (filas.length) out.push(bIt.vuelos(t, filas));
+    }
+    out.push(bIt.tituloDias());
+    (d.dias || []).filter(x => !vacio(x.titulo) || !vacio(x.descripcion)).forEach((x, i) => {
+      const tags = [...(x.comidas || []), ...(x.etiquetas || [])].filter(t => !vacio(t)).map(t => [e(t), false]);
+      if (!vacio(x.hotel)) tags.push([e(x.hotel), true]);
+      const num = x.dia || i + 1;
+      out.push(bIt.dia(/^\d+$/.test(String(num)) ? d2(+num) : e(num), fechaDia(x.fecha), e(x.titulo || ''), e(x.descripcion || ''), tags.length ? tags : null, x.foto));
+    });
+    const lista = items => items.flatMap(it => (it && typeof it === 'object' && !vacio(it.grupo)) ? [['g', e(it.grupo)], ...(it.items || []).filter(z => !vacio(z)).map(e)] : typeof it === 'string' && !vacio(it) ? [e(it)] : []);
+    const inc = lista(d.incluye || []), noinc = lista(d.no_incluye || []);
+    if (inc.length) out.push(bIt.lista('El precio', 'incluye', inc));
+    if (noinc.length) out.push(bIt.lista('El precio', 'no incluye', noinc, false));
+    const hs = (d.hoteles || []).filter(h => !vacio(h.nombre));
+    const fotosH = hs.filter(h => h.foto).map(h => [h.foto, e(h.nombre), e(h.ciudad || '')]);
+    if (fotosH.length) out.push(bIt.fotosHoteles(fotosH));
+    if (hs.length) out.push(bIt.hoteles(hs.map(h => [e(h.nombre), e(h.ciudad), e(h.direccion), e(h.telefono)])));
+    const rec = (d.recomendaciones || []).filter(r => !vacio(r.tema)).map(r => [e(r.tema), (r.items || []).filter(z => !vacio(z)).map(e)]).filter(r => r[1].length);
+    if (rec.length) out.push(bIt.recom(rec));
+    if (!vacio(d.nota)) out.push(bIt.nota(e(d.nota)));
+    return out;
+  }
+  // Repartidor: puerto directo de empaquetar(), con alturas medidas en vez de estimadas.
+  function empaquetar(bloques, altoDe, finDe, alto1, altoC) {
+    const paginas = [];
+    let actual = [], usado = 0, etiqueta = null, primera = true;
+    const cerrar = () => { paginas.push([actual, etiqueta, primera]); actual = []; usado = 0; etiqueta = null; primera = false; };
+    const cola = [...bloques];
+    while (cola.length) {
+      const b = cola.shift();
+      let limite = primera ? alto1 : altoC;
+      if (b.div) {
+        const cc = !b.parcial, libre = limite - usado;
+        const alto = k => altoDe(b.wrap(0, k, cc));
+        let k = 0;
+        while (k < b.n && finDe(b.wrap(0, k + 1, cc)) <= libre) k++;
+        while (b.cab && k > 0 && k < b.n && b.cab[k - 1]) k--; // un subtítulo de grupo nunca queda solo
+        if (k >= b.min || (k === b.n && k > 0)) {
+          etiqueta ??= b.et;
+          actual.push(b.wrap(0, k, cc));
+          usado += alto(k);
+          if (k < b.n) {
+            const w = b.wrap, kk = k;
+            cola.unshift({ ...b, parcial: true, n: b.n - k, cab: b.cab ? b.cab.slice(k) : null, wrap: (x, y, c) => w(kk + x, kk + y, c) });
+            cerrar();
+          }
+          continue;
+        }
+        if (actual.length) { cerrar(); cola.unshift(b); continue; }
+        actual.push(b.wrap(0, b.n, cc)); usado += alto(b.n); etiqueta ??= b.et; // hoja vacía y aun así no cabe: se fuerza
+        continue;
+      }
+      const alto = altoDe(b.html);
+      // Un título de sección nunca queda solo al final de la hoja: pasa con el bloque que sigue.
+      if (b.html.trimStart().startsWith('<h2 class="blq"') && cola.length && actual.length) {
+        const sig = cola[0];
+        const finSig = sig.div ? finDe(sig.wrap(0, 1, true)) : finDe(sig.html);
+        if (usado + alto + finSig > limite) { cerrar(); limite = altoC; }
+      }
+      // El margen inferior del último bloque de la hoja no ocupa espacio visible.
+      if (usado + finDe(b.html) > limite && actual.length) cerrar();
+      if (etiqueta == null && b.et) etiqueta = b.et;
+      actual.push(b.html); usado += alto;
+    }
+    if (actual.length) paginas.push([actual, etiqueta, primera]);
+    return paginas;
+  }
+  function documentoIt(hero, paginas, codigo, codDoc) {
+    const total = paginas.length + 1;
+    const hojas = paginas.map(([bls, etq, esPrimera], i) => {
+      const cuerpo = bls.join('\n').replace(/^(<div) class="blq-sep"/, '$1');
+      const pie = pieIt(codDoc, `${i + 1} de ${total}`);
+      return esPrimera
+        ? `<section class="page">\n${hero}\n  <div class="cont cont-top">\n${cuerpo}\n  </div>\n\n${pie}\n</section>`
+        : `<section class="page" style="padding-top:57px;">\n  <div class="cont">\n    <div class="hdr">\n      <img src="../assets/logos/caminos-logo-coral.svg" alt="Caminos">\n      <span class="hdr-sep"></span>\n      <span class="eyebrow">${etq || 'Itinerario'}</span>\n      <span class="eyebrow" style="margin-left:auto;font-weight:400;">${codigo}</span>\n    </div>\n    <div class="rule"></div>\n    <div style="margin-top:28px;">\n${cuerpo}\n    </div>\n  </div>\n\n${pie}\n</section>`;
+    });
+    return conRecursos(`<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n${CSS_IT}\n</head>\n<body>\n\n${hojas.join('\n\n')}\n\n${polIt(codigo, codDoc, `${total} de ${total}`)}\n\n</body>\n</html>\n`);
+  }
+  // Iframe oculto para medir con las mismas fuentes y estilos del documento.
+  function iframeMedidor(html) {
+    return new Promise(res => {
+      const f = document.createElement('iframe');
+      f.setAttribute('aria-hidden', 'true');
+      f.style.cssText = 'position:absolute;left:-20000px;top:0;width:1061px;height:1400px;border:0;visibility:hidden;';
+      // El contenido va antes de insertar el iframe: si no, el primer "load" es el del
+      // documento en blanco inicial y se mediría una hoja vacía y sin estilos.
+      f.srcdoc = html;
+      f.onload = async () => { try { await Promise.race([f.contentDocument.fonts.ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {} res(f); };
+      document.body.append(f);
+    });
+  }
+  const conFuentes = h => h.replace('<head>', `<head><style>${FUENTES}</style>`);
+  async function armarItinerario(d) {
+    const titulo = String(d.titulo).split('\n').map(e).join('<br>');
+    const hero = heroIt(e(d.subtitulo || ''), titulo, rangoHero(d.fecha_inicio, d.fecha_fin), d.estilo_foto !== 'cuerpo' ? d.foto_portada : null);
+    const codigo = String(d.codigo).trim();
+    const codDoc = codigoDocumento(codigo, 'CAM-ITI');
+    const bloques = bloquesIt(d);
+    const med = await iframeMedidor(conFuentes(conRecursos(`<!DOCTYPE html><html><head><meta charset="utf-8">${CSS_IT}</head><body></body></html>`)));
+    try {
+      const md = med.contentDocument;
+      // Alto útil real de cada tipo de hoja: del inicio del contenido al límite del pie.
+      md.body.innerHTML = conRecursos(`<section class="page">${heroIt('', '', '', null)}<div class="cont cont-top"><i id="a"></i></div></section>` +
+        `<section class="page" style="padding-top:57px;"><div class="cont"><div class="hdr"><img src="../assets/logos/caminos-logo-coral.svg" alt=""><span class="hdr-sep"></span><span class="eyebrow">x</span></div><div class="rule"></div><div style="margin-top:28px;"><i id="b"></i></div></div></section>`);
+      const [p1, p2] = md.querySelectorAll('section.page');
+      let alto1 = LIMITE - (md.getElementById('a').getBoundingClientRect().top - p1.getBoundingClientRect().top);
+      let altoC = LIMITE - (md.getElementById('b').getBoundingClientRect().top - p2.getBoundingClientRect().top);
+      // Altura de cada bloque dibujado en una columna del ancho del contenido (con sus márgenes).
+      md.body.innerHTML = '<div class="cont" id="m"></div>';
+      const caja = md.getElementById('m'), cache = new Map();
+      const medir = h => {
+        if (!cache.has(h)) {
+          caja.innerHTML = `<div style="display:flow-root">${conRecursos(h)}</div>`;
+          const w = caja.firstChild, ult = w.lastElementChild;
+          const total = w.getBoundingClientRect().height;
+          const mb = ult ? parseFloat(md.defaultView.getComputedStyle(ult).marginBottom) || 0 : 0;
+          cache.set(h, [Math.ceil(total), Math.ceil(total - mb)]);
+        }
+        return cache.get(h);
+      };
+      const altoDe = h => medir(h)[0], finDe = h => medir(h)[1];
+      let html = '';
+      for (let vuelta = 0; vuelta < 8; vuelta++) {
+        html = documentoIt(hero, empaquetar(bloques, altoDe, finDe, alto1, altoC), codigo, codDoc);
+        // Verificación con el documento completo, como hace el motor con el PDF.
+        const v = await iframeMedidor(conFuentes(html));
+        const hojas = [...v.contentDocument.querySelectorAll('section.page')].slice(0, -1);
+        const malos = hojas.map((p, i) => {
+          const c = p.querySelector('.cont-top') || p.querySelector('.cont > div[style*="margin-top:28px"]');
+          return [i, Math.ceil(c.getBoundingClientRect().bottom - p.getBoundingClientRect().top) - LIMITE];
+        }).filter(([, px]) => px > 0);
+        v.remove();
+        if (!malos.length) break;
+        for (const [i, px] of malos) { if (i === 0) alto1 -= px + 12; else altoC -= px + 12; }
+      }
+      return html;
+    } finally { med.remove(); }
   }
 
   // ================= formularios (se arman a partir de un esquema) =================
@@ -511,30 +769,166 @@ El voucher no es reembolsable ni transferible.`,
 - "instrucciones" y "condiciones": redacta en tono cercano, con "tú", lo que dice el texto.`,
     },
   };
+  // Itinerario largo y corto: mismo motor y misma plantilla; el corto no lleva frase, vuelos ni hoteles.
+  const COLS_VUELO = [T('vuelo', 'Vuelo', 0.9), D('fecha', 'Fecha', 1.3), T('origen', 'Origen', 1.2), T('destino', 'Destino', 1.2), T('sale', 'Sale', 0.8), T('llega', 'Llega', 1)];
+  const gruposItinerario = largo => [
+    { t: 'El viaje', sub: 'Lo que va en la portada.', icono: 'map', campos: [
+      T('codigo', 'Código', 4, { req: 1 }), A('titulo', 'Título del viaje', 8, { req: 1, filas: 2, ayuda: 'Usa un salto de línea para partirlo en dos renglones.' }),
+      T('subtitulo', 'Subtítulo', 4, { ph: 'Viaje de fe 2026' }), T('destino', 'Destino principal', 4), T('pasajero', 'Pasajero o grupo', 4, { req: 1 }),
+      D('fecha_inicio', 'Inicio', 4, { req: 1 }), D('fecha_fin', 'Fin', 4, { req: 1 }), T('acomodacion', 'Acomodación', 4),
+      T('grupo', 'Grupo', 6), T('acompanamiento', 'Acompañamiento espiritual', 6),
+      { k: 'foto_portada', label: 'Foto de portada (opcional)', w: 12, tipo: 'foto', ayuda: 'Va en el encabezado, con el degradado de protección. Sin foto, la portada queda coral.' }] },
+    { t: 'Bienvenida', sub: 'El primer texto que lee el viajero.', icono: 'sparkles', campos: [
+      A('bienvenida', 'Bienvenida', 12, { filas: 4 }), ...(largo ? [A('frase', 'Frase destacada', 12, { filas: 2 })] : [])] },
+    ...(largo ? [{ t: 'Vuelos', sub: 'Internacionales e internos. Si no hay, la sección no aparece.', icono: 'ticket', campos: [
+      { tipo: 'filas', k: 'vuelos', titulo: 'Vuelos confirmados', mas: 'Agregar vuelo', min: 0, cols: COLS_VUELO },
+      { tipo: 'filas', k: 'vuelos_internos', titulo: 'Vuelos internos', mas: 'Agregar vuelo interno', min: 0, cols: COLS_VUELO }] }] : []),
+    { t: 'Día a día', sub: 'Un bloque por día. Un día nunca se parte entre dos hojas.', icono: 'route', campos: [
+      { tipo: 'bloques', k: 'dias', req: 1, titulo: 'Día', numerar: true, mas: 'Agregar día', campos: [
+        D('fecha', 'Fecha', 4), T('titulo', 'Título del día', 8), A('descripcion', 'Qué hacemos', 12, { filas: 3 }),
+        { k: 'comidas', label: 'Comidas incluidas', w: 4, tipo: 'coma', ph: 'Desayuno, Almuerzo' }, { k: 'etiquetas', label: 'Etiquetas', w: 4, tipo: 'coma', ph: 'Noche a bordo' },
+        T('hotel', 'Hotel de esa noche', 4), { k: 'foto', label: 'Foto del día (opcional)', w: 12, tipo: 'foto', max: 900 }] }] },
+    { t: 'Qué incluye', sub: 'Un renglón por ítem. Empieza un renglón con # para poner un subtítulo de grupo.', icono: 'badge-check', campos: [
+      L('incluye', 'Incluye', 6, { grupos: true }), L('no_incluye', 'No incluye', 6, { grupos: true })] },
+    ...(largo ? [{ t: 'Hoteles', sub: 'Los hoteles confirmados. Con foto, salen también en tarjetas.', icono: 'building-2', campos: [
+      { tipo: 'bloques', k: 'hoteles', titulo: 'Hotel', numerar: true, mas: 'Agregar hotel', min: 0, campos: [
+        T('nombre', 'Nombre', 6), T('ciudad', 'Ciudad', 6), T('direccion', 'Dirección', 8), T('telefono', 'Teléfono', 4),
+        { k: 'foto', label: 'Foto (opcional)', w: 12, tipo: 'foto', max: 900 }] }] }] : []),
+    { t: 'Antes de viajar', sub: 'Recomendaciones por tema y una nota final.', icono: 'file-text', campos: [
+      { tipo: 'bloques', k: 'recomendaciones', titulo: 'Tema', mas: 'Agregar tema', min: 0, campos: [T('tema', 'Tema', 12), L('items', 'Recomendaciones (una por renglón)', 12, { filas: 4 })] },
+      A('nota', 'Nota final', 12, { filas: 2 })] },
+  ];
+  const baseItinerario = {
+    archivo: 'Itinerario', codigo: d => d.codigo, tituloDe: d => String(d.titulo || '').replace(/\s*\n\s*/g, ' '), clienteDe: d => d.grupo || d.pasajero,
+    armar: armarItinerario, flujo: null,
+    validar(d) {
+      const f = [];
+      [['codigo', 'Código del itinerario'], ['titulo', 'Título del viaje'], ['fecha_inicio', 'Fecha de inicio'], ['fecha_fin', 'Fecha de fin'], ['pasajero', 'Pasajero o grupo']]
+        .forEach(([k, n]) => { if (vacio(d[k])) f.push([k, n]); });
+      if (!(d.dias || []).some(x => !vacio(x.titulo) || !vacio(x.descripcion))) f.push(['dias', 'Al menos un día del recorrido']);
+      return f;
+    },
+    preparar: d => ({ ...d, codigo: vacio(d.codigo) ? 'CA' + Math.floor(1000 + Math.random() * 9000) : d.codigo }),
+    meta: d => `Del ${rangoHero(d.fecha_inicio, d.fecha_fin)}`,
+    ayuda: ['El programa día por día (sirve el texto del Word del proveedor)', 'Vuelos, hoteles, qué incluye y qué no', 'Recomendaciones para el viajero'],
+    reglasBase: `- "titulo": usa \n para partirlo en dos renglones, por ejemplo "Peregrinación a\nFátima y Lourdes".
+- "descripcion" de cada día en dos o tres líneas, en primera persona del plural ("salimos", "visitamos"). Conserva todos los datos: lugares, horas y detalles. No agregues lugares ni actividades.
+- "comidas": solo las incluidas ("Desayuno", "Almuerzo", "Cena"). "hotel": el hotel de esa noche, si lo hay.
+- "incluye" y "no_incluye": frases cortas; si el texto agrupa ítems, usa {"grupo": "...", "items": [...]}.
+- "recomendaciones": lista de {"tema", "items"}. "nota": un aviso final corto, solo si lo hay.
+- "codigo": solo si el texto trae uno.`,
+  };
+  DOCS.itinerario = {
+    ...baseItinerario, nombre: 'Itinerario', titulo: 'Nuevo <span class="c">itinerario</span>', eyebrow: 'Itinerario de viaje', icono: 'route',
+    desc: 'El día a día del viaje, con vuelos, hoteles, fotos y recomendaciones.', hojas: 'Hojas según el viaje', boton: 'Generar el itinerario',
+    pegar: 'Pega aquí el programa del viaje', grupos: gruposItinerario(true),
+    forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","frase":"","vuelos":[{"vuelo":"","fecha":"","origen":"","destino":"","sale":"","llega":""}],"vuelos_internos":[],"dias":[{"fecha":"","titulo":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"hoteles":[{"nombre":"","ciudad":"","direccion":"","telefono":""}],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
+    reglas: baseItinerario.reglasBase + `
+- "frase": una frase destacada del viaje, solo si el texto la trae.
+- "llega" de un vuelo que aterriza otro día: la hora y la fecha, por ejemplo "15:00 05/09".`,
+    ejemploTexto: `Itinerario para el grupo de la Parroquia Nuestra Señora de Lourdes, peregrinación a Fátima y Santiago de Compostela, del 10 al 16 de mayo de 2027. Código CA4410. Acompaña el Pbro. Andrés Salazar. Pasajera: Marta Lucía Gómez, acomodación doble.
+
+Vuelos: IB6584 10 de mayo Bogotá - Madrid sale 16:05 llega 08:35 del 11/05. TP1017 11 de mayo Madrid - Lisboa sale 11:10 llega 11:25. IB6585 16 de mayo Madrid - Bogotá sale 12:05 llega 15:20.
+
+Día 1 (10 de mayo): encuentro en la parroquia y traslado al aeropuerto El Dorado. Noche a bordo.
+Día 2 (11 de mayo): llegada a Lisboa, visita a la iglesia de San Antonio y traslado a Fátima. Cena. Hotel Santa Maria.
+Día 3 (12 de mayo): misa en la Capilla de las Apariciones, visita a Aljustrel y rosario de las velas en la noche. Desayuno y cena. Hotel Santa Maria.
+Día 4 (13 de mayo): peregrinación del 13 de mayo en el santuario y salida hacia Santiago de Compostela. Desayuno y cena. Hotel San Francisco.
+Día 5 (14 de mayo): misa del peregrino en la catedral y recorrido por el casco antiguo. Desayuno y cena. Hotel San Francisco.
+Día 6 (15 de mayo): tren a Madrid, tarde libre. Desayuno. Hotel Catalonia Gran Vía.
+Día 7 (16 de mayo): traslado al aeropuerto y regreso a Bogotá. Desayuno.
+
+Incluye: tiquetes internacionales con equipaje de 23 kg, hoteles con desayuno, 4 cenas, bus privado, guía en español, tren Santiago - Madrid, seguro médico.
+No incluye: almuerzos, propinas, gastos personales.
+Hoteles: Hotel Santa Maria, Fátima, Rua de Santo António 9. Hotel San Francisco, Santiago de Compostela, Campillo San Francisco 3. Hotel Catalonia Gran Vía, Madrid, Gran Vía 7.
+Recomendaciones: llevar pasaporte vigente y copia; zapatos cómodos para caminar; ropa abrigada para las noches en Fátima.`,
+  };
+  DOCS.itinerario_corto = {
+    ...baseItinerario, nombre: 'Itinerario corto', titulo: 'Nuevo <span class="c">itinerario corto</span>', eyebrow: 'Itinerario corto', icono: 'map',
+    desc: 'Para pasadías y viajes de uno a cuatro días, por lo general terrestres.', hojas: '2 hojas', boton: 'Generar el itinerario',
+    pegar: 'Pega aquí el plan del viaje', grupos: gruposItinerario(false),
+    forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","dias":[{"fecha":"","titulo":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
+    reglas: baseItinerario.reglasBase + `
+- Es un viaje corto (1 a 4 días): no lleva vuelos, hoteles ni frase destacada. Si es pasadía, "fecha_inicio" y "fecha_fin" son iguales.`,
+    ejemploTexto: `Pasadía a Monserrate con el grupo de oración de la Parroquia San Pedro Claver, el sábado 20 de marzo de 2027. Código CA5120. Responsable: Carolina Méndez. Acompaña el Pbro. Felipe Rojas.
+
+Salimos a las 6:30 AM desde la parroquia en bus, subimos en teleférico, misa a las 9:00 AM en el santuario del Señor Caído, luego viacrucis por el sendero y almuerzo en el restaurante Casa Santa Clara. Regreso a la parroquia a las 4:00 PM.
+
+Incluye: transporte, tiquetes de teleférico ida y regreso, almuerzo, seguro de asistencia.
+No incluye: gastos personales.
+Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, llevar el documento de identidad.`,
+  };
   DOCS.voucher.preparar = d => ({
     ...d,
     tipo: ['hotel', 'aereo', 'traslado'].includes(d.tipo) ? d.tipo : 'hotel',
     codigo_voucher: vacio(d.codigo_voucher) ? `CAM-VCH-${Math.floor(1000 + Math.random() * 9000)}-01` : d.codigo_voucher,
   });
 
-  const PRONTO = [
-    { id: 'itinerario', nombre: 'Itinerario', icono: 'route', desc: 'El día a día del viaje, con fotos, hoteles y recomendaciones.', hojas: 'Hojas variables',
-      pide: ['El programa día por día (sirve el Word del proveedor)', 'Vuelos y hoteles', 'Fotos de los días, si las tienes'] },
-    { id: 'itinerario-corto', nombre: 'Itinerario corto', icono: 'map', desc: 'Para pasadías y viajes de uno o dos días.', hojas: '2 hojas',
-      pide: ['Horarios del día', 'Punto de encuentro', 'Qué incluye'] },
-  ];
 
   // Cada nodo del esquema se vuelve {el, leer()}; así el formulario se lee igual que se dibuja.
+  // Listas de un renglón por ítem. Un renglón que empieza con "#" es un subtítulo de grupo
+  // (en el itinerario: {grupo, items}).
+  const listaATexto = v => (Array.isArray(v) ? v.flatMap(x => (x && typeof x === 'object') ? ['# ' + (x.grupo || ''), ...(x.items || [])] : [x]).join('\n') : v || '');
+  function textoALista(t, grupos) {
+    const out = [];
+    for (const l of t.split('\n').map(x => x.trim()).filter(Boolean)) {
+      if (grupos && l.startsWith('#')) out.push({ grupo: l.replace(/^#+\s*/, ''), items: [] });
+      else {
+        const item = l.replace(/^[-•*]\s*/, '');
+        const ult = out.at(-1);
+        if (grupos && ult && typeof ult === 'object') ult.items.push(item); else out.push(item);
+      }
+    }
+    return out;
+  }
+  // Foto: se reduce en el navegador (como preparar_foto del motor) y se guarda como data URL.
+  function campoFoto(spec, valor, div, id) {
+    let url = valor || '';
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/*'; input.id = id; input.className = 'campo';
+    const vista = document.createElement('div');
+    vista.className = 'foto-vista';
+    const pintar = () => {
+      vista.innerHTML = url ? `<span class="foto-mini" style="background-image:url('${url}')"></span><button type="button" class="enlace">Quitar foto</button>` : '';
+      vista.querySelector('.enlace')?.addEventListener('click', () => { url = ''; input.value = ''; pintar(); });
+    };
+    input.addEventListener('change', () => {
+      const f = input.files?.[0];
+      if (!f) return;
+      const img = new Image();
+      const blobUrl = URL.createObjectURL(f);
+      img.onload = () => {
+        const max = spec.max || 1600, k = Math.min(1, max / img.naturalWidth);
+        const cv = document.createElement('canvas');
+        cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        url = cv.toDataURL('image/jpeg', 0.85);
+        URL.revokeObjectURL(blobUrl);
+        pintar();
+      };
+      img.onerror = () => { URL.revokeObjectURL(blobUrl); vista.innerHTML = '<span class="ayudita">No pudimos abrir esa imagen. Si es HEIC, conviértela a JPG o PNG.</span>'; };
+      img.src = blobUrl;
+    });
+    div.append(input, vista);
+    pintar();
+    return { el: div, leer: () => url, input };
+  }
   function campo(spec, valor) {
     const id = 'f-' + Math.random().toString(36).slice(2, 9);
     const div = document.createElement('div');
     if (spec.w) div.className = 's' + spec.w;
     if (spec.req) div.dataset.req = spec.k;
+    if (spec.tipo === 'foto') {
+      div.innerHTML = `<label class="lbl" for="${id}">${esc(spec.label)}</label>`;
+      const n = campoFoto(spec, valor, div, id);
+      if (spec.ayuda) div.insertAdjacentHTML('beforeend', `<p class="ayudita">${esc(spec.ayuda)}</p>`);
+      return n;
+    }
     let input;
     if (spec.tipo === 'area' || spec.tipo === 'lineas') {
       input = document.createElement('textarea');
       input.rows = spec.filas || (spec.tipo === 'lineas' ? 7 : 3);
-      input.value = spec.tipo === 'lineas' ? (Array.isArray(valor) ? valor.join('\n') : valor || '') : valor || '';
+      input.value = spec.tipo === 'lineas' ? listaATexto(valor) : valor || '';
     } else if (spec.tipo === 'opciones') {
       input = document.createElement('select');
       input.innerHTML = spec.opciones.map(([v, n]) => `<option value="${v}">${esc(n)}</option>`).join('');
@@ -542,7 +936,7 @@ El voucher no es reembolsable ni transferible.`,
     } else {
       input = document.createElement('input');
       if (spec.tipo === 'fecha') { input.type = 'date'; input.value = RE_ISO.test(valor || '') ? String(valor).trim().replace(/-(\d)(?!\d)/g, '-0$1') : ''; }
-      else input.value = valor || '';
+      else input.value = spec.tipo === 'coma' ? (Array.isArray(valor) ? valor.join(', ') : valor || '') : valor || '';
       if (spec.ph) input.placeholder = spec.ph;
     }
     input.className = 'campo';
@@ -551,7 +945,8 @@ El voucher no es reembolsable ni transferible.`,
     div.innerHTML = `<label class="lbl" for="${id}">${esc(spec.label)}</label>`;
     div.append(input);
     if (spec.ayuda) div.insertAdjacentHTML('beforeend', `<p class="ayudita">${esc(spec.ayuda)}</p>`);
-    const leer = () => spec.tipo === 'lineas' ? input.value.split('\n').map(x => x.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean) : input.value.trim();
+    const leer = () => spec.tipo === 'lineas' ? textoALista(input.value, spec.grupos)
+      : spec.tipo === 'coma' ? input.value.split(',').map(x => x.trim()).filter(Boolean) : input.value.trim();
     return { el: div, leer, input };
   }
   function filas(spec, valores) {
@@ -583,6 +978,7 @@ El voucher no es reembolsable ni transferible.`,
     mas.type = 'button'; mas.className = 'btn btn-txt mas';
     mas.innerHTML = `<i data-lucide="plus"></i>${esc(spec.mas)}`;
     mas.addEventListener('click', () => agregar());
+    if (spec.titulo) wrap.insertAdjacentHTML('afterbegin', `<span class="lbl" style="color:var(--carbon);margin-bottom:12px;">${esc(spec.titulo)}</span>`);
     wrap.append(lista, mas);
     iconos(wrap);
     return { el: wrap, leer: () => items.filter(i => i.vivo).map(i => i.leer()).filter(v => !Object.values(v).every(vacio)) };
@@ -594,29 +990,30 @@ El voucher no es reembolsable ni transferible.`,
     const lista = document.createElement('div');
     lista.className = 'filas';
     const items = [];
-    const agregar = (v = {}) => {
+    const agregar = (v = {}, i = 0) => {
       const caja = document.createElement('div');
       caja.className = 'subgrupo';
-      caja.innerHTML = `<div class="subgrupo-head"><span class="lbl">${esc(spec.titulo)}</span><button type="button" class="enlace">Quitar</button></div>`;
+      const titulo = spec.numerar ? `${spec.titulo} ${i + 1}` : spec.titulo;
+      caja.innerHTML = `<div class="subgrupo-head"><span class="lbl">${esc(titulo)}</span><button type="button" class="enlace">Quitar</button></div>`;
       const rej = document.createElement('div');
       rej.className = 'rejilla';
       const nodos = spec.campos.map(c => { const n = campo(c, v[c.k]); rej.append(n.el); return [c.k, n]; });
-      const sub = filas(spec.filas, v[spec.filas.k]);
-      rej.append(sub.el);
+      const sub = spec.filas ? filas(spec.filas, v[spec.filas.k]) : null;
+      if (sub) rej.append(sub.el);
       caja.append(rej);
-      const item = { vivo: true, leer: () => ({ ...Object.fromEntries(nodos.map(([k, n]) => [k, n.leer()])), [spec.filas.k]: sub.leer() }) };
+      const item = { vivo: true, leer: () => ({ ...Object.fromEntries(nodos.map(([k, n]) => [k, n.leer()])), ...(sub ? { [spec.filas.k]: sub.leer() } : {}) }) };
       caja.querySelector('.enlace').addEventListener('click', () => { item.vivo = false; caja.remove(); });
       items.push(item);
       lista.append(caja);
     };
-    (valores && valores.length ? valores : Array(spec.min ?? 1).fill({})).forEach(agregar);
+    (valores && valores.length ? valores : Array(spec.min ?? 1).fill({})).forEach((v, i) => agregar(v, i));
     const mas = document.createElement('button');
     mas.type = 'button'; mas.className = 'btn btn-txt mas';
     mas.innerHTML = `<i data-lucide="plus"></i>${esc(spec.mas)}`;
-    mas.addEventListener('click', () => agregar());
+    mas.addEventListener('click', () => agregar({}, items.length));
     wrap.append(lista, mas);
     iconos(wrap);
-    return { el: wrap, leer: () => items.filter(i => i.vivo).map(i => i.leer()).filter(v => (v[spec.filas.k] || []).length || spec.campos.some(c => !vacio(v[c.k]))) };
+    return { el: wrap, leer: () => items.filter(i => i.vivo).map(i => i.leer()).filter(v => (spec.filas && (v[spec.filas.k] || []).length) || spec.campos.some(c => !vacio(v[c.k]))) };
   }
 
   let formulario = null; // { nodos: [[clave, nodo]], grupos: [[spec, el]] }
@@ -665,12 +1062,20 @@ El voucher no es reembolsable ni transferible.`,
     { doc: 'cotizacion', fecha: '2026-09-24', ejemplo: true, datos: EJEMPLOS.cotizacion },
     { doc: 'confirmacion', fecha: '2026-09-22', ejemplo: true, datos: EJEMPLOS.confirmacion },
     { doc: 'voucher', fecha: '2026-09-19', ejemplo: true, datos: EJEMPLOS.voucher },
+    { doc: 'itinerario', fecha: '2026-09-17', ejemplo: true, datos: EJEMPLOS.itinerario },
+    { doc: 'itinerario_corto', fecha: '2026-09-15', ejemplo: true, datos: EJEMPLOS.itinerario_corto },
   ];
   let guardados = [];
   try { guardados = JSON.parse(localStorage.getItem('caminos-demo-docs-v2') || '[]'); } catch (_) { guardados = []; }
-  const guardar = () => { try { localStorage.setItem('caminos-demo-docs-v2', JSON.stringify(guardados.slice(0, 20))); } catch (_) {} };
+  // Las fotos pesan: si no caben en el almacenamiento del navegador, se guarda sin ellas.
+  const sinFotos = o => JSON.parse(JSON.stringify(o, (k, v) => (typeof v === 'string' && v.startsWith('data:image/') ? '' : v)));
+  const guardar = () => {
+    const lista = guardados.slice(0, 20);
+    try { localStorage.setItem('caminos-demo-docs-v2', JSON.stringify(lista)); }
+    catch (_) { try { localStorage.setItem('caminos-demo-docs-v2', JSON.stringify(lista.map(sinFotos))); } catch (_) {} }
+  };
 
-  const VISTAS = ['inicio', 'documentos', 'doc', 'proximo'];
+  const VISTAS = ['inicio', 'documentos', 'doc'];
   function ir(vista) {
     VISTAS.forEach(v => { $('#v-' + v).hidden = v !== vista; });
     $$('.nav button').forEach(b => { if (b.dataset.ir === vista) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
@@ -686,7 +1091,14 @@ El voucher no es reembolsable ni transferible.`,
     $('#ayuda-lista').innerHTML = d.ayuda.map(a => `<li><span class="check"><i data-lucide="check"></i></span>${esc(a)}</li>`).join('');
     $('#btn-generar').innerHTML = `<i data-lucide="file-text"></i>${esc(d.boton)}`;
     ir('doc');
-    if (datos) { dibujarFormulario(d, datos); mostrarDocumento(leerFormulario()); return; }
+    if (datos) {
+      dibujarFormulario(d, datos);
+      paso(3);
+      $('#prev-titulo').textContent = `${d.nombre} ${d.codigo(datos)} · ${d.tituloDe(datos)}`;
+      $('#prev-meta').textContent = 'Armando el documento…';
+      mostrarDocumento(leerFormulario());
+      return;
+    }
     $('#pegado').value = d.ejemploTexto;
     estado1('Texto de ejemplo. Reemplázalo por la información real.');
     paso(1);
@@ -700,10 +1112,7 @@ El voucher no es reembolsable ni transferible.`,
 
   // ================= inicio e historial =================
   function pintarTipos() {
-    const tarjetas = [
-      ...Object.entries(DOCS).map(([id, d]) => ({ id, ...d, listo: true })),
-      ...PRONTO,
-    ];
+    const tarjetas = Object.entries(DOCS).map(([id, d]) => ({ id, ...d, listo: true }));
     $('#docs').innerHTML = tarjetas.map(t => `
       <button type="button" class="papel doc" data-tipo="${t.id}">
         <div class="doc-head"><span class="tile"><i data-lucide="${t.icono}"></i></span>
@@ -712,16 +1121,8 @@ El voucher no es reembolsable ni transferible.`,
         <p>${esc(t.desc)}</p>
         <div class="doc-pie"><span>${esc(t.hojas)}</span><i data-lucide="arrow-right"></i></div>
       </button>`).join('');
-    $$('#docs .doc').forEach(b => b.addEventListener('click', () => (DOCS[b.dataset.tipo] ? abrirDoc(b.dataset.tipo) : abrirPronto(b.dataset.tipo))));
+    $$('#docs .doc').forEach(b => b.addEventListener('click', () => abrirDoc(b.dataset.tipo)));
     iconos();
-  }
-  function abrirPronto(id) {
-    const t = PRONTO.find(x => x.id === id);
-    $('#px-eyebrow').textContent = t.nombre;
-    $('#px-titulo').innerHTML = `${esc(t.nombre)} <span class="c">en camino</span>`;
-    $('#px-texto').textContent = `${t.desc} En la versión completa funciona igual que los demás documentos: pegas la información, revisas los datos y descargas el PDF.`;
-    $('#px-pide').innerHTML = t.pide.map(p => `<li>${esc(p)}</li>`).join('');
-    ir('proximo');
   }
   function filasTabla(items) {
     if (!items.length) return `<tbody><tr><td colspan="5" class="vacio">Todavía no has generado documentos.</td></tr></tbody>`;
@@ -831,11 +1232,11 @@ ${texto}
     return falta;
   }
   $('#paso-2').addEventListener('input', ev => ev.target.closest('.falta')?.classList.remove('falta'));
-  $('#paso-2').addEventListener('submit', ev => {
+  $('#paso-2').addEventListener('submit', async ev => {
     ev.preventDefault();
     if (marcarFaltantes().length) { $('#aviso-faltan').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
     const datos = leerFormulario();
-    if (!mostrarDocumento(datos)) return;
+    if (!(await mostrarDocumento(datos))) return;
     const codigo = doc().codigo(datos);
     guardados = [{ doc: docId, fecha: hoy(), datos }, ...guardados.filter(g => !(g.doc === docId && DOCS[g.doc].codigo(g.datos) === codigo))];
     guardar();
@@ -843,16 +1244,19 @@ ${texto}
 
   // ================= vista previa =================
   const GAP = 28;
-  function mostrarDocumento(datos) {
+  async function mostrarDocumento(datos) {
     const d = doc();
     let html;
-    try { html = d.armar(datos); } catch (err) {
+    $('#btn-generar').disabled = true;
+    try { html = await d.armar(datos); } catch (err) {
+      $('#btn-generar').disabled = false;
       paso(2);
       $('#aviso-titulo').textContent = 'No pudimos armar el documento.';
       $('#lista-faltan').innerHTML = `<li>${esc(err.message)}</li>`;
       $('#aviso-faltan').hidden = false;
       return false;
     }
+    $('#btn-generar').disabled = false;
     docActual = datos;
     const fuentes = `<style>${FUENTES}</style>`;
     const vista = `<style>html,body{background:transparent!important}.page{box-shadow:0 12px 32px rgba(31,32,36,.14)}.page+.page{margin-top:${GAP}px}</style>`;
@@ -867,7 +1271,7 @@ ${texto}
       const fd = frame.contentDocument;
       medir(fd.querySelectorAll('section.page').length);
       try { await Promise.race([fd.fonts.ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
-      const n = fluir(fd, d.flujo);
+      const n = d.flujo ? fluir(fd, d.flujo) : fd.querySelectorAll('section.page').length;
       medir(n);
       $('#prev-meta').textContent = `${n} hojas tamaño carta · ${d.meta(datos)}`;
       $('#btn-pdf').disabled = !downloads;

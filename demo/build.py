@@ -4,10 +4,10 @@
 Uso:
     python3 demo/build.py
 
-Lee las plantillas oficiales (cotización, confirmación y voucher), los logos y
-los datos de ejemplo directamente de original/ (sin modificarlos) y los
-incrusta en demo/app.html. El resultado queda en
-demo/caminos-documentos-demo.html.
+Lee las plantillas oficiales (cotización, confirmación, voucher e itinerario),
+los logos, las fuentes y los datos de ejemplo directamente de original/ (sin
+modificarlos) y los incrusta en demo/app.html junto con demo/app.js. El
+resultado queda en demo/caminos-documentos-demo.html.
 """
 import base64
 import json
@@ -44,6 +44,19 @@ def main():
         ej = json.loads(leer(os.path.join(skill, 'scripts', 'datos-ejemplo.json')))
         ej.pop('banco_consultado', None)
         ejemplos[doc] = ej
+    # Itinerario (largo y corto usan la misma plantilla y el mismo motor). La plantilla
+    # no se llena por marcadores: el motor arma las hojas con sus piezas (CSS, pie,
+    # página de información adicional), así que se incrusta entera y aparte sus recursos.
+    iti = os.path.join(PLUGIN, 'skills', 'caminos-itinerario')
+    plantillas['itinerario'] = leer(os.path.join(iti, 'template', 'itinerario.html'))
+    for nombre, archivo in (('itinerario', 'datos-ejemplo.json'), ('itinerario_corto', 'datos-ejemplo-corto.json')):
+        ej = json.loads(leer(os.path.join(iti, 'scripts', archivo)))
+        ej.pop('banco_consultado', None)
+        ejemplos[nombre] = ej
+    recursos = {rel: data_uri(os.path.join(iti, rel[3:])) for rel in (
+        '../assets/brand/estrella-crema.svg', '../assets/logos/caminos-logo-white.svg', '../assets/logos/caminos-logo-coral.svg')}
+    recursos['proteccion.png'] = 'data:image/png;base64,' + base64.b64encode(
+        open(os.path.join(PLUGIN, 'motor', 'proteccion.png'), 'rb').read()).decode()
     logos = os.path.join(COT, 'assets')
 
     # Íconos Lucide (lucide-static@0.445.0, el set del sistema de diseño), sin el comentario de licencia.
@@ -64,6 +77,7 @@ def main():
     reemplazos = {
         '"__ICONOS__"': json.dumps(iconos),
         '"__FUENTES__"': json.dumps(fuentes),
+        '"__RECURSOS__"': json.dumps(recursos),
         '"__PLANTILLAS__"': json.dumps(plantillas, ensure_ascii=False),
         '"__EJEMPLOS__"': json.dumps(ejemplos, ensure_ascii=False),
         '__LOGO_CORAL__': data_uri(os.path.join(logos, 'logos', 'caminos-logo-coral.svg')),
