@@ -2639,7 +2639,7 @@ Reglas:
 - Español de Colombia, trato de "tú", sin emojis. Títulos en sentence case.
 ${d.reglas}${base ? `
 
-Ya tenemos estos datos, que vienen de ${conversion?.desde || 'un documento anterior'}. Consérvalos y complétalos con la información nueva; si la información nueva contradice un dato, manda la nueva. En "dias", conserva cada fecha y súmale lo que diga el texto:
+Ya tenemos estos datos, que vienen ${/^el /.test(conversion?.desde || '') ? 'del ' + conversion.desde.slice(3) : 'de ' + (conversion?.desde || 'un documento anterior')}. Consérvalos y complétalos con la información nueva; si la información nueva contradice un dato, manda la nueva. En "dias", conserva cada fecha y súmale lo que diga el texto:
 ${JSON.stringify(sinFotos(base))}` : ''}
 
 Responde solo con JSON, con exactamente esta forma:
@@ -2780,10 +2780,11 @@ ${texto}
     $('#aviso-conv').hidden = !c;
     $('#conv-nota-1').hidden = !c;
     if (!c) return;
-    $('#conv-titulo').textContent = `Trajimos los datos de ${c.desde}.`;
+    const de = t => (/^el /.test(t) ? 'del ' + t.slice(3) : 'de ' + t);
+    $('#conv-titulo').textContent = `Trajimos los datos ${de(c.desde)}.`;
     $('#conv-texto').textContent = c.texto;
     $('#conv-pegar-txt').textContent = c.pegar;
-    $('#conv-nota-1').textContent = `Lo que pegues aquí se suma a los datos que trajimos de ${c.desde}.`;
+    $('#conv-nota-1').textContent = `Lo que pegues aquí se suma a los datos que trajimos ${de(c.desde)}.`;
   }
   $('#conv-pegar').addEventListener('click', () => { paso(1); $('#pegado').focus(); });
   function abrirConvertido(id, datos, info) {
@@ -2809,7 +2810,8 @@ ${texto}
   }
   const SIGUIENTE = {
     cotizacion: [{ t: 'Convertir en confirmación', icono: 'badge-check', hacer: cotAConf }],
-    confirmacion: [{ t: 'Crear voucher', icono: 'ticket', hacer: confAVoucher }, { t: 'Crear itinerario', icono: 'route', hacer: confAItinerario }],
+    confirmacion: [{ t: 'Crear voucher', icono: 'ticket', hacer: confAVoucher }, { t: 'Crear itinerario', icono: 'route', hacer: c => confAItinerario(c) }],
+    voucher: [{ t: 'Crear itinerario', icono: 'route', hacer: voucherAItinerario }],
   };
   function pintarSiguiente(datos) {
     const ops = SIGUIENTE[docId] || [];
@@ -2880,7 +2882,29 @@ ${texto}
     });
   }
 
-  function confAItinerario(c) {
+  // Desde un voucher: si ya existe la confirmación del mismo viaje, lo mejor es partir de ella (trae todos
+  // los vuelos, hoteles y traslados); si no, el itinerario se arma solo con el servicio del voucher.
+  async function voucherAItinerario(v) {
+    const exp = expedienteDe(v.codigo_reserva || v.codigo_voucher);
+    const conf = [...guardados, ...EJEMPLOS_RECIENTES].find(r => r.doc === 'confirmacion' && expedienteDe(r.datos.codigo_reserva) === exp);
+    if (conf) {
+      const i = await elegir('¿Desde dónde armamos el itinerario?', `Encontramos la confirmación ${conf.datos.codigo_reserva} de este mismo viaje.`, [
+        { t: `Desde la confirmación ${conf.datos.codigo_reserva}`, d: 'Recomendado: trae todos los vuelos, hoteles y traslados del viaje.' },
+        { t: `Solo con este voucher`, d: v.nombre_servicio || '' }]);
+      if (i === null) return;
+      if (i === 0) return confAItinerario(clonar(conf.datos));
+    }
+    const tipo = v.tipo || 'hotel';
+    confAItinerario({
+      codigo_reserva: v.codigo_reserva || v.codigo_voucher || '', titulo_viaje: v.ubicacion || v.nombre_servicio || '', nombre_viajero: v.nombre_viajero || '',
+      destino: v.ubicacion || '', fecha_salida: v.vigencia?.desde || '', fecha_regreso: v.vigencia?.hasta || v.vigencia?.desde || '',
+      aereo: tipo === 'aereo' && v.aereo ? [v.aereo] : [], hoteles: tipo === 'hotel' ? (v.hoteles || []) : [],
+      traslados: tipo === 'traslado' ? (v.traslados || []).map(x => ({ operador: v.proveedor || '', ...x })) : [],
+      servicios_confirmados: plano(v.incluye), nota_importante: '',
+    }, `el voucher ${v.codigo_voucher}`);
+  }
+
+  function confAItinerario(c, desde) {
     const trayectos = (c.aereo || []).flatMap(a => a.trayectos || []).filter(t => !vacio(t.ruta) || !vacio(t.vuelo))
       .sort((a, b) => `${a.fecha} ${a.sale}`.localeCompare(`${b.fecha} ${b.sale}`));
     const siguiente = f => { const d = diaUTC(f); if (!d) return ''; d.setUTCDate(d.getUTCDate() + 1); return isoUTC(d); };
@@ -2930,7 +2954,7 @@ ${texto}
       ...(largo ? { frase: '', vuelos: vuelos.map(({ _mas, ...v }) => v), vuelos_internos: [], hoteles } : {}),
     };
     abrirConvertido(largo ? 'itinerario' : 'itinerario_corto', datos, {
-      desde: `la confirmación ${c.codigo_reserva}`, pegar: 'Pegar el programa del viaje',
+      desde: desde || `la confirmación ${c.codigo_reserva}`, pegar: 'Pegar el programa del viaje',
       texto: 'Pasamos las fechas, los vuelos, los hoteles y lo que incluye, y armamos un borrador del día a día con los vuelos, traslados y hoteles de cada fecha. Completa las actividades de cada día, o pega el programa del proveedor y Claude lo completa sin perder lo que ya está.',
     });
   }
