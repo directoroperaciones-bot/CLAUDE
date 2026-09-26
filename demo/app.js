@@ -255,7 +255,7 @@
   // Los límites del motor (1178 px, y 1156 en la cotización) se miden sobre la tinta del PDF;
   // aquí se mide la caja, que queda unos píxeles más abajo, así que se usan 6 px más.
   const HOLGURA_CAJA = 6;
-  function fluir(doc, { limite: limiteMotor = 1178, etiqueta = null, pegarNota = false, juntar = false, compacto = false } = {}) {
+  function fluir(doc, { limite: limiteMotor = 1178, etiqueta = null, pegarNota = false, juntar = false, compacto = false, sinPoliticas = false } = {}) {
     const limite = limiteMotor + HOLGURA_CAJA;
     const esPol = p => !!p.querySelector('.pol-cols');
     const paginas = () => [...doc.querySelectorAll('section.page')];
@@ -403,6 +403,8 @@
       juntarYRepartir();
       if (paginas().length >= nAntes) { doc.documentElement.classList.remove('compacto'); doc.body.innerHTML = antes; }
     }
+    // El voucher no lleva la hoja de condiciones y políticas: sirve de molde mientras se reparte y al final se quita.
+    if (sinPoliticas) paginas().filter(esPol).forEach(p => p.remove());
     const total = paginas().length;
     paginas().forEach((p, i) => {
       const c = p.querySelector('.footer-code');
@@ -954,9 +956,9 @@ Recordarle llevar la cédula original y pagar la tarjeta de turista si no la com
 
     voucher: {
       nombre: 'Voucher', titulo: 'Nuevo <span class="c">voucher</span>', eyebrow: 'Voucher de servicio', icono: 'ticket',
-      desc: 'Comprobante de un servicio para presentar en el hotel o con el proveedor.', hojas: '2 hojas',
+      desc: 'Comprobante de un servicio para presentar en el hotel o con el proveedor.', hojas: '1 hoja',
       boton: 'Generar el voucher', archivo: 'Voucher', codigo: d => d.codigo_voucher, tituloDe: d => d.nombre_servicio, clienteDe: d => d.nombre_viajero,
-      armar: armarVoucher, flujo: { limite: 1178, etiqueta: 'Uso del voucher' },
+      armar: armarVoucher, flujo: { limite: 1178, etiqueta: 'Uso del voucher', sinPoliticas: true },
       pegar: 'Pega aquí la reserva del servicio',
       ayuda: ['La confirmación del hotel, tiquete u operador', 'Titular y acompañantes', 'Qué incluye y cómo se usa el voucher'],
       grupos: [
@@ -1810,7 +1812,7 @@ ${texto}
       try { await Promise.race([fd.fonts.ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
       const n = d.flujo ? fluir(fd, d.flujo) : fd.querySelectorAll('section.page').length;
       medir(n);
-      $('#prev-meta').textContent = `${n} hojas tamaño carta · ${d.meta(datos)}`;
+      $('#prev-meta').textContent = `${n} ${n === 1 ? 'hoja' : 'hojas'} tamaño carta · ${d.meta(datos)}`;
       $('#btn-pdf').disabled = !downloads;
     };
     frame.srcdoc = html;
