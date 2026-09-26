@@ -1318,6 +1318,9 @@
   .mapa .parada.activa .etiqueta, .mapa .parada:hover .etiqueta, .mapa .parada:focus-visible .etiqueta, .mapa.pocas .parada .etiqueta { opacity:1; }
   .mapa.cerca .parada.vecina .etiqueta { opacity:.85; }
   .mapa .parada.activa { z-index:2; }
+  .mapa .avion { opacity:0; transition:opacity .24s var(--ease); pointer-events:none; color:var(--coral); }
+  .mapa .avion.volando { opacity:1; }
+  .mapa .avion-fondo { fill:var(--blanco); stroke:var(--coral); stroke-width:1.5; }
   .parada-info { padding:18px 22px 20px; border-bottom:1px solid var(--hairline); }
   .parada-info h3 { font:700 22px/1.25 var(--f); margin-top:4px; }
   .parada-info p { margin:6px 0 0; font-size:15px; color:var(--texto); }
@@ -1460,9 +1463,54 @@
       $('#ruta-todo').addEventListener('click', () => { parar(); moverA([0, 0, W, H]); });
       window.addEventListener('resize', () => pintarVista(vista));
       pintarVista([0, 0, W, H]);
+      // Avión: vuela por la curva del tramo hacia la parada siguiente, girando según la dirección,
+      // y va pintando el tramo en coral detrás de él.
+      const avion = $('.mapa .avion'), giro = $('.mapa .avion-giro');
+      let vuelo = null;
+      const volar = i => {
+        const tramo = $('.mapa .tramo[data-i="' + i + '"]');
+        if (!tramo || quieto || !tramo.getTotalLength) return;
+        cancelAnimationFrame(vuelo);
+        const largo = tramo.getTotalLength(), t0 = performance.now(), dur = 1300;
+        // El trazo no se escala con el acercamiento (non-scaling-stroke), así que el guion se mide en píxeles de pantalla.
+        const px = () => { const m = svg.getScreenCTM(); return m ? m.a : 1; };
+        const revelar = e => { const l = largo * px(); tramo.style.strokeDasharray = l + ' ' + l; tramo.style.strokeDashoffset = l * (1 - e); };
+        revelar(0);
+        avion.classList.add('volando');
+        const paso = t => {
+          const k = Math.min(1, (t - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+          const p = tramo.getPointAtLength(largo * e), q = tramo.getPointAtLength(Math.min(largo, largo * e + 1));
+          const r = tramo.getPointAtLength(Math.max(0, largo * e - 1));
+          const ang = Math.atan2(q.y - r.y, q.x - r.x) * 180 / Math.PI + 45; // el ícono apunta hacia arriba a la derecha
+          avion.setAttribute('transform', 'translate(' + p.x + ' ' + p.y + ')');
+          giro.setAttribute('transform', 'rotate(' + ang + ')');
+          revelar(e);
+          if (k < 1) vuelo = requestAnimationFrame(paso);
+          else { avion.classList.remove('volando'); tramo.style.strokeDasharray = ''; tramo.style.strokeDashoffset = ''; }
+        };
+        vuelo = requestAnimationFrame(paso);
+      };
+      // En tramos largos (p. ej. Bangkok → París) la cámara abre para ver el vuelo completo
+      // y al aterrizar se acerca al destino.
+      const unir = (a, b) => {
+        const x = Math.min(a[0], b[0]), y = Math.min(a[1], b[1]);
+        let w = Math.max(a[0] + a[2], b[0] + b[2]) - x, h = Math.max(a[1] + a[3], b[1] + b[3]) - y;
+        if (w / h > W / H) h = w * H / W; else w = h * W / H;
+        if (w >= W) return [0, 0, W, H];
+        const cx = x + (Math.max(a[0] + a[2], b[0] + b[2]) - x) / 2, cy = y + (Math.max(a[1] + a[3], b[1] + b[3]) - y) / 2;
+        return [Math.min(Math.max(cx - w / 2, 0), W - w), Math.min(Math.max(cy - h / 2, 0), H - h), w, h];
+      };
+      let aterrizaje = null;
       const ir = (i, acercar = true) => {
+        const anterior = actual;
         actual = Math.max(0, Math.min(paradas.length - 1, i));
-        if (acercar) moverA(encuadre(actual));
+        clearTimeout(aterrizaje);
+        const largo = acercar && actual === anterior + 1 && !quieto && km[anterior] >= 2500;
+        if (acercar && actual === anterior + 1) volar(actual);
+        if (largo) {
+          moverA(unir(encuadre(anterior), encuadre(actual)));
+          aterrizaje = setTimeout(() => moverA(encuadre(actual)), 1350);
+        } else if (acercar) moverA(encuadre(actual));
         $$('.mapa .parada').forEach(g => { const k = +g.dataset.i; g.classList.toggle('hecha', k <= actual); g.classList.toggle('activa', k === actual); g.classList.toggle('vecina', Math.abs(k - actual) === 1); });
         $$('.mapa .tramo').forEach(t => t.classList.toggle('hecho', +t.dataset.i <= actual));
         $$('.chip-ruta').forEach(c => c.classList.toggle('activa', +c.dataset.i === actual));
@@ -1475,12 +1523,17 @@
         const chip = $('.chip-ruta.activa');
         if (chip && chip.scrollIntoView) chip.scrollIntoView({ block: 'nearest', inline: 'center', behavior: quieto ? 'auto' : 'smooth' });
       };
-      const parar = () => { clearInterval(timer); timer = null; $('#ruta-play span').textContent = 'Recorrer la ruta'; };
+      const parar = () => { clearTimeout(timer); timer = null; $('#ruta-play span').textContent = 'Recorrer la ruta'; };
       $('#ruta-play').addEventListener('click', () => {
         if (timer) return parar();
         if (actual >= paradas.length - 1) ir(0);
         $('#ruta-play span').textContent = 'Pausar';
-        timer = setInterval(() => { if (actual >= paradas.length - 1) return parar(); ir(actual + 1); }, quieto ? 2400 : 1600);
+        const siguiente = () => {
+          if (actual >= paradas.length - 1) return parar();
+          ir(actual + 1);
+          timer = setTimeout(siguiente, quieto ? 2400 : km[actual - 1] >= 2500 ? 2600 : 1600); // los vuelos largos esperan al aterrizaje
+        };
+        timer = setTimeout(siguiente, 600);
       });
       $('#ruta-ant').addEventListener('click', () => { parar(); ir(actual - 1); });
       $('#ruta-sig').addEventListener('click', () => { parar(); ir(actual + 1); });
@@ -1673,7 +1726,9 @@
     const marcas = pts.map(([x, y], i) => `<g class="parada" data-i="${i}" tabindex="0" role="button" aria-label="${esc(paradas[i].nombre)}" transform="translate(${x} ${y})"><g class="escala-m">
       <circle r="12" class="halo"/><circle r="8.5" class="punto-p"/><text class="num" y="3.2">${i + 1}</text>
       <text class="etiqueta" x="13" y="-9">${esc(paradas[i].nombre)}</text></g></g>`);
-    return { svg: `<svg viewBox="0 0 ${W} ${H}" data-w="${W}" data-h="${H}" data-pts="${esc(JSON.stringify(pts))}" data-km="${esc(JSON.stringify(paradas.slice(1).map((p, i) => Math.round(kmEntre([0, 0, 0, paradas[i].lat, paradas[i].lon], [0, 0, 0, p.lat, p.lon])))))}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Mapa de la ruta del viaje"><rect class="mar" width="${W}" height="${H}"/>${paths.join('')}${tramos.join('')}${marcas.join('')}</svg>`, visitados: [...visitados] };
+    const avionIcono = (ICONOS.plane || '').replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+    const avion = `<g class="avion" aria-hidden="true"><g class="escala-m"><circle r="13" class="avion-fondo"/><g class="avion-giro"><g transform="translate(-8.4 -8.4) scale(.7)" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${avionIcono}</g></g></g></g>`;
+    return { svg: `<svg viewBox="0 0 ${W} ${H}" data-w="${W}" data-h="${H}" data-pts="${esc(JSON.stringify(pts))}" data-km="${esc(JSON.stringify(paradas.slice(1).map((p, i) => Math.round(kmEntre([0, 0, 0, paradas[i].lat, paradas[i].lon], [0, 0, 0, p.lat, p.lon])))))}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Mapa de la ruta del viaje"><rect class="mar" width="${W}" height="${H}"/>${paths.join('')}${tramos.join('')}${marcas.join('')}${avion}</svg>`, visitados: [...visitados] };
   }
 
   async function htmlItinerario(d, { incrustar = false } = {}) {
@@ -1692,7 +1747,10 @@
       ${datos ? `<div class="papel datos">${datos}</div>` : ''}${bienvenida}${vacio(d.frase) ? '' : `<div class="frase">${e(d.frase)}</div>`}`);
 
     // Ruta en el mapa
-    const ruta = paradasDe(d);
+    // El mapa solo va cuando el viaje tiene 3 destinos distintos o más: un ida y regreso
+    // (Bogotá — Chiquinquirá) se entiende sin mapa y el recuadro ocuparía mucho espacio.
+    const rutaTodos = paradasDe(d);
+    const ruta = rutaTodos && new Set(rutaTodos.paradas.map(p => p.ciudad)).size >= 3 ? rutaTodos : null;
     const paradaDeDia = new Map();
     if (ruta) {
       ruta.paradas.forEach((p, i) => { if (!p.soloVuelo) p.dias.forEach(di => paradaDeDia.set(di, i)); }); // cada día apunta a la parada donde termina

@@ -164,6 +164,9 @@
   .mapa .parada.activa .etiqueta, .mapa .parada:hover .etiqueta, .mapa .parada:focus-visible .etiqueta, .mapa.pocas .parada .etiqueta { opacity:1; }
   .mapa.cerca .parada.vecina .etiqueta { opacity:.85; }
   .mapa .parada.activa { z-index:2; }
+  .mapa .avion { opacity:0; transition:opacity .24s var(--ease); pointer-events:none; color:var(--coral); }
+  .mapa .avion.volando { opacity:1; }
+  .mapa .avion-fondo { fill:var(--blanco); stroke:var(--coral); stroke-width:1.5; }
   .parada-info { padding:18px 22px 20px; border-bottom:1px solid var(--hairline); }
   .parada-info h3 { font:700 22px/1.25 var(--f); margin-top:4px; }
   .parada-info p { margin:6px 0 0; font-size:15px; color:var(--texto); }
@@ -270,7 +273,7 @@
       <circle r="12" class="halo"/><circle r="8.5" class="punto-p"/><text class="num" y="3.2">19</text>
       <text class="etiqueta" x="13" y="-9">París</text></g></g><g class="parada" data-i="19" tabindex="0" role="button" aria-label="Bogotá" transform="translate(96.77 377.57)"><g class="escala-m">
       <circle r="12" class="halo"/><circle r="8.5" class="punto-p"/><text class="num" y="3.2">20</text>
-      <text class="etiqueta" x="13" y="-9">Bogotá</text></g></g></svg><button type="button" class="boton ver-todo" id="ruta-todo" hidden><svg aria-hidden="true" class="ic  lucide lucide-compass" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z" /> <circle cx="12" cy="12" r="10" /> </svg><span>Ver toda la ruta</span></button></div></div>
+      <text class="etiqueta" x="13" y="-9">Bogotá</text></g></g><g class="avion" aria-hidden="true"><g class="escala-m"><circle r="13" class="avion-fondo"/><g class="avion-giro"><g transform="translate(-8.4 -8.4) scale(.7)" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"> <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" /> </g></g></g></g></svg><button type="button" class="boton ver-todo" id="ruta-todo" hidden><svg aria-hidden="true" class="ic  lucide lucide-compass" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z" /> <circle cx="12" cy="12" r="10" /> </svg><span>Ver toda la ruta</span></button></div></div>
         <p class="fuente-mapa">Ubicaciones aproximadas por ciudad. Mapa: Natural Earth · Ciudades: GeoNames (CC BY 4.0).</p>
         <div class="chips-ruta" role="list"><button type="button" role="listitem" class="chip-ruta" data-i="0"><b>1</b>Bogotá</button><button type="button" role="listitem" class="chip-ruta" data-i="1"><b>2</b>París</button><button type="button" role="listitem" class="chip-ruta" data-i="2"><b>3</b>Bangkok</button><button type="button" role="listitem" class="chip-ruta" data-i="3"><b>4</b>Chiang Mai</button><button type="button" role="listitem" class="chip-ruta" data-i="4"><b>5</b>Chiang Rai</button><button type="button" role="listitem" class="chip-ruta" data-i="5"><b>6</b>Chiang Mai</button><button type="button" role="listitem" class="chip-ruta" data-i="6"><b>7</b>Bangkok</button><button type="button" role="listitem" class="chip-ruta" data-i="7"><b>8</b>París</button><button type="button" role="listitem" class="chip-ruta" data-i="8"><b>9</b>Lourdes</button><button type="button" role="listitem" class="chip-ruta" data-i="9"><b>10</b>Zaragoza</button><button type="button" role="listitem" class="chip-ruta" data-i="10"><b>11</b>Montserrat</button><button type="button" role="listitem" class="chip-ruta" data-i="11"><b>12</b>Barcelona</button><button type="button" role="listitem" class="chip-ruta" data-i="12"><b>13</b>Valencia</button><button type="button" role="listitem" class="chip-ruta" data-i="13"><b>14</b>Caravaca</button><button type="button" role="listitem" class="chip-ruta" data-i="14"><b>15</b>Granada</button><button type="button" role="listitem" class="chip-ruta" data-i="15"><b>16</b>Sevilla</button><button type="button" role="listitem" class="chip-ruta" data-i="16"><b>17</b>Córdoba</button><button type="button" role="listitem" class="chip-ruta" data-i="17"><b>18</b>Madrid</button><button type="button" role="listitem" class="chip-ruta" data-i="18"><b>19</b>París</button><button type="button" role="listitem" class="chip-ruta" data-i="19"><b>20</b>Bogotá</button></div>
         <script type="application/json" id="datos-ruta">[{"nombre":"Bogotá","pais":"Colombia","dias":"Día 01","titulos":["Salida desde Bogotá"],"ids":["dia-0"]},{"nombre":"París","pais":"Francia","dias":"Días 01 a 02","titulos":["Conexión en el vuelo AF435"],"ids":["dia-0","dia-1"]},{"nombre":"Bangkok","pais":"Tailandia","dias":"Días 02 a 05","titulos":["Noche a bordo","Llegada a Bangkok","Bangkok — Chiang Mai"],"ids":["dia-1","dia-2","dia-4"]},{"nombre":"Chiang Mai","pais":"Tailandia","dias":"Días 05 a 06","titulos":["Bangkok — Chiang Mai","Chiang Mai — Chiang Rai"],"ids":["dia-4","dia-5"]},{"nombre":"Chiang Rai","pais":"Tailandia","dias":"Días 06 a 07","titulos":["Chiang Mai — Chiang Rai","Chiang Rai — Chiang Mai"],"ids":["dia-5","dia-6"]},{"nombre":"Chiang Mai","pais":"Tailandia","dias":"Días 07 a 08","titulos":["Chiang Rai — Chiang Mai","Chiang Mai — Bangkok"],"ids":["dia-6","dia-7"]},{"nombre":"Bangkok","pais":"Tailandia","dias":"Días 08 a 09","titulos":["Chiang Mai — Bangkok","Bangkok — salida a Europa"],"ids":["dia-7","dia-8"]},{"nombre":"París","pais":"Francia","dias":"Días 09 a 12","titulos":["Bangkok — salida a Europa","París y la Medalla Milagrosa","París — Montmartre","París — Lourdes"],"ids":["dia-8","dia-9","dia-10","dia-11"]},{"nombre":"Lourdes","pais":"Francia","dias":"Días 12 a 14","titulos":["París — Lourdes","Lourdes","Lourdes — Zaragoza"],"ids":["dia-11","dia-12","dia-13"]},{"nombre":"Zaragoza","pais":"España","dias":"Días 14 a 15","titulos":["Lourdes — Zaragoza","Zaragoza — Montserrat — Barcelona"],"ids":["dia-13","dia-14"]},{"nombre":"Montserrat","pais":"España","dias":"Día 15","titulos":["Zaragoza — Montserrat — Barcelona"],"ids":["dia-14"]},{"nombre":"Barcelona","pais":"España","dias":"Días 15 a 17","titulos":["Zaragoza — Montserrat — Barcelona","Barcelona","Barcelona — Valencia"],"ids":["dia-14","dia-15","dia-16"]},{"nombre":"Valencia","pais":"España","dias":"Días 17 a 18","titulos":["Barcelona — Valencia","Valencia — Caravaca — Granada"],"ids":["dia-16","dia-17"]},{"nombre":"Caravaca","pais":"España","dias":"Día 18","titulos":["Valencia — Caravaca — Granada"],"ids":["dia-17"]},{"nombre":"Granada","pais":"España","dias":"Días 18 a 19","titulos":["Valencia — Caravaca — Granada","Granada — Sevilla"],"ids":["dia-17","dia-18"]},{"nombre":"Sevilla","pais":"España","dias":"Días 19 a 21","titulos":["Granada — Sevilla","Sevilla","Sevilla — Córdoba — Madrid"],"ids":["dia-18","dia-19","dia-20"]},{"nombre":"Córdoba","pais":"España","dias":"Día 21","titulos":["Sevilla — Córdoba — Madrid"],"ids":["dia-20"]},{"nombre":"Madrid","pais":"España","dias":"Días 21 a 23","titulos":["Sevilla — Córdoba — Madrid","Madrid","Madrid — regreso a Bogotá"],"ids":["dia-20","dia-21","dia-22"]},{"nombre":"París","pais":"Francia","dias":"Día 23","titulos":["Conexión en el vuelo AF1001"],"ids":["dia-22"]},{"nombre":"Bogotá","pais":"Colombia","dias":"Día 23","titulos":["Madrid — regreso a Bogotá"],"ids":["dia-22"]}]</script></section>
@@ -585,9 +588,54 @@
       $('#ruta-todo').addEventListener('click', () => { parar(); moverA([0, 0, W, H]); });
       window.addEventListener('resize', () => pintarVista(vista));
       pintarVista([0, 0, W, H]);
+      // Avión: vuela por la curva del tramo hacia la parada siguiente, girando según la dirección,
+      // y va pintando el tramo en coral detrás de él.
+      const avion = $('.mapa .avion'), giro = $('.mapa .avion-giro');
+      let vuelo = null;
+      const volar = i => {
+        const tramo = $('.mapa .tramo[data-i="' + i + '"]');
+        if (!tramo || quieto || !tramo.getTotalLength) return;
+        cancelAnimationFrame(vuelo);
+        const largo = tramo.getTotalLength(), t0 = performance.now(), dur = 1300;
+        // El trazo no se escala con el acercamiento (non-scaling-stroke), así que el guion se mide en píxeles de pantalla.
+        const px = () => { const m = svg.getScreenCTM(); return m ? m.a : 1; };
+        const revelar = e => { const l = largo * px(); tramo.style.strokeDasharray = l + ' ' + l; tramo.style.strokeDashoffset = l * (1 - e); };
+        revelar(0);
+        avion.classList.add('volando');
+        const paso = t => {
+          const k = Math.min(1, (t - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+          const p = tramo.getPointAtLength(largo * e), q = tramo.getPointAtLength(Math.min(largo, largo * e + 1));
+          const r = tramo.getPointAtLength(Math.max(0, largo * e - 1));
+          const ang = Math.atan2(q.y - r.y, q.x - r.x) * 180 / Math.PI + 45; // el ícono apunta hacia arriba a la derecha
+          avion.setAttribute('transform', 'translate(' + p.x + ' ' + p.y + ')');
+          giro.setAttribute('transform', 'rotate(' + ang + ')');
+          revelar(e);
+          if (k < 1) vuelo = requestAnimationFrame(paso);
+          else { avion.classList.remove('volando'); tramo.style.strokeDasharray = ''; tramo.style.strokeDashoffset = ''; }
+        };
+        vuelo = requestAnimationFrame(paso);
+      };
+      // En tramos largos (p. ej. Bangkok → París) la cámara abre para ver el vuelo completo
+      // y al aterrizar se acerca al destino.
+      const unir = (a, b) => {
+        const x = Math.min(a[0], b[0]), y = Math.min(a[1], b[1]);
+        let w = Math.max(a[0] + a[2], b[0] + b[2]) - x, h = Math.max(a[1] + a[3], b[1] + b[3]) - y;
+        if (w / h > W / H) h = w * H / W; else w = h * W / H;
+        if (w >= W) return [0, 0, W, H];
+        const cx = x + (Math.max(a[0] + a[2], b[0] + b[2]) - x) / 2, cy = y + (Math.max(a[1] + a[3], b[1] + b[3]) - y) / 2;
+        return [Math.min(Math.max(cx - w / 2, 0), W - w), Math.min(Math.max(cy - h / 2, 0), H - h), w, h];
+      };
+      let aterrizaje = null;
       const ir = (i, acercar = true) => {
+        const anterior = actual;
         actual = Math.max(0, Math.min(paradas.length - 1, i));
-        if (acercar) moverA(encuadre(actual));
+        clearTimeout(aterrizaje);
+        const largo = acercar && actual === anterior + 1 && !quieto && km[anterior] >= 2500;
+        if (acercar && actual === anterior + 1) volar(actual);
+        if (largo) {
+          moverA(unir(encuadre(anterior), encuadre(actual)));
+          aterrizaje = setTimeout(() => moverA(encuadre(actual)), 1350);
+        } else if (acercar) moverA(encuadre(actual));
         $$('.mapa .parada').forEach(g => { const k = +g.dataset.i; g.classList.toggle('hecha', k <= actual); g.classList.toggle('activa', k === actual); g.classList.toggle('vecina', Math.abs(k - actual) === 1); });
         $$('.mapa .tramo').forEach(t => t.classList.toggle('hecho', +t.dataset.i <= actual));
         $$('.chip-ruta').forEach(c => c.classList.toggle('activa', +c.dataset.i === actual));
@@ -600,12 +648,17 @@
         const chip = $('.chip-ruta.activa');
         if (chip && chip.scrollIntoView) chip.scrollIntoView({ block: 'nearest', inline: 'center', behavior: quieto ? 'auto' : 'smooth' });
       };
-      const parar = () => { clearInterval(timer); timer = null; $('#ruta-play span').textContent = 'Recorrer la ruta'; };
+      const parar = () => { clearTimeout(timer); timer = null; $('#ruta-play span').textContent = 'Recorrer la ruta'; };
       $('#ruta-play').addEventListener('click', () => {
         if (timer) return parar();
         if (actual >= paradas.length - 1) ir(0);
         $('#ruta-play span').textContent = 'Pausar';
-        timer = setInterval(() => { if (actual >= paradas.length - 1) return parar(); ir(actual + 1); }, quieto ? 2400 : 1600);
+        const siguiente = () => {
+          if (actual >= paradas.length - 1) return parar();
+          ir(actual + 1);
+          timer = setTimeout(siguiente, quieto ? 2400 : km[actual - 1] >= 2500 ? 2600 : 1600); // los vuelos largos esperan al aterrizaje
+        };
+        timer = setTimeout(siguiente, 600);
       });
       $('#ruta-ant').addEventListener('click', () => { parar(); ir(actual - 1); });
       $('#ruta-sig').addEventListener('click', () => { parar(); ir(actual + 1); });

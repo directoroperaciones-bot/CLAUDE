@@ -22,6 +22,8 @@ los hoteles).
   `all-the-cities`), preparados con `geo/preparar.py`. Cada día se ubica por su título
   o por el campo "Lugar en el mapa"; los vuelos del mismo día agregan las conexiones y
   los nombres repetidos se resuelven por la ruta más coherente.
+  El mapa solo aparece si el viaje pasa por 3 destinos distintos o más; al recorrer la
+  ruta, un avión vuela cada tramo (en los vuelos largos la vista se abre para seguirlo).
 - `ejemplos/Itinerario-CA2790.html` — el ejemplo del plugin (Tailandia y Europa) en
   versión interactiva.
 - `iconos/` — íconos de `lucide-static@0.445.0` (licencia ISC en `iconos/LICENSE`).
