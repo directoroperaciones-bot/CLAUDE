@@ -1565,7 +1565,7 @@
     }
     // Publicado en la web (GitHub Pages): el celular guarda la página para abrirla después sin internet.
     // Como archivo descargado o en la vista previa no aplica.
-    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    if ('serviceWorker' in navigator && window.isSecureContext && /^https?:$/.test(location.protocol)) {
       navigator.serviceWorker.register('sw.js').catch(() => {});
       if (window.caches) caches.open('caminos-itinerarios').then(c => c.add(location.pathname)).catch(() => {});
     }
