@@ -713,7 +713,7 @@
   // Los límites del motor (1178 px, y 1156 en la cotización) se miden sobre la tinta del PDF;
   // aquí se mide la caja, que queda unos píxeles más abajo, así que se usan 6 px más.
   const HOLGURA_CAJA = 6;
-  function fluir(doc, { limite: limiteMotor = 1178, etiqueta = null, pegarNota = false, juntar = false } = {}) {
+  function fluir(doc, { limite: limiteMotor = 1178, etiqueta = null, pegarNota = false, juntar = false, compacto = false } = {}) {
     const limite = limiteMotor + HOLGURA_CAJA;
     const esPol = p => !!p.querySelector('.pol-cols');
     const paginas = () => [...doc.querySelectorAll('section.page')];
@@ -828,18 +828,39 @@
         k++;
       }
     }
-    if (juntar && contenido().length > 1) {
-      // Como el motor con juntar=True (confirmación): se prueba también todo el contenido en una sola
-      // secuencia desde la primera hoja y se queda la opción con menos hojas.
-      const original = doc.body.innerHTML;
-      repartir();
-      const nSeparado = paginas().length, separado = doc.body.innerHTML;
-      doc.body.innerHTML = original;
+    const juntarYRepartir = () => {
       const cont = contenido();
       for (const p of cont.slice(1)) { const els = flujoDe(p); if (els.length) alFinal(cont[0], els); }
       repartir();
+    };
+    const original = doc.body.innerHTML;
+    if (juntar && contenido().length > 1) {
+      // Como el motor con juntar=True (confirmación): se prueba también todo el contenido en una sola
+      // secuencia desde la primera hoja y se queda la opción con menos hojas.
+      repartir();
+      const nSeparado = paginas().length, separado = doc.body.innerHTML;
+      doc.body.innerHTML = original;
+      juntarYRepartir();
       if (paginas().length >= nSeparado) doc.body.innerHTML = separado;
     } else repartir();
+    if (compacto && contenido().length > 1) {
+      // Modo compacto: espacios entre secciones un poco más cortos. Nunca es una regla de hojas: solo se
+      // prueba, y se queda únicamente si ahorra una hoja; si no, el documento sigue como estaba y crece
+      // a las hojas que necesite.
+      const nAntes = paginas().length, antes = doc.body.innerHTML;
+      if (!doc.getElementById('estilo-compacto')) {
+        const st = doc.createElement('style');
+        st.id = 'estilo-compacto';
+        st.textContent = 'html.compacto h2.sec{margin-top:20px!important}html.compacto h3.sub{margin-top:16px!important}'
+          + 'html.compacto .dash{margin-top:10px!important}html.compacto .dash+*{margin-top:14px!important}'
+          + 'html.compacto .conf-card{margin-top:10px!important}';
+        doc.head.append(st);
+      }
+      doc.documentElement.classList.add('compacto');
+      doc.body.innerHTML = original;
+      juntarYRepartir();
+      if (paginas().length >= nAntes) { doc.documentElement.classList.remove('compacto'); doc.body.innerHTML = antes; }
+    }
     const total = paginas().length;
     paginas().forEach((p, i) => {
       const c = p.querySelector('.footer-code');
@@ -2082,7 +2103,7 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
       nombre: 'Confirmación', titulo: 'Nueva <span class="c">confirmación</span>', eyebrow: 'Confirmación de reserva', icono: 'badge-check',
       desc: 'Confirma la reserva con los números de vuelo, hotel y traslados.', hojas: '3 hojas',
       boton: 'Generar la confirmación', archivo: 'Confirmacion', codigo: d => d.codigo_reserva, tituloDe: d => d.titulo_viaje, clienteDe: d => d.nombre_viajero,
-      armar: armarConfirmacion, flujo: { limite: 1178, juntar: true },
+      armar: armarConfirmacion, flujo: { limite: 1178, juntar: true, compacto: true },
       pegar: 'Pega aquí las reservas del sistema',
       ayuda: ['Las reservas copiadas del sistema: tiquete, récord, vuelos', 'Confirmaciones de hoteles y traslados', 'Pagos recibidos y lo que falta por pagar'],
       grupos: [
@@ -2836,13 +2857,13 @@ ${texto}
       destino: c.destino || '', pasajeros: c.pasajeros || '', estado_pago: '', fecha_salida: c.fecha_llegada || '', fecha_regreso: c.fecha_salida || '',
       aereo: [], traslados: [], nota_importante: '',
       hoteles: t && !vacio(t.hotel) ? [{ hotel: t.hotel, entrada: c.fecha_llegada || '', salida: c.fecha_salida || '', acomodacion: t.acomodacion || c.acomodacion || '', confirmacion: '' }] : [],
-      servicios_confirmados: plano(c.incluye),
+      servicios_confirmados: [], // repetiría el «incluye» que el cliente ya vio en la cotización
       pagos: t && !vacio(t.valor) ? [{ concepto: `Valor por persona${t.hotel ? ' — ' + t.hotel : ''}`, valor: t.valor, estado: '' }] : [],
       asesor: c.asesor?.nombre || '', asesor_correo: c.asesor?.correo || '', asesor_telefono: c.asesor?.telefono || '',
     };
     abrirConvertido('confirmacion', datos, {
       desde: `la cotización ${c.codigo_cotizacion}`, pegar: 'Pegar la reserva del sistema',
-      texto: 'Pasamos el destino, las fechas, los pasajeros, el hotel elegido, lo que incluye y tus datos. Completa lo marcado —el titular, los vuelos y los números de confirmación— o pega la reserva del sistema y Claude llena el resto.',
+      texto: 'Pasamos el destino, las fechas, los pasajeros, el hotel elegido, el valor y tus datos. «Servicios confirmados» queda vacío porque el cliente ya vio lo que incluye en la cotización (puedes escribirlo si quieres). Completa lo marcado —el titular, los vuelos y los números de confirmación— o pega la reserva del sistema y Claude llena el resto.',
     });
   }
 
@@ -2945,11 +2966,17 @@ ${texto}
         comidas: [], etiquetas: aBordo && !hotel ? ['Noche a bordo'] : [], hotel: hotel?.hotel || '' });
     }
     const hoteles = [...new Map((c.hoteles || []).filter(h => !vacio(h.hotel)).map(h => [h.hotel, { nombre: h.hotel, ciudad: ciudadHotel[h.hotel] || '', direccion: '', telefono: '' }])).values()];
+    let incluye = plano(c.servicios_confirmados), noIncluye = [];
+    if (!incluye.length) {
+      const exp = expedienteDe(c.codigo_reserva);
+      const cot = [...guardados, ...EJEMPLOS_RECIENTES].find(r => r.doc === 'cotizacion' && expedienteDe(r.datos.codigo_cotizacion) === exp);
+      if (cot) { incluye = plano(cot.datos.incluye); noIncluye = plano(cot.datos.no_incluye); }
+    }
     const largo = vuelos.length > 0 || dias.length > 4;
     const datos = {
       codigo: expedienteDe(c.codigo_reserva), titulo: c.titulo_viaje || '', subtitulo: '', destino: c.destino || '',
       fecha_inicio: c.fecha_salida || '', fecha_fin: c.fecha_regreso || '', grupo: '', acompanamiento: '', pasajero: c.nombre_viajero || '',
-      acomodacion: (c.hoteles || [])[0]?.acomodacion || '', bienvenida: '', dias, incluye: plano(c.servicios_confirmados), no_incluye: [],
+      acomodacion: (c.hoteles || [])[0]?.acomodacion || '', bienvenida: '', dias, incluye, no_incluye: noIncluye,
       recomendaciones: [], nota: c.nota_importante || '',
       ...(largo ? { frase: '', vuelos: vuelos.map(({ _mas, ...v }) => v), vuelos_internos: [], hoteles } : {}),
     };
