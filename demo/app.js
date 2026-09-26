@@ -1324,6 +1324,34 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
     try { localStorage.setItem('caminos-demo-docs-v2', JSON.stringify(lista)); }
     catch (_) { try { localStorage.setItem('caminos-demo-docs-v2', JSON.stringify(lista.map(sinFotos))); } catch (_) {} }
   };
+  // Lista compartida: colección «documentos» de la base de la app, la misma para todas las asesoras (se ve en
+  // vivo lo que genera cada una). El navegador guarda además una copia, por si la base no está disponible.
+  // Un documento por tipo y código: volver a generarlo lo actualiza en vez de duplicarlo.
+  let dbDocs = null;
+  const idDoc = (doc, datos) => doc + '__' + (slug(DOCS[doc]?.codigo(datos)) || 'sin-codigo');
+  const momento = r => String(r.cuando || r.fecha || '');
+  async function subirDoc(r) {
+    if (!dbDocs) return;
+    try { await dbDocs.doc('documentos/' + idDoc(r.doc, r.datos)).set({ doc: r.doc, fecha: r.fecha, cuando: r.cuando || new Date().toISOString(), datos: sinFotos(r.datos) }); } catch (_) {}
+  }
+  (async () => {
+    dbDocs = window.claude?.use ? await window.claude.use('db').catch(() => null) : null;
+    if (!dbDocs) return;
+    let primera = true;
+    dbDocs.collection('documentos').onSnapshot(snap => {
+      const vivos = snap.docs.filter(d => d.exists);
+      // La primera vez, lo que este navegador tenía guardado y aún no está en la lista compartida se sube.
+      if (primera) { primera = false; const ids = new Set(vivos.map(d => d.id)); guardados.filter(g => DOCS[g.doc] && !ids.has(idDoc(g.doc, g.datos))).forEach(subirDoc); }
+      const mapa = new Map();
+      for (const r of [...vivos.map(d => d.data()), ...guardados]) {
+        if (!r || !DOCS[r.doc] || !r.datos) continue;
+        const k = idDoc(r.doc, r.datos);
+        if (!mapa.has(k) || momento(r) > momento(mapa.get(k))) mapa.set(k, r);
+      }
+      guardados = [...mapa.values()].sort((a, b) => momento(b).localeCompare(momento(a)));
+      if (!$('#v-inicio').hidden || !$('#v-documentos').hidden) pintarListas();
+    }, () => {});
+  })();
 
   const VISTAS = ['inicio', 'documentos', 'doc', 'banco'];
   function ir(vista) {
@@ -1544,8 +1572,10 @@ ${texto}
     if (nuevas) partes.push(`Guardamos ${nuevas} ${nuevas === 1 ? 'foto nueva' : 'fotos nuevas'} en el banco`);
     if (partes.length) { $('#estado-3').className = 'estado'; $('#estado-3').textContent = partes.join(' · ') + '.'; }
     const codigo = doc().codigo(datos);
-    guardados = [{ doc: docId, fecha: hoy(), datos }, ...guardados.filter(g => !(g.doc === docId && DOCS[g.doc].codigo(g.datos) === codigo))];
+    const nuevo = { doc: docId, fecha: hoy(), cuando: new Date().toISOString(), datos };
+    guardados = [nuevo, ...guardados.filter(g => !(g.doc === docId && DOCS[g.doc].codigo(g.datos) === codigo))];
     guardar();
+    subirDoc(nuevo);
   });
 
   // ================= de un documento al siguiente =================
