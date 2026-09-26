@@ -1992,6 +1992,25 @@ ${ABRE}>${JS_INTERACTIVO}${CIERRE}
   const COLS_HOTEL = [T('hotel', 'Hotel', 2), D('entrada', 'Entrada', 1.3), D('salida', 'Salida', 1.3), T('acomodacion', 'Acomodación', 1.2), T('confirmacion', 'Confirmación', 1.3)];
   const COLS_TRASLADO = [T('trayecto', 'Trayecto', 1.8), D('fecha', 'Fecha', 1.3), T('hora', 'Hora', 0.8), T('confirmacion', 'Confirmación', 1.3)];
 
+  // Estados de pago con lista cerrada, para no escribirlos distinto cada vez. Lo que llega en texto libre
+  // (de Claude o de la app de operación: CONFIRMADO, PENDIENTE, ANULADO) se lleva a la opción equivalente.
+  const ESTADOS_RESERVA = [['', 'Elige el estado…'], ['Pagado en su totalidad', 'Pagado en su totalidad'], ['Abono recibido', 'Abono recibido'], ['Pendiente de pago', 'Pendiente de pago']];
+  const ESTADOS_PAGO = [['', 'Elige…'], ['Pagado', 'Pagado'], ['Pendiente', 'Pendiente'], ['Anulado', 'Anulado']];
+  const normalEstadoReserva = v => {
+    const t = String(v || '').toLowerCase();
+    if (!t.trim()) return '';
+    if (/abono|parcial|anticipo/.test(t)) return 'Abono recibido';
+    if (/pend|por pagar|sin pag/.test(t)) return 'Pendiente de pago';
+    if (/pag|total|confirm|cancelad/.test(t)) return 'Pagado en su totalidad';
+    return '';
+  };
+  const normalEstadoPago = v => {
+    const t = String(v || '').toLowerCase();
+    if (/anul/.test(t)) return 'Anulado';
+    if (/pend|por pagar/.test(t)) return 'Pendiente';
+    if (/pag|confirm|recib/.test(t)) return 'Pagado';
+    return '';
+  };
   const DOCS = {
     cotizacion: {
       nombre: 'Cotización', titulo: 'Nueva <span class="c">cotización</span>', eyebrow: 'Cotización de viaje', icono: 'file-text',
@@ -2071,7 +2090,7 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
           T('codigo_reserva', 'Código de reserva', 4, { req: 1, ph: 'CAM-2026-0000' }), T('titulo_viaje', 'Título del viaje', 8, { req: 1 }),
           T('nombre_viajero', 'Titular', 6, { req: 1 }), T('destino', 'Destino', 6, { req: 1 }),
           D('fecha_salida', 'Fecha de ida', 4, { req: 1 }), D('fecha_regreso', 'Fecha de regreso', 4, { req: 1 }), T('pasajeros', 'Pasajeros', 4),
-          T('estado_pago', 'Estado de pago', 4, { req: 1, ph: 'Pagado en su totalidad' }),
+          { k: 'estado_pago', label: 'Estado de pago', w: 4, tipo: 'opciones', req: 1, opciones: ESTADOS_RESERVA, normalizar: normalEstadoReserva },
           A('parrafo_confirmacion', 'Mensaje al viajero', 8, { filas: 2, ayuda: 'Va después de «Hola …, confirmamos tu reserva con Caminos.»' })] },
         { t: 'Vuelos', sub: 'Un tiquete por bloque; una línea por trayecto.', icono: 'ticket', campos: [
           { tipo: 'bloques', k: 'aereo', req: 1, mas: 'Agregar tiquete', min: 0, titulo: 'Tiquete', campos: [T('aerolinea', 'Aerolínea'), T('tiquete', 'Número de tiquete'), T('record', 'Récord')],
@@ -2081,7 +2100,8 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
           { tipo: 'filas', k: 'traslados', mas: 'Agregar traslado', min: 0, cols: [T('operador', 'Operador', 1.3), ...COLS_TRASLADO] }] },
         { t: 'Servicios y pagos', sub: 'Lo que quedó confirmado y cómo va el pago.', icono: 'file-text', campos: [
           L('servicios_confirmados', 'Servicios confirmados', 12),
-          { tipo: 'filas', k: 'pagos', mas: 'Agregar pago', min: 0, cols: [T('concepto', 'Concepto', 2), T('valor', 'Valor', 1.2, { ph: '$0' }), T('estado', 'Estado', 1.2)] },
+          { tipo: 'filas', k: 'pagos', req: 1, mas: 'Agregar pago', min: 0, cols: [T('concepto', 'Concepto', 2), T('valor', 'Valor', 1.2, { ph: '$0' }),
+            { k: 'estado', label: 'Estado', w: 1.2, tipo: 'opciones', opciones: ESTADOS_PAGO, normalizar: normalEstadoPago }] },
           A('nota_importante', 'Nota importante', 12, { filas: 2 })] },
         { t: 'Tu contacto', sub: 'Para que el viajero sepa a quién escribir.', icono: 'pencil', campos: [
           T('asesor', 'Tu nombre', 4, { req: 1 }), T('asesor_correo', 'Tu correo', 4, { req: 1 }), T('asesor_telefono', 'Tu teléfono', 4, { req: 1 })] },
@@ -2092,6 +2112,13 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
           ['fecha_salida', 'Fecha de ida'], ['fecha_regreso', 'Fecha de regreso'], ['estado_pago', 'Estado de pago'],
           ['asesor', 'Tu nombre'], ['asesor_correo', 'Tu correo'], ['asesor_telefono', 'Tu teléfono']].forEach(([k, n]) => { if (vacio(d[k])) f.push([k, n]); });
         for (const t of d.aereo || []) if ((t.trayectos || []).length && vacio(t.record)) f.push(['aereo', `Récord del tiquete de ${t.aerolinea || 'la aerolínea'}`]);
+        const pagos = (d.pagos || []).filter(x => !vacio(x.concepto) || !vacio(x.valor));
+        if (pagos.some(x => vacio(x.estado))) f.push(['pagos', 'Estado de cada pago (Pagado, Pendiente o Anulado)']);
+        const vivos = pagos.filter(x => x.estado !== 'Anulado');
+        if (d.estado_pago === 'Pagado en su totalidad' && vivos.some(x => x.estado === 'Pendiente'))
+          f.push(['pagos', 'La reserva dice «Pagado en su totalidad», pero hay pagos en «Pendiente»']);
+        if (d.estado_pago === 'Pendiente de pago' && vivos.some(x => x.estado === 'Pagado'))
+          f.push(['estado_pago', 'Hay pagos recibidos: el estado de la reserva debería ser «Abono recibido» o «Pagado en su totalidad»']);
         return f;
       },
       preparar: d => ({ ...d, asesor: vacio(d.asesor) ? ASESOR.nombre : d.asesor, asesor_correo: vacio(d.asesor_correo) ? ASESOR.correo : d.asesor_correo, asesor_telefono: vacio(d.asesor_telefono) ? ASESOR.telefono : d.asesor_telefono }),
@@ -2114,8 +2141,8 @@ Recordarle llevar la cédula original y pagar la tarjeta de turista si no la com
 - "titulo_viaje": corto, por ejemplo "San Andrés, cinco noches".
 - "ruta" con guion largo y espacios: "BOG — ADZ". "sale" y "llega" en formato 24 horas "06:15"; si llega al día siguiente, "09:10 +1".
 - "trayecto" de traslados con guion largo: "Aeropuerto — Hotel". "acomodacion" en palabras: "Doble", "Sencilla".
-- "estado_pago": frase corta, por ejemplo "Pagado en su totalidad" o "Abono recibido".
-- "pagos": una fila por pago, con "estado" "Pagado" o "Pendiente".
+- "estado_pago": exactamente uno de "Pagado en su totalidad", "Abono recibido" o "Pendiente de pago".
+- "pagos": una fila por pago, con "estado" exactamente "Pagado", "Pendiente" o "Anulado".
 - "nota_importante": un recordatorio práctico para el viajero, solo si el texto lo trae.
 - "parrafo_confirmacion": una frase opcional para el viajero, por ejemplo "Estos son los números de confirmación de cada servicio; tenlos a mano durante el viaje."`,
     },
@@ -2346,8 +2373,9 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
       input.value = spec.tipo === 'lineas' ? listaATexto(valor) : valor || '';
     } else if (spec.tipo === 'opciones') {
       input = document.createElement('select');
-      input.innerHTML = spec.opciones.map(([v, n]) => `<option value="${v}">${esc(n)}</option>`).join('');
-      input.value = valor || spec.opciones[0][0];
+      input.innerHTML = spec.opciones.map(([v, n]) => `<option value="${esc(v)}">${esc(n)}</option>`).join('');
+      const v = spec.normalizar ? spec.normalizar(valor) : valor;
+      input.value = spec.opciones.some(([o]) => o === v) ? v : spec.opciones[0][0];
     } else {
       input = document.createElement('input');
       if (spec.tipo === 'fecha') { input.type = 'date'; input.value = RE_ISO.test(valor || '') ? String(valor).trim().replace(/-(\d)(?!\d)/g, '-0$1') : ''; }
@@ -2675,6 +2703,10 @@ ${texto}
     return falta;
   }
   $('#paso-2').addEventListener('input', ev => ev.target.closest('.falta')?.classList.remove('falta'));
+  $('#paso-2').addEventListener('change', ev => {
+    if (docId !== 'confirmacion' || ev.target.dataset.k !== 'estado_pago' || ev.target.value !== 'Pagado en su totalidad') return;
+    $$('#paso-2 [data-req="pagos"] select[data-k="estado"], #paso-2 .filas-wrap select[data-k="estado"]').forEach(x => { if (x.value !== 'Anulado') x.value = 'Pagado'; });
+  });
   $('#paso-2').addEventListener('submit', async ev => {
     ev.preventDefault();
     if (marcarFaltantes().length) { $('#aviso-faltan').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
@@ -2803,7 +2835,7 @@ ${texto}
       aereo: [], traslados: [], nota_importante: '',
       hoteles: t && !vacio(t.hotel) ? [{ hotel: t.hotel, entrada: c.fecha_llegada || '', salida: c.fecha_salida || '', acomodacion: t.acomodacion || c.acomodacion || '', confirmacion: '' }] : [],
       servicios_confirmados: plano(c.incluye),
-      pagos: t && !vacio(t.valor) ? [{ concepto: `Valor por persona${t.hotel ? ' — ' + t.hotel : ''}`, valor: t.valor, estado: 'Pendiente' }] : [],
+      pagos: t && !vacio(t.valor) ? [{ concepto: `Valor por persona${t.hotel ? ' — ' + t.hotel : ''}`, valor: t.valor, estado: '' }] : [],
       asesor: c.asesor?.nombre || '', asesor_correo: c.asesor?.correo || '', asesor_telefono: c.asesor?.telefono || '',
     };
     abrirConvertido('confirmacion', datos, {
