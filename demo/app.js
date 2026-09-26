@@ -725,6 +725,8 @@
     } finally { med.remove(); }
   }
 
+/*__INTERACTIVO__*/
+
   // ================= formularios (se arman a partir de un esquema) =================
   const T = (k, label, w = 4, extra = {}) => ({ k, label, w, tipo: 'texto', ...extra });
   const D = (k, label, w = 4, extra = {}) => ({ k, label, w, tipo: 'fecha', ...extra });
@@ -975,7 +977,7 @@ El voucher no es reembolsable ni transferible.`,
 - "codigo": solo si el texto trae uno.`,
   };
   DOCS.itinerario = {
-    ...baseItinerario, nombre: 'Itinerario', titulo: 'Nuevo <span class="c">itinerario</span>', eyebrow: 'Itinerario de viaje', icono: 'route',
+    ...baseItinerario, interactivo: htmlItinerario, nombre: 'Itinerario', titulo: 'Nuevo <span class="c">itinerario</span>', eyebrow: 'Itinerario de viaje', icono: 'route',
     desc: 'El día a día del viaje, con vuelos, hoteles, fotos y recomendaciones.', hojas: 'Hojas según el viaje', boton: 'Generar el itinerario',
     pegar: 'Pega aquí el programa del viaje', grupos: gruposItinerario(true),
     forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","frase":"","vuelos":[{"vuelo":"","fecha":"","origen":"","destino":"","sale":"","llega":""}],"vuelos_internos":[],"dias":[{"fecha":"","titulo":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"hoteles":[{"nombre":"","ciudad":"","direccion":"","telefono":""}],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
@@ -1000,7 +1002,7 @@ Hoteles: Hotel Santa Maria, Fátima, Rua de Santo António 9. Hotel San Francisc
 Recomendaciones: llevar pasaporte vigente y copia; zapatos cómodos para caminar; ropa abrigada para las noches en Fátima.`,
   };
   DOCS.itinerario_corto = {
-    ...baseItinerario, nombre: 'Itinerario corto', titulo: 'Nuevo <span class="c">itinerario corto</span>', eyebrow: 'Itinerario corto', icono: 'map',
+    ...baseItinerario, interactivo: htmlItinerario, nombre: 'Itinerario corto', titulo: 'Nuevo <span class="c">itinerario corto</span>', eyebrow: 'Itinerario corto', icono: 'map',
     desc: 'Para pasadías y viajes de uno a cuatro días, por lo general terrestres.', hojas: '2 hojas', boton: 'Generar el itinerario',
     pegar: 'Pega aquí el plan del viaje', grupos: gruposItinerario(false),
     forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","dias":[{"fecha":"","titulo":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
@@ -1436,6 +1438,9 @@ ${texto}
     }
     $('#btn-generar').disabled = false;
     docActual = datos;
+    ponerVista('pdf');
+    $('#vistas').hidden = !d.interactivo;
+    $('#btn-html').hidden = !d.interactivo;
     const fuentes = `<style>${FUENTES}</style>`;
     const vista = `<style>html,body{background:transparent!important}.page{box-shadow:0 12px 32px rgba(31,32,36,.14)}.page+.page{margin-top:${GAP}px}</style>`;
     html = html.replace('<head>', '<head>' + fuentes).replace('</head>', vista + '</head>');
@@ -1466,6 +1471,42 @@ ${texto}
   }
   new ResizeObserver(() => { if (!$('#paso-3').hidden) ajustarEscala(); }).observe($('#escala'));
   $('#btn-editar').addEventListener('click', () => { if (docActual) dibujarFormulario(doc(), docActual); marcarFaltantes(); paso(2); });
+
+  // ================= versión interactiva: vista previa y descarga =================
+  function ponerVista(v) {
+    $$('#vistas [data-vista]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vista === v)));
+    $('#escala').hidden = v !== 'pdf';
+    $('#marco-html').hidden = v !== 'html';
+    $('#pantallas').hidden = v !== 'html';
+  }
+  $$('#vistas [data-vista]').forEach(b => b.addEventListener('click', async () => {
+    ponerVista(b.dataset.vista);
+    if (b.dataset.vista === 'html' && docActual && doc().interactivo) {
+      $('#html-frame').srcdoc = await doc().interactivo(docActual); // en la vista previa las fotos del banco se ven directo
+    } else ajustarEscala();
+  }));
+  $$('#pantallas [data-pantalla]').forEach(b => b.addEventListener('click', () => {
+    $$('#pantallas [data-pantalla]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    $('#marco-html').classList.toggle('celular', b.dataset.pantalla === 'celular');
+  }));
+  $('#marco-html').classList.add('celular');
+  $('#btn-html').addEventListener('click', async () => {
+    const out = $('#estado-3'), btn = $('#btn-html');
+    if (!downloads) { out.textContent = 'La descarga funciona al abrir la app desde claude.ai.'; return; }
+    btn.disabled = true;
+    out.className = 'estado girando';
+    out.innerHTML = '<i data-lucide="loader-circle"></i><span>Preparando la versión interactiva…</span>';
+    iconos(out);
+    try {
+      const html = await doc().interactivo(docActual, { incrustar: true }); // fotos, letras y logos van dentro del archivo
+      const nombre = `${doc().archivo}-${doc().codigo(docActual)}.html`;
+      await downloads.save({ filename: nombre, data: html });
+      out.className = 'estado'; out.textContent = `Guardaste ${nombre}. Se abre en cualquier navegador, también sin conexión.`;
+    } catch (err) {
+      out.className = 'estado error';
+      out.textContent = err?.code === 'declined' ? 'Cancelaste la descarga.' : 'No se pudo preparar la versión interactiva. Inténtalo de nuevo.';
+    } finally { btn.disabled = false; }
+  });
 
   // ================= PDF (se rasteriza en el navegador; en la versión completa lo hace el motor) =================
   let downloads = null;

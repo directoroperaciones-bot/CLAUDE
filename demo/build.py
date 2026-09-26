@@ -74,6 +74,7 @@ def main():
         for nombre, peso in (('Regular', 400), ('Medium', 500), ('Bold', 700)))
 
     app = leer(os.path.join(DEMO, 'app.html')).replace('/*__APP_JS__*/', leer(os.path.join(DEMO, 'app.js')))
+    app = app.replace('/*__INTERACTIVO__*/', leer(os.path.join(DEMO, 'interactivo.js')))
     reemplazos = {
         '"__ICONOS__"': json.dumps(iconos),
         '"__FUENTES__"': json.dumps(fuentes),

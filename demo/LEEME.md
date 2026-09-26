@@ -13,6 +13,12 @@ los hoteles).
 - `build.py` — arma `caminos-documentos-demo.html` incrustando las plantillas
   oficiales, los logos, las fuentes Poppins y los datos de ejemplo **leídos de
   `original/` sin modificarlos**.
+- `interactivo.js` — genera la **versión interactiva** del itinerario: un solo archivo
+  HTML (letras, logos y fotos incluidos) para el celular del viajero, con cuenta
+  regresiva, días desplegables, vuelos, hoteles con mapa, lista de preparación que
+  se puede marcar y la política general copiada tal cual de la plantilla.
+- `ejemplos/Itinerario-CA2790.html` — el ejemplo del plugin (Tailandia y Europa) en
+  versión interactiva.
 - `iconos/` — íconos de `lucide-static@0.445.0` (licencia ISC en `iconos/LICENSE`).
 
 ```

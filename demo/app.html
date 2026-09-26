@@ -183,6 +183,15 @@
   #doc-frame { width: 1061px; border: 0; display: block; background: transparent; }
 
 
+  /* versión interactiva */
+  .vistas { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+  .segmento { display: inline-flex; background: var(--blanco); border: 1px solid var(--hairline); border-radius: 12px; padding: 4px; gap: 4px; }
+  .segmento button { border: 0; background: none; font: 500 14px/1 var(--fuente); color: var(--texto); padding: 10px 14px; border-radius: 9px; cursor: pointer; }
+  .segmento button[aria-pressed="true"] { background: var(--coral); color: var(--blanco); }
+  .marco-html { margin: 0 auto; max-width: 100%; transition: max-width .24s var(--ease); }
+  .marco-html.celular { max-width: 400px; }
+  #html-frame { width: 100%; height: 78vh; min-height: 560px; border: 0; border-radius: 20px; background: var(--hueso); box-shadow: 0 12px 32px rgba(31,32,36,.14); display: block; }
+
   /* banco de fotos */
   .banco-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
   .banco-stats { display: flex; gap: 28px; font-size: 13px; color: var(--pizarra); }
@@ -361,12 +370,24 @@
         <div class="prev-info"><b id="prev-titulo"></b><span id="prev-meta"></span></div>
         <div class="prev-acc">
           <button type="button" class="btn btn-txt" id="btn-editar"><i data-lucide="pencil"></i>Editar datos</button>
+          <button type="button" class="btn btn-sec" id="btn-html" hidden><i data-lucide="download"></i>Descargar HTML</button>
           <button type="button" class="btn btn-pri" id="btn-pdf"><i data-lucide="download"></i>Descargar PDF</button>
+        </div>
+      </div>
+      <div class="vistas" id="vistas" hidden>
+        <div class="segmento" role="group" aria-label="Qué ver">
+          <button type="button" data-vista="pdf" aria-pressed="true">Hojas PDF</button>
+          <button type="button" data-vista="html" aria-pressed="false">Versión interactiva</button>
+        </div>
+        <div class="segmento" role="group" aria-label="Tamaño de pantalla" id="pantallas" hidden>
+          <button type="button" data-pantalla="celular" aria-pressed="true">Celular</button>
+          <button type="button" data-pantalla="computador" aria-pressed="false">Computador</button>
         </div>
       </div>
       <p class="estado" id="estado-3" aria-live="polite" style="margin-top:12px;"></p>
       <div class="lienzo">
         <div class="escala" id="escala"><div class="escala-in" id="escala-in"><iframe id="doc-frame" title="Vista previa del documento"></iframe></div></div>
+        <div class="marco-html" id="marco-html" hidden><iframe id="html-frame" title="Vista previa de la versión interactiva"></iframe></div>
       </div>
     </div>
   </section>
