@@ -433,6 +433,12 @@
       }), { rootMargin: '-45% 0px -50% 0px' });
       $$('section.bloque').forEach(s => io.observe(s));
     }
+    // Publicado en la web (GitHub Pages): el celular guarda la página para abrirla después sin internet.
+    // Como archivo descargado o en la vista previa no aplica.
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+      if (window.caches) caches.open('caminos-itinerarios').then(c => c.add(location.pathname)).catch(() => {});
+    }
   })();`;
 
 
@@ -718,6 +724,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F25061">
 <title>${esc(String(d.titulo || 'Itinerario').replace(/\s*\n\s*/g, ' '))} · Caminos</title>
 <style>${FUENTES}${CSS_INTERACTIVO}</style>
 </head>
