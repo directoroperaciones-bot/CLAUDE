@@ -1364,6 +1364,8 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
   function abrirDoc(id, datos) {
     docId = id;
     conversion = null;
+    ultimaLectura = null;
+    $('#releer').hidden = true;
     mostrarConversion();
     const d = doc();
     $('#doc-eyebrow').textContent = d.eyebrow;
@@ -1492,10 +1494,11 @@ ${texto}
     rate_limited: 'Claude está recibiendo muchas solicitudes. Espera un momento y vuelve a intentarlo.',
     cancelled: 'Detuviste la lectura.',
   };
-  $('#btn-ordenar').addEventListener('click', async () => {
+  // Para gastar menos del plan, se lee con el nivel rápido de Claude. Si esa lectura falla se reintenta una vez
+  // con el nivel normal, y la asesora puede pedir «Leer de nuevo con más precisión» si algo quedó incompleto.
+  let ultimaLectura = null; // { texto, base } de la última lectura rápida
+  async function ordenar(texto, base, nivel) {
     const d = doc();
-    const texto = $('#pegado').value.trim();
-    if (!texto) { estado1('Pega primero la información.', 'error'); return; }
     const sample = await obtenerSample();
     if (!sample) {
       estado1(conversion ? 'En esta vista no se puede usar Claude (ábrela desde claude.ai). Seguimos con los datos que trajimos.' : 'En esta vista no se puede usar Claude (ábrela desde claude.ai). Cargamos los datos del ejemplo para que veas el resultado.', 'error');
@@ -1504,26 +1507,48 @@ ${texto}
       paso(2);
       return;
     }
-    const btn = $('#btn-ordenar');
-    btn.disabled = true; $('#btn-mano').disabled = true; $('#btn-detener').hidden = false;
-    estado1('Leyendo la información… suele tardar entre 10 y 40 segundos.', 'cargando');
+    const btns = ['#btn-ordenar', '#btn-mano', '#btn-releer'].map(x => $(x));
+    btns.forEach(x => { x.disabled = true; }); $('#btn-detener').hidden = false;
+    estado1(nivel === 'quick' ? 'Leyendo la información… suele tardar entre 10 y 30 segundos.' : 'Leyendo con más precisión… puede tardar hasta un minuto.', 'cargando');
+    $('#estado-releer').textContent = nivel === 'quick' ? '' : 'Leyendo con más precisión…';
     ctl = new AbortController();
     try {
-      const base = conversion?.base;
-      let datos = await sample.json(instruccion(d, texto, base), { signal: ctl.signal, modelTier: 'default' });
+      let datos;
+      try { datos = await sample.json(instruccion(d, texto, base), { signal: ctl.signal, modelTier: nivel }); }
+      catch (err) {
+        if (nivel !== 'quick' || ['cancelled', 'not_granted', 'rate_limited'].includes(err?.code)) throw err;
+        nivel = 'default';
+        datos = await sample.json(instruccion(d, texto, base), { signal: ctl.signal, modelTier: nivel });
+      }
       if (base) { datos = fusionar(base, datos || {}); conversion.base = datos; }
       dibujarFormulario(d, d.preparar(datos || {}));
       estado1('');
+      ultimaLectura = nivel === 'quick' ? { texto, base } : null;
+      $('#releer').hidden = !ultimaLectura;
+      $('#estado-releer').textContent = '';
       marcarFaltantes();
       paso(2);
     } catch (err) {
-      estado1(MENSAJES[err?.code] || 'No pudimos ordenar la información. Revisa el texto o llena el documento a mano.', 'error');
+      const msj = MENSAJES[err?.code] || 'No pudimos ordenar la información. Revisa el texto o llena el documento a mano.';
+      if (!$('#paso-2').hidden) $('#estado-releer').textContent = msj; else estado1(msj, 'error');
     } finally {
-      btn.disabled = false; $('#btn-mano').disabled = false; $('#btn-detener').hidden = true;
+      btns.forEach(x => { x.disabled = false; }); $('#btn-detener').hidden = true;
     }
+  }
+  $('#btn-ordenar').addEventListener('click', () => {
+    const texto = $('#pegado').value.trim();
+    if (!texto) { estado1('Pega primero la información.', 'error'); return; }
+    $('#releer').hidden = true;
+    ordenar(texto, conversion?.base, 'quick');
+  });
+  $('#btn-releer').addEventListener('click', () => {
+    if (!ultimaLectura) return;
+    if (conversion && ultimaLectura.base) conversion.base = ultimaLectura.base; // se parte de los datos previos, no de la lectura rápida
+    ordenar(ultimaLectura.texto, ultimaLectura.base, 'default');
   });
   $('#btn-detener').addEventListener('click', () => ctl?.abort());
   $('#btn-mano').addEventListener('click', () => {
+    $('#releer').hidden = true;
     dibujarFormulario(doc(), doc().preparar(conversion ? clonar(conversion.base) : {}));
     if (conversion) marcarFaltantes(); else $('#aviso-faltan').hidden = true;
     paso(2);

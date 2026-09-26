@@ -269,6 +269,9 @@
   .base-nota { margin: 6px 0 0; font-size: 13px; color: var(--pizarra); }
   .base-o { display: flex; align-items: center; gap: 12px; margin: 18px 0 4px; color: var(--pizarra); font-size: 13px; }
   .base-o::before, .base-o::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
+  .releer { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; margin-bottom:20px; padding:14px 20px; }
+  .releer[hidden] { display:none; }
+  .releer > span:first-child { color:var(--pizarra); }
 </style>
 
 <header class="top">
@@ -403,6 +406,11 @@
         <i data-lucide="sparkles"></i>
         <div><b id="conv-titulo"></b><p id="conv-texto"></p>
           <button type="button" class="btn btn-sec" id="conv-pegar"><i data-lucide="file-text"></i><span id="conv-pegar-txt">Pegar la reserva para completar</span></button></div>
+      </div>
+      <div class="papel releer" id="releer" hidden>
+        <span>¿Quedó algo incompleto que sí estaba en el texto?</span>
+        <button type="button" class="btn btn-sec" id="btn-releer"><i data-lucide="sparkles"></i>Leer de nuevo con más precisión</button>
+        <span class="estado" id="estado-releer" aria-live="polite"></span>
       </div>
       <div id="form-grupos"></div>
       <div class="tintada aviso" id="aviso-faltan" hidden>
