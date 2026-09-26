@@ -1318,7 +1318,7 @@
   .mapa .parada.activa .etiqueta, .mapa .parada:hover .etiqueta, .mapa .parada:focus-visible .etiqueta, .mapa.pocas .parada .etiqueta { opacity:1; }
   .mapa.cerca .parada.vecina .etiqueta { opacity:.85; }
   .mapa .parada.activa { z-index:2; }
-  .parada-info { padding:18px 22px 20px; border-top:1px solid var(--hairline); }
+  .parada-info { padding:18px 22px 20px; border-bottom:1px solid var(--hairline); }
   .parada-info h3 { font:700 22px/1.25 var(--f); margin-top:4px; }
   .parada-info p { margin:6px 0 0; font-size:15px; color:var(--texto); }
   .enlace-btn { display:inline-flex; align-items:center; gap:6px; margin-top:10px; border:0; background:none; padding:0; font:600 14px/1.3 var(--f); color:var(--coral); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
@@ -1706,8 +1706,8 @@
       const paises = new Set(ruta.paradas.map(p => p.cc)).size;
       agregar('ruta', 'Ruta', 'compass', `<div class="titulo-sec"><div><span class="eyebrow">${ruta.paradas.length} paradas${paises > 1 ? ' · ' + paises + ' países' : ''}</span><h2 class="sec" style="margin-top:8px;">Tu ruta <span class="c">en el mapa</span></h2><span class="dash"></span></div>
         <div class="controles"><button type="button" class="boton-ic" id="ruta-ant" aria-label="Parada anterior">${icono('chevron-left')}</button><button type="button" class="boton" id="ruta-play">${icono('play')}<span>Recorrer la ruta</span></button><button type="button" class="boton-ic" id="ruta-sig" aria-label="Parada siguiente">${icono('chevron-right')}</button></div></div>
-        <div class="papel mapa"><div class="mapa-svg">${svg}<button type="button" class="boton ver-todo" id="ruta-todo" hidden>${icono('compass')}<span>Ver toda la ruta</span></button></div>
-          <div class="parada-info" aria-live="polite"><span class="eyebrow" id="p-dias"></span><h3 id="p-nombre"></h3><p id="p-titulos"></p><button type="button" class="enlace-btn" id="p-ver">Ver estos días</button></div></div>
+        <div class="papel mapa"><div class="parada-info" aria-live="polite"><span class="eyebrow" id="p-dias"></span><h3 id="p-nombre"></h3><p id="p-titulos"></p><button type="button" class="enlace-btn" id="p-ver">Ver estos días</button></div>
+          <div class="mapa-svg">${svg}<button type="button" class="boton ver-todo" id="ruta-todo" hidden>${icono('compass')}<span>Ver toda la ruta</span></button></div></div>
         <p class="fuente-mapa">Ubicaciones aproximadas por ciudad. Mapa: Natural Earth · Ciudades: GeoNames (CC BY 4.0).</p>
         <div class="chips-ruta" role="list">${ruta.paradas.map((p, i) => `<button type="button" role="listitem" class="chip-ruta" data-i="${i}"><b>${i + 1}</b>${esc(p.nombre)}</button>`).join('')}</div>
         ${ABRE} type="application/json" id="datos-ruta">${JSON.stringify(infoParadas).replace(/</g, '\\u003c')}${CIERRE}`);
