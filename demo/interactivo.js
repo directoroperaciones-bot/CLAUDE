@@ -523,7 +523,13 @@
         const [o, dd] = [v.origen, v.destino].map(t => { const c = vacio(t) ? [] : candidatos(t); return c.length ? { texto: String(t).trim(), candidatos: c, iDia, vuelo: v.vuelo } : null; });
         const io = o ? propios.findIndex(p => mismo(p, o)) : -1, id = dd ? propios.findIndex(p => mismo(p, dd)) : -1;
         // Solo se agrega la punta del vuelo que el título no nombra, junto a la otra punta.
-        if (o && dd && io < 0 && id < 0) propios.push(o, dd);
+        if (o && dd && io < 0 && id < 0) {
+          // Conexión sin nombrar (Madrid → París → Bogotá con el título «Regreso a Bogotá»): va antes de la
+          // ciudad a la que llega un vuelo posterior del mismo día.
+          const despues = delDia.slice(delDia.indexOf(v) + 1).flatMap(w => (vacio(w.destino) ? [] : candidatos(w.destino)));
+          const k = propios.findIndex(p => p.candidatos.some(c => despues.includes(c)));
+          if (k >= 0) propios.splice(k, 0, o, dd); else propios.push(o, dd);
+        }
         else if (dd && id < 0) propios.splice(io + 1, 0, dd);
         else if (o && io < 0) propios.splice(Math.max(id, 0), 0, o);
       }

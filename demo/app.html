@@ -241,6 +241,27 @@
   #pub-enlace { font-weight:600; color:var(--texto); word-break:break-all; }
   .pub-nota { font-size:13px; color:#6B6B6B; }
   .pub-acc { display:flex; gap:8px; flex-wrap:wrap; }
+  .siguiente { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; margin-top:12px; padding:14px 20px; }
+  .siguiente[hidden] { display:none; }
+  .sig-eti { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--pizarra); }
+  .sig-botones { display:flex; flex-wrap:wrap; gap:8px; }
+  .aviso.conv { margin:0 0 20px; }
+  .aviso.conv p { margin:4px 0 12px; }
+  .conv-nota { margin:12px 0 0; padding:10px 14px; border-radius:12px; background:var(--coral-suave); font-size:14px; }
+  .conv-nota[hidden] { display:none; }
+  dialog.elegir { border:0; border-radius:20px; padding:26px; width:min(520px, calc(100vw - 32px)); box-shadow:0 24px 60px rgba(31,32,36,.25); color:var(--texto); }
+  dialog.elegir::backdrop { background:rgba(31,32,36,.45); }
+  dialog.elegir h2 { margin:0 0 4px; }
+  dialog.elegir p { margin:0 0 16px; color:var(--pizarra); }
+  .elegir-ops { display:flex; flex-direction:column; gap:8px; }
+  .elegir-ops button { text-align:left; justify-content:flex-start; display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:12px 16px; border:1.5px solid var(--hairline); border-radius:12px; background:#fff; cursor:pointer; font:inherit; color:inherit; }
+  .elegir-ops button:hover, .elegir-ops button:focus-visible { border-color:var(--coral); }
+  .elegir-ops b { color:var(--carbon); }
+  .elegir-ops span { font-size:13px; color:var(--pizarra); }
+  .elegir-pie { display:flex; justify-content:flex-end; margin-top:14px; }
+  tr.exp-fila td { background:var(--coral-suave); padding:10px 18px; border-bottom:0; }
+  tr.exp-fila .exp-cod { font-weight:700; color:var(--coral); margin-right:10px; }
+  tr.exp-fila .exp-docs { color:var(--pizarra); font-size:13px; }
 </style>
 
 <header class="top">
@@ -349,6 +370,7 @@
             <button type="button" class="btn btn-txt" id="btn-detener" hidden><i data-lucide="square"></i>Detener</button>
           </div>
           <p class="estado" id="estado-1" aria-live="polite"></p>
+          <p class="conv-nota" id="conv-nota-1" hidden></p>
         </div>
         <aside class="tintada ayuda">
           <h3>Qué puedes pegar</h3>
@@ -360,6 +382,11 @@
 
     <!-- Paso 2: el formulario se arma según el documento -->
     <form class="etapa" id="paso-2" hidden novalidate>
+      <div class="tintada aviso conv" id="aviso-conv" hidden>
+        <i data-lucide="sparkles"></i>
+        <div><b id="conv-titulo"></b><p id="conv-texto"></p>
+          <button type="button" class="btn btn-sec" id="conv-pegar"><i data-lucide="file-text"></i><span id="conv-pegar-txt">Pegar la reserva para completar</span></button></div>
+      </div>
       <div id="form-grupos"></div>
       <div class="tintada aviso" id="aviso-faltan" hidden>
         <i data-lucide="circle-alert"></i>
@@ -381,6 +408,10 @@
           <button type="button" class="btn btn-sec" id="btn-publicar" hidden><i data-lucide="send"></i>Publicar para el grupo</button>
           <button type="button" class="btn btn-pri" id="btn-pdf"><i data-lucide="download"></i>Descargar PDF</button>
         </div>
+      </div>
+      <div class="papel siguiente" id="siguiente" hidden>
+        <span class="sig-eti">Siguiente paso</span>
+        <div class="sig-botones" id="sig-botones"></div>
       </div>
       <div class="vistas" id="vistas" hidden>
         <div class="segmento" role="group" aria-label="Qué ver">
@@ -406,6 +437,15 @@
       </div>
     </div>
   </section>
+
+  <dialog class="elegir" id="elegir">
+    <form method="dialog">
+      <h2 class="sec" id="elegir-titulo"></h2>
+      <p id="elegir-sub"></p>
+      <div class="elegir-ops" id="elegir-ops"></div>
+      <div class="elegir-pie"><button class="btn btn-txt" value="">Cancelar</button></div>
+    </form>
+  </dialog>
 
   <footer class="pie">
     <span><b>Caminos</b> — Para ir más lejos</span>

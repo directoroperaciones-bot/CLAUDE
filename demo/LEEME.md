@@ -30,6 +30,12 @@ los hoteles).
   `https://directoroperaciones-bot.github.io/itinerarios/<CODIGO>-<letras>.html`. La ruta de cada
   código se guarda en la colección `publicados` de la base de la app: volver a publicar reemplaza
   el mismo archivo y el enlace no cambia. `publicar/` tiene el service worker y la portada del sitio.
+- **De un documento al siguiente** (barra «Siguiente paso» al ver un documento): cotización →
+  confirmación (pregunta qué hotel eligió el cliente), confirmación → voucher (hotel, traslados o
+  tiquete) y confirmación → itinerario (con un borrador del día a día hecho solo con los vuelos,
+  traslados y hoteles de cada fecha). Lo que se pega después se suma a lo que ya venía: Claude
+  recibe los datos previos y la app los fusiona. «Mis documentos» agrupa por viaje: CA3311,
+  CAM-2026-3311 y CAM-VCH-3311-01 son el mismo expediente.
 - `ejemplos/Itinerario-CA2790.html` — el ejemplo del plugin (Tailandia y Europa) en
   versión interactiva.
 - `iconos/` — íconos de `lucide-static@0.445.0` (licencia ISC en `iconos/LICENSE`).

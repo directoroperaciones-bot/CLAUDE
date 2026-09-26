@@ -241,6 +241,27 @@
   #pub-enlace { font-weight:600; color:var(--texto); word-break:break-all; }
   .pub-nota { font-size:13px; color:#6B6B6B; }
   .pub-acc { display:flex; gap:8px; flex-wrap:wrap; }
+  .siguiente { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; margin-top:12px; padding:14px 20px; }
+  .siguiente[hidden] { display:none; }
+  .sig-eti { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--pizarra); }
+  .sig-botones { display:flex; flex-wrap:wrap; gap:8px; }
+  .aviso.conv { margin:0 0 20px; }
+  .aviso.conv p { margin:4px 0 12px; }
+  .conv-nota { margin:12px 0 0; padding:10px 14px; border-radius:12px; background:var(--coral-suave); font-size:14px; }
+  .conv-nota[hidden] { display:none; }
+  dialog.elegir { border:0; border-radius:20px; padding:26px; width:min(520px, calc(100vw - 32px)); box-shadow:0 24px 60px rgba(31,32,36,.25); color:var(--texto); }
+  dialog.elegir::backdrop { background:rgba(31,32,36,.45); }
+  dialog.elegir h2 { margin:0 0 4px; }
+  dialog.elegir p { margin:0 0 16px; color:var(--pizarra); }
+  .elegir-ops { display:flex; flex-direction:column; gap:8px; }
+  .elegir-ops button { text-align:left; justify-content:flex-start; display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:12px 16px; border:1.5px solid var(--hairline); border-radius:12px; background:#fff; cursor:pointer; font:inherit; color:inherit; }
+  .elegir-ops button:hover, .elegir-ops button:focus-visible { border-color:var(--coral); }
+  .elegir-ops b { color:var(--carbon); }
+  .elegir-ops span { font-size:13px; color:var(--pizarra); }
+  .elegir-pie { display:flex; justify-content:flex-end; margin-top:14px; }
+  tr.exp-fila td { background:var(--coral-suave); padding:10px 18px; border-bottom:0; }
+  tr.exp-fila .exp-cod { font-weight:700; color:var(--coral); margin-right:10px; }
+  tr.exp-fila .exp-docs { color:var(--pizarra); font-size:13px; }
 </style>
 
 <header class="top">
@@ -349,6 +370,7 @@
             <button type="button" class="btn btn-txt" id="btn-detener" hidden><i data-lucide="square"></i>Detener</button>
           </div>
           <p class="estado" id="estado-1" aria-live="polite"></p>
+          <p class="conv-nota" id="conv-nota-1" hidden></p>
         </div>
         <aside class="tintada ayuda">
           <h3>Qué puedes pegar</h3>
@@ -360,6 +382,11 @@
 
     <!-- Paso 2: el formulario se arma según el documento -->
     <form class="etapa" id="paso-2" hidden novalidate>
+      <div class="tintada aviso conv" id="aviso-conv" hidden>
+        <i data-lucide="sparkles"></i>
+        <div><b id="conv-titulo"></b><p id="conv-texto"></p>
+          <button type="button" class="btn btn-sec" id="conv-pegar"><i data-lucide="file-text"></i><span id="conv-pegar-txt">Pegar la reserva para completar</span></button></div>
+      </div>
       <div id="form-grupos"></div>
       <div class="tintada aviso" id="aviso-faltan" hidden>
         <i data-lucide="circle-alert"></i>
@@ -381,6 +408,10 @@
           <button type="button" class="btn btn-sec" id="btn-publicar" hidden><i data-lucide="send"></i>Publicar para el grupo</button>
           <button type="button" class="btn btn-pri" id="btn-pdf"><i data-lucide="download"></i>Descargar PDF</button>
         </div>
+      </div>
+      <div class="papel siguiente" id="siguiente" hidden>
+        <span class="sig-eti">Siguiente paso</span>
+        <div class="sig-botones" id="sig-botones"></div>
       </div>
       <div class="vistas" id="vistas" hidden>
         <div class="segmento" role="group" aria-label="Qué ver">
@@ -406,6 +437,15 @@
       </div>
     </div>
   </section>
+
+  <dialog class="elegir" id="elegir">
+    <form method="dialog">
+      <h2 class="sec" id="elegir-titulo"></h2>
+      <p id="elegir-sub"></p>
+      <div class="elegir-ops" id="elegir-ops"></div>
+      <div class="elegir-pie"><button class="btn btn-txt" value="">Cancelar</button></div>
+    </form>
+  </dialog>
 
   <footer class="pie">
     <span><b>Caminos</b> — Para ir más lejos</span>
@@ -1668,7 +1708,13 @@
         const [o, dd] = [v.origen, v.destino].map(t => { const c = vacio(t) ? [] : candidatos(t); return c.length ? { texto: String(t).trim(), candidatos: c, iDia, vuelo: v.vuelo } : null; });
         const io = o ? propios.findIndex(p => mismo(p, o)) : -1, id = dd ? propios.findIndex(p => mismo(p, dd)) : -1;
         // Solo se agrega la punta del vuelo que el título no nombra, junto a la otra punta.
-        if (o && dd && io < 0 && id < 0) propios.push(o, dd);
+        if (o && dd && io < 0 && id < 0) {
+          // Conexión sin nombrar (Madrid → París → Bogotá con el título «Regreso a Bogotá»): va antes de la
+          // ciudad a la que llega un vuelo posterior del mismo día.
+          const despues = delDia.slice(delDia.indexOf(v) + 1).flatMap(w => (vacio(w.destino) ? [] : candidatos(w.destino)));
+          const k = propios.findIndex(p => p.candidatos.some(c => despues.includes(c)));
+          if (k >= 0) propios.splice(k, 0, o, dd); else propios.push(o, dd);
+        }
         else if (dd && id < 0) propios.splice(io + 1, 0, dd);
         else if (o && io < 0) propios.splice(Math.max(id, 0), 0, o);
       }
@@ -2415,6 +2461,8 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
   }
   function abrirDoc(id, datos) {
     docId = id;
+    conversion = null;
+    mostrarConversion();
     const d = doc();
     $('#doc-eyebrow').textContent = d.eyebrow;
     $('#doc-titulo').innerHTML = d.titulo;
@@ -2455,10 +2503,27 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
     $$('#docs .doc').forEach(b => b.addEventListener('click', () => abrirDoc(b.dataset.tipo)));
     iconos();
   }
-  function filasTabla(items) {
+  function filasTabla(items, agrupar) {
     if (!items.length) return `<tbody><tr><td colspan="5" class="vacio">Todavía no has generado documentos.</td></tr></tbody>`;
-    return `<thead><tr><th>Código</th><th>Documento</th><th>Viaje</th><th>Fecha</th><th></th></tr></thead><tbody>` +
-      items.map((r, i) => {
+    const cab = `<thead><tr><th>Código</th><th>Documento</th><th>Viaje</th><th>Fecha</th><th></th></tr></thead>`;
+    if (agrupar) {
+      // Un expediente por viaje: la cotización CA3311, la confirmación CAM-2026-3311 y el voucher CAM-VCH-3311-01 van juntos.
+      const grupos = new Map();
+      items.forEach((r, i) => {
+        const exp = expedienteDe(DOCS[r.doc].codigo(r.datos));
+        if (!grupos.has(exp)) grupos.set(exp, []);
+        grupos.get(exp).push(i);
+      });
+      return cab + [...grupos].map(([exp, idx]) => {
+        const nombres = idx.map(i => DOCS[items[i].doc].nombre);
+        const cuenta = [...new Set(nombres)].map(n => { const k = nombres.filter(x => x === n).length; return k > 1 ? `${n} (${k})` : n; }).join(' · ');
+        return `<tbody><tr class="exp-fila"><td colspan="5"><span class="exp-cod">${esc(exp)}</span><span class="exp-docs">${esc(cuenta)}</span></td></tr>` +
+          idx.map(i => filaDoc(items[i], i)).join('') + '</tbody>';
+      }).join('');
+    }
+    return cab + '<tbody>' + items.map((r, i) => filaDoc(r, i)).join('') + '</tbody>';
+  }
+  function filaDoc(r, i) {
         const d = DOCS[r.doc];
         return `<tr>
         <td class="cod">${esc(d.codigo(r.datos))}</td>
@@ -2467,12 +2532,11 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
         <td>${esc(fecha(r.fecha, 'de'))}</td>
         <td style="text-align:right;white-space:nowrap;">${r.ejemplo ? '<span class="tag tag-pronto">Ejemplo</span> ' : ''}<button type="button" class="enlace" data-abrir="${i}">Abrir</button></td>
       </tr>`;
-      }).join('') + '</tbody>';
   }
   function pintarListas() {
     const todos = [...guardados, ...EJEMPLOS_RECIENTES];
     $('#tabla-recientes').innerHTML = filasTabla(todos.slice(0, 4));
-    $('#tabla-todos').innerHTML = filasTabla(todos);
+    $('#tabla-todos').innerHTML = filasTabla(todos, true);
     $$('[data-abrir]').forEach(b => b.addEventListener('click', () => { const r = todos[+b.dataset.abrir]; abrirDoc(r.doc, DOCS[r.doc].preparar(clonar(r.datos))); }));
   }
 
@@ -2499,14 +2563,17 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
   let samplePromesa = null;
   const obtenerSample = () => (samplePromesa ??= (window.claude?.use ? window.claude.use('sample').catch(() => null) : Promise.resolve(null)));
   let ctl = null;
-  const instruccion = (d, texto) => `Eres el asistente de Caminos, una agencia de viajes colombiana. Un asesor pegó información para preparar un documento de tipo "${d.nombre}". Conviértela en los datos del documento.
+  const instruccion = (d, texto, base) => `Eres el asistente de Caminos, una agencia de viajes colombiana. Un asesor pegó información para preparar un documento de tipo "${d.nombre}". Conviértela en los datos del documento.
 
 Reglas:
 - No inventes nada: cifras, fechas, códigos, hoteles, servicios y condiciones salen solo del texto. Si algo no está, déjalo como "" (o [] en las listas).
 - Fechas en formato AAAA-MM-DD. Hoy es ${hoy()}; si el texto no da el año, usa el próximo que tenga sentido.
 - Valores en pesos como en el texto, con punto de miles y signo: "$1.640.000".
 - Español de Colombia, trato de "tú", sin emojis. Títulos en sentence case.
-${d.reglas}
+${d.reglas}${base ? `
+
+Ya tenemos estos datos, que vienen de ${conversion?.desde || 'un documento anterior'}. Consérvalos y complétalos con la información nueva; si la información nueva contradice un dato, manda la nueva. En "dias", conserva cada fecha y súmale lo que diga el texto:
+${JSON.stringify(sinFotos(base))}` : ''}
 
 Responde solo con JSON, con exactamente esta forma:
 ${d.forma}
@@ -2526,8 +2593,8 @@ ${texto}
     if (!texto) { estado1('Pega primero la información.', 'error'); return; }
     const sample = await obtenerSample();
     if (!sample) {
-      estado1('En esta vista no se puede usar Claude (ábrela desde claude.ai). Cargamos los datos del ejemplo para que veas el resultado.', 'error');
-      dibujarFormulario(d, d.preparar(clonar(EJEMPLOS[docId])));
+      estado1(conversion ? 'En esta vista no se puede usar Claude (ábrela desde claude.ai). Seguimos con los datos que trajimos.' : 'En esta vista no se puede usar Claude (ábrela desde claude.ai). Cargamos los datos del ejemplo para que veas el resultado.', 'error');
+      dibujarFormulario(d, d.preparar(clonar(conversion ? conversion.base : EJEMPLOS[docId])));
       marcarFaltantes();
       paso(2);
       return;
@@ -2537,7 +2604,9 @@ ${texto}
     estado1('Leyendo la información… suele tardar entre 10 y 40 segundos.', 'cargando');
     ctl = new AbortController();
     try {
-      const datos = await sample.json(instruccion(d, texto), { signal: ctl.signal, modelTier: 'default' });
+      const base = conversion?.base;
+      let datos = await sample.json(instruccion(d, texto, base), { signal: ctl.signal, modelTier: 'default' });
+      if (base) { datos = fusionar(base, datos || {}); conversion.base = datos; }
       dibujarFormulario(d, d.preparar(datos || {}));
       estado1('');
       marcarFaltantes();
@@ -2549,7 +2618,11 @@ ${texto}
     }
   });
   $('#btn-detener').addEventListener('click', () => ctl?.abort());
-  $('#btn-mano').addEventListener('click', () => { dibujarFormulario(doc(), doc().preparar({})); $('#aviso-faltan').hidden = true; paso(2); });
+  $('#btn-mano').addEventListener('click', () => {
+    dibujarFormulario(doc(), doc().preparar(conversion ? clonar(conversion.base) : {}));
+    if (conversion) marcarFaltantes(); else $('#aviso-faltan').hidden = true;
+    paso(2);
+  });
   $('#btn-volver-1').addEventListener('click', () => paso(1));
 
   // ================= validación =================
@@ -2594,6 +2667,203 @@ ${texto}
     guardar();
   });
 
+  // ================= de un documento al siguiente =================
+  // Cotización → confirmación → voucher, y confirmación → itinerario. Se copia lo que ya existe,
+  // se conserva el número del viaje y lo que falta queda marcado en el formulario. Nada se inventa:
+  // lo único sugerido son las instrucciones y condiciones estándar del voucher, a la vista para revisarlas.
+  let conversion = null; // { desde, texto, pegar, base }
+  const expedienteDe = cod => {
+    const s = String(cod || '').trim().toUpperCase();
+    let m;
+    if ((m = /^CA-?(\d{3,})$/.exec(s)) || (m = /^CAM-\d{4}-(\d{3,})$/.exec(s)) || (m = /^CAM-(?:VCH|CONF|ITI|COT)-(\d{3,})(?:-\d+)?$/.exec(s))) return 'CA' + m[1];
+    return s || 'Sin código';
+  };
+  const numeroViaje = cod => (/^CA(\d+)$/.exec(expedienteDe(cod)) || [])[1];
+  const plano = l => (l || []).flatMap(x => typeof x === 'string' ? [x] : (x && x.items) || []).filter(x => !vacio(x));
+  const tieneAlgo = v => Array.isArray(v) ? v.some(tieneAlgo) : v && typeof v === 'object' ? Object.values(v).some(tieneAlgo) : typeof v === 'number' || (typeof v === 'string' && !!v.trim());
+  function fusionar(base, nuevo) {
+    if (base && nuevo && typeof base === 'object' && typeof nuevo === 'object' && !Array.isArray(base) && !Array.isArray(nuevo)) {
+      const r = { ...base };
+      for (const k of Object.keys(nuevo)) r[k] = fusionar(base[k], nuevo[k]);
+      return r;
+    }
+    return tieneAlgo(nuevo) ? nuevo : base;
+  }
+  const dosDig = n => String(n).padStart(2, '0');
+  const diaUTC = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null; };
+  const isoUTC = d => d.toISOString().slice(0, 10);
+  const extremos = fechas => { const f = fechas.filter(x => diaUTC(x)).sort(); return { desde: f[0] || '', hasta: f[f.length - 1] || '' }; };
+  // Aeropuertos frecuentes en los viajes de Caminos, para escribir la ciudad en el itinerario.
+  const IATA = { BOG: 'Bogotá', MDE: 'Medellín', CLO: 'Cali', CTG: 'Cartagena', SMR: 'Santa Marta', ADZ: 'San Andrés', BAQ: 'Barranquilla', PEI: 'Pereira', AXM: 'Armenia',
+    BGA: 'Bucaramanga', CUC: 'Cúcuta', LET: 'Leticia', MZL: 'Manizales', PSO: 'Pasto', NVA: 'Neiva', MTR: 'Montería', VUP: 'Valledupar', EYP: 'Yopal', IBE: 'Ibagué',
+    MAD: 'Madrid', BCN: 'Barcelona', CDG: 'París', ORY: 'París', FCO: 'Roma', CIA: 'Roma', LIS: 'Lisboa', OPO: 'Oporto', LDE: 'Lourdes', TLV: 'Tel Aviv', AMM: 'Amán',
+    IST: 'Estambul', FRA: 'Fráncfort', MUC: 'Múnich', AMS: 'Ámsterdam', LHR: 'Londres', ZRH: 'Zúrich', VCE: 'Venecia', MXP: 'Milán', NAP: 'Nápoles', ATH: 'Atenas',
+    CAI: 'El Cairo', MEX: 'Ciudad de México', CUN: 'Cancún', GDL: 'Guadalajara', PTY: 'Panamá', SJO: 'San José', MIA: 'Miami', FLL: 'Fort Lauderdale', MCO: 'Orlando',
+    JFK: 'Nueva York', LIM: 'Lima', CUZ: 'Cusco', UIO: 'Quito', GYE: 'Guayaquil', GRU: 'São Paulo', GIG: 'Río de Janeiro', EZE: 'Buenos Aires', SCL: 'Santiago',
+    PUJ: 'Punta Cana', SDQ: 'Santo Domingo', HAV: 'La Habana', AUA: 'Aruba', CUR: 'Curazao', BKK: 'Bangkok', CNX: 'Chiang Mai', CEI: 'Chiang Rai', DXB: 'Dubái' };
+  const ciudadIata = c => IATA[String(c || '').trim().toUpperCase()] || String(c || '').trim();
+  const partirRuta = r => String(r || '').split(/\s*[—–-]\s*/).map(ciudadIata);
+
+  function mostrarConversion() {
+    const c = conversion;
+    $('#aviso-conv').hidden = !c;
+    $('#conv-nota-1').hidden = !c;
+    if (!c) return;
+    $('#conv-titulo').textContent = `Trajimos los datos de ${c.desde}.`;
+    $('#conv-texto').textContent = c.texto;
+    $('#conv-pegar-txt').textContent = c.pegar;
+    $('#conv-nota-1').textContent = `Lo que pegues aquí se suma a los datos que trajimos de ${c.desde}.`;
+  }
+  $('#conv-pegar').addEventListener('click', () => { paso(1); $('#pegado').focus(); });
+  function abrirConvertido(id, datos, info) {
+    abrirDoc(id);
+    conversion = { ...info, base: datos };
+    $('#pegado').value = '';
+    estado1('');
+    dibujarFormulario(doc(), doc().preparar(clonar(datos)));
+    mostrarConversion();
+    marcarFaltantes();
+    paso(2);
+  }
+  function elegir(titulo, sub, ops) {
+    return new Promise(ok => {
+      const dl = $('#elegir');
+      $('#elegir-titulo').textContent = titulo;
+      $('#elegir-sub').textContent = sub;
+      $('#elegir-ops').innerHTML = ops.map((o, i) => `<button value="${i}"><b>${esc(o.t)}</b>${o.d ? `<span>${esc(o.d)}</span>` : ''}</button>`).join('');
+      dl.returnValue = '';
+      dl.onclose = () => ok(dl.returnValue === '' ? null : +dl.returnValue);
+      dl.showModal();
+    });
+  }
+  const SIGUIENTE = {
+    cotizacion: [{ t: 'Convertir en confirmación', icono: 'badge-check', hacer: cotAConf }],
+    confirmacion: [{ t: 'Crear voucher', icono: 'ticket', hacer: confAVoucher }, { t: 'Crear itinerario', icono: 'route', hacer: confAItinerario }],
+  };
+  function pintarSiguiente(datos) {
+    const ops = SIGUIENTE[docId] || [];
+    $('#siguiente').hidden = !ops.length;
+    $('#sig-botones').innerHTML = ops.map((o, i) => `<button type="button" class="btn btn-sec" data-sig="${i}"><i data-lucide="${o.icono}"></i>${esc(o.t)}</button>`).join('');
+    $$('#sig-botones [data-sig]').forEach(b => b.addEventListener('click', () => ops[+b.dataset.sig].hacer(clonar(datos))));
+    iconos($('#siguiente'));
+  }
+
+  async function cotAConf(c) {
+    const tarifas = (c.tarifas || []).filter(t => !vacio(t.hotel) || !vacio(t.valor));
+    let t = tarifas[0] || null;
+    if (tarifas.length > 1) {
+      const i = await elegir('¿Qué hotel eligió el cliente?', 'La confirmación lleva solo el hotel que se reservó.',
+        tarifas.map(x => ({ t: x.hotel || 'Opción sin nombre', d: [x.acomodacion, x.valor && `${x.valor} por persona`].filter(Boolean).join(' · ') })));
+      if (i === null) return;
+      t = tarifas[i];
+    }
+    const num = numeroViaje(c.codigo_cotizacion), anio = String(c.fecha_llegada || hoy()).slice(0, 4);
+    const datos = {
+      codigo_reserva: num ? `CAM-${anio}-${num}` : (c.codigo_cotizacion || ''), titulo_viaje: c.titulo_destino || '', nombre_viajero: '', parrafo_confirmacion: '',
+      destino: c.destino || '', pasajeros: c.pasajeros || '', estado_pago: '', fecha_salida: c.fecha_llegada || '', fecha_regreso: c.fecha_salida || '',
+      aereo: [], traslados: [], nota_importante: '',
+      hoteles: t && !vacio(t.hotel) ? [{ hotel: t.hotel, entrada: c.fecha_llegada || '', salida: c.fecha_salida || '', acomodacion: t.acomodacion || c.acomodacion || '', confirmacion: '' }] : [],
+      servicios_confirmados: plano(c.incluye),
+      pagos: t && !vacio(t.valor) ? [{ concepto: `Valor por persona${t.hotel ? ' — ' + t.hotel : ''}`, valor: t.valor, estado: 'Pendiente' }] : [],
+      asesor: c.asesor?.nombre || '', asesor_correo: c.asesor?.correo || '', asesor_telefono: c.asesor?.telefono || '',
+    };
+    abrirConvertido('confirmacion', datos, {
+      desde: `la cotización ${c.codigo_cotizacion}`, pegar: 'Pegar la reserva del sistema',
+      texto: 'Pasamos el destino, las fechas, los pasajeros, el hotel elegido, lo que incluye y tus datos. Completa lo marcado —el titular, los vuelos y los números de confirmación— o pega la reserva del sistema y Claude llena el resto.',
+    });
+  }
+
+  async function confAVoucher(c) {
+    const ops = [];
+    (c.hoteles || []).filter(h => !vacio(h.hotel)).forEach(h => ops.push({ tipo: 'hotel', h, t: `Hotel — ${h.hotel}`, d: [rango(h.entrada, h.salida), h.acomodacion, h.confirmacion && `Conf. ${h.confirmacion}`].filter(Boolean).join(' · ') }));
+    const porOperador = new Map();
+    (c.traslados || []).filter(x => !vacio(x.trayecto)).forEach(x => { const op = x.operador || 'Traslados'; if (!porOperador.has(op)) porOperador.set(op, []); porOperador.get(op).push(x); });
+    porOperador.forEach((filas, op) => ops.push({ tipo: 'traslado', op, filas, t: `Traslados — ${op}`, d: `${filas.length} ${filas.length === 1 ? 'traslado' : 'traslados'}` }));
+    (c.aereo || []).filter(a => (a.trayectos || []).length).forEach(a => ops.push({ tipo: 'aereo', a, t: `Tiquete — ${a.aerolinea || 'aerolínea'}`, d: [a.record && `Récord ${a.record}`, `${a.trayectos.length} ${a.trayectos.length === 1 ? 'trayecto' : 'trayectos'}`].filter(Boolean).join(' · ') }));
+    if (!ops.length) { $('#estado-3').className = 'estado error'; $('#estado-3').textContent = 'Esta confirmación no tiene hoteles, traslados ni tiquetes para hacer un voucher.'; return; }
+    let i = 0;
+    if (ops.length > 1) {
+      i = await elegir('¿De qué servicio hacemos el voucher?', 'Un voucher ampara un solo servicio. Para los demás, vuelve a tocar «Crear voucher».', ops);
+      if (i === null) return;
+    }
+    const o = ops[i], num = numeroViaje(c.codigo_reserva);
+    const datos = {
+      tipo: o.tipo, codigo_voucher: num ? `CAM-VCH-${num}-${dosDig(i + 1)}` : `${c.codigo_reserva || 'VCH'}-${dosDig(i + 1)}`, codigo_reserva: c.codigo_reserva || '',
+      nombre_viajero: c.nombre_viajero || '', acompanantes: [], ubicacion: c.destino || '',
+      hoteles: [], aereo: { aerolinea: '', tiquete: '', record: '', trayectos: [] }, traslados: [], incluye: [],
+      condiciones: 'Voucher no reembolsable ni transferible. Válido únicamente para las fechas y el titular indicados.',
+    };
+    if (o.tipo === 'hotel') Object.assign(datos, {
+      nombre_servicio: `Alojamiento — ${o.h.hotel}`, proveedor: o.h.hotel, vigencia: { desde: o.h.entrada || '', hasta: o.h.salida || '' }, hoteles: [o.h],
+      instrucciones: 'Presenta este voucher junto con tu documento de identidad original en la recepción del hotel al momento del registro de entrada.' });
+    else if (o.tipo === 'traslado') Object.assign(datos, {
+      nombre_servicio: `Traslados — ${o.op}`, proveedor: o.op, vigencia: extremos(o.filas.map(x => x.fecha)),
+      traslados: o.filas.map(x => ({ trayecto: x.trayecto || '', fecha: x.fecha || '', hora: x.hora || '', confirmacion: x.confirmacion || '' })),
+      instrucciones: 'Preséntate en el punto de encuentro 10 minutos antes de la hora indicada, con este voucher a la mano.' });
+    else Object.assign(datos, {
+      nombre_servicio: `Tiquete aéreo — ${o.a.aerolinea || ''}`.trim(), proveedor: o.a.aerolinea || '', vigencia: extremos(o.a.trayectos.map(x => x.fecha)), aereo: o.a,
+      instrucciones: 'Preséntate en el mostrador de la aerolínea con tu documento de identidad: 3 horas antes en vuelos internacionales y 2 horas antes en nacionales.' });
+    abrirConvertido('voucher', datos, {
+      desde: `la confirmación ${c.codigo_reserva}`, pegar: 'Pegar la reserva del servicio',
+      texto: 'Pasamos el servicio, las fechas, el titular y los números de confirmación. Las instrucciones y condiciones son un texto sugerido: revísalas. Agrega los acompañantes y lo que incluye.',
+    });
+  }
+
+  function confAItinerario(c) {
+    const trayectos = (c.aereo || []).flatMap(a => a.trayectos || []).filter(t => !vacio(t.ruta) || !vacio(t.vuelo))
+      .sort((a, b) => `${a.fecha} ${a.sale}`.localeCompare(`${b.fecha} ${b.sale}`));
+    const siguiente = f => { const d = diaUTC(f); if (!d) return ''; d.setUTCDate(d.getUTCDate() + 1); return isoUTC(d); };
+    const vuelos = trayectos.map(t => {
+      const [origen = '', destino = ''] = partirRuta(t.ruta);
+      const mas = /\+\s*1/.test(t.llega || ''), hora = String(t.llega || '').replace(/\s*\+\s*1/, '').trim();
+      const sig = mas && siguiente(t.fecha);
+      return { vuelo: String(t.vuelo || '').replace(/\s+/g, ''), fecha: t.fecha || '', origen, destino, sale: t.sale || '', llega: sig ? `${hora} ${sig.slice(8, 10)}/${sig.slice(5, 7)}` : hora, _mas: mas };
+    });
+    // Borrador del día a día: solo con lo que dice la confirmación (vuelos, traslados, hoteles).
+    const ini = diaUTC(c.fecha_salida), fin = diaUTC(c.fecha_regreso) || ini;
+    // La ciudad solo se escribe cuando hay evidencia ese día: un vuelo que aterriza, o el hotel en el que se
+    // registra al llegar (y las noches siguientes en ese hotel). Los demás días quedan para que la asesora los complete.
+    const dias = [], ciudadHotel = {};
+    let llegaManana = '';
+    if (ini && fin) for (let d = new Date(ini), n = 0; d <= fin && n < 60; d.setUTCDate(d.getUTCDate() + 1), n++) {
+      const f = isoUTC(d), hechos = [];
+      let titulo = '', aBordo = false, llegaHoy = '';
+      if (llegaManana) { llegaHoy = llegaManana; hechos.push(`Llegada a ${llegaHoy}`); titulo = `Llegada a ${llegaHoy}`; llegaManana = ''; }
+      const delDia = vuelos.filter(v => v.fecha === f);
+      for (const v of delDia) {
+        hechos.push(`Vuelo ${v.vuelo} de ${v.origen} a ${v.destino}, sale a las ${v.sale}${v._mas ? ' y llega al día siguiente' : v.llega ? `, llega a las ${v.llega}` : ''}`);
+        if (v._mas) { aBordo = true; llegaManana = v.destino; } else llegaHoy = v.destino;
+      }
+      (c.traslados || []).filter(x => x.fecha === f).forEach(x => hechos.push(`Traslado ${String(x.trayecto || '').toLowerCase()}${x.hora ? ` a las ${x.hora}` : ''}`));
+      (c.hoteles || []).filter(h => h.salida === f).forEach(h => hechos.push(`Salida del ${h.hotel}`));
+      (c.hoteles || []).filter(h => h.entrada === f).forEach(h => { hechos.push(`Registro en el ${h.hotel}`); if (llegaHoy && !aBordo) ciudadHotel[h.hotel] = llegaHoy; });
+      const hotel = (c.hoteles || []).find(h => h.entrada <= f && f < h.salida);
+      const lugar = aBordo ? '' : (llegaHoy || (hotel && ciudadHotel[hotel.hotel]) || '');
+      const ultimo = f === isoUTC(fin);
+      if (!titulo) {
+        if (n === 0 && delDia.length) titulo = `Salida desde ${delDia[0].origen}`;
+        else if (ultimo && delDia.length) titulo = `Regreso a ${delDia[delDia.length - 1].destino}`;
+        else if (delDia.length) titulo = `${aBordo ? 'Vuelo' : 'Llegada'} a ${delDia[delDia.length - 1].destino}`;
+        else titulo = lugar;
+      }
+      dias.push({ fecha: f, titulo, lugar, descripcion: hechos.length ? hechos.join('. ') + '.' : '',
+        comidas: [], etiquetas: aBordo && !hotel ? ['Noche a bordo'] : [], hotel: hotel?.hotel || '' });
+    }
+    const hoteles = [...new Map((c.hoteles || []).filter(h => !vacio(h.hotel)).map(h => [h.hotel, { nombre: h.hotel, ciudad: ciudadHotel[h.hotel] || '', direccion: '', telefono: '' }])).values()];
+    const largo = vuelos.length > 0 || dias.length > 4;
+    const datos = {
+      codigo: expedienteDe(c.codigo_reserva), titulo: c.titulo_viaje || '', subtitulo: '', destino: c.destino || '',
+      fecha_inicio: c.fecha_salida || '', fecha_fin: c.fecha_regreso || '', grupo: '', acompanamiento: '', pasajero: c.nombre_viajero || '',
+      acomodacion: (c.hoteles || [])[0]?.acomodacion || '', bienvenida: '', dias, incluye: plano(c.servicios_confirmados), no_incluye: [],
+      recomendaciones: [], nota: c.nota_importante || '',
+      ...(largo ? { frase: '', vuelos: vuelos.map(({ _mas, ...v }) => v), vuelos_internos: [], hoteles } : {}),
+    };
+    abrirConvertido(largo ? 'itinerario' : 'itinerario_corto', datos, {
+      desde: `la confirmación ${c.codigo_reserva}`, pegar: 'Pegar el programa del viaje',
+      texto: 'Pasamos las fechas, los vuelos, los hoteles y lo que incluye, y armamos un borrador del día a día con los vuelos, traslados y hoteles de cada fecha. Completa las actividades de cada día, o pega el programa del proveedor y Claude lo completa sin perder lo que ya está.',
+    });
+  }
+
   // ================= vista previa =================
   const GAP = 28;
   async function mostrarDocumento(datos) {
@@ -2614,6 +2884,7 @@ ${texto}
     $('#vistas').hidden = !d.interactivo;
     $('#btn-html').hidden = !d.interactivo;
     $('#btn-publicar').hidden = !d.interactivo;
+    pintarSiguiente(datos);
     mostrarPublicado(d.interactivo ? publicacionDe(datos) : null);
     const fuentes = `<style>${FUENTES}</style>`;
     const vista = `<style>html,body{background:transparent!important}.page{box-shadow:0 12px 32px rgba(31,32,36,.14)}.page+.page{margin-top:${GAP}px}</style>`;
