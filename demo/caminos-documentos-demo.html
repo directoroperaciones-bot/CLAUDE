@@ -1299,19 +1299,19 @@
   .ver-todo { background:rgba(255,255,255,.94); padding:9px 14px; font-size:13px; }
   .mapa { margin-top:22px; overflow:hidden; }
   .mapa-svg { position:relative; }
-  .mapa-svg svg { display:block; width:100%; height:auto; background:#EEF2F4; }
+  .mapa-svg svg { display:block; width:100%; height:400px; background:#EEF2F4; }
   .mapa .pais, .mapa .tramo { vector-effect:non-scaling-stroke; }
   .ver-todo { position:absolute; right:12px; top:12px; }
   .mapa .mar { fill:#EEF2F4; }
   .mapa .pais { fill:#FBFAF8; stroke:#D9D5D0; stroke-width:.8; }
   .mapa .pais.visitado { fill:var(--coral-suave); stroke:#F3B9BF; }
-  .mapa .tramo { fill:none; stroke:#D9D5D0; stroke-width:3; stroke-dasharray:2 8; stroke-linecap:round; transition:stroke .42s var(--ease); }
+  .mapa .tramo { fill:none; stroke:#D9D5D0; stroke-width:2.2; stroke-dasharray:2 8; stroke-linecap:round; transition:stroke .42s var(--ease); }
   .mapa .tramo.hecho { stroke:var(--coral); stroke-dasharray:none; }
   .mapa .parada { cursor:pointer; outline:none; }
   .mapa .parada .halo { fill:var(--coral); opacity:0; transition:opacity .24s var(--ease); }
-  .mapa .parada .punto-p { fill:var(--blanco); stroke:var(--coral); stroke-width:3; transition:fill .24s var(--ease); }
-  .mapa .parada .num { font:700 11px/1 var(--f); text-anchor:middle; fill:var(--coral); pointer-events:none; }
-  .mapa .parada .etiqueta { font:600 15px/1 var(--f); fill:var(--carbon); paint-order:stroke; stroke:rgba(255,255,255,.92); stroke-width:4px; opacity:0; transition:opacity .24s var(--ease); pointer-events:none; }
+  .mapa .parada .punto-p { fill:var(--blanco); stroke:var(--coral); stroke-width:2.2; transition:fill .24s var(--ease); }
+  .mapa .parada .num { font:700 9px/1 var(--f); text-anchor:middle; fill:var(--coral); pointer-events:none; }
+  .mapa .parada .etiqueta { font:600 12.5px/1 var(--f); fill:var(--carbon); paint-order:stroke; stroke:rgba(255,255,255,.92); stroke-width:4px; opacity:0; transition:opacity .24s var(--ease); pointer-events:none; }
   .mapa .parada.hecha .punto-p { fill:var(--coral); }
   .mapa .parada.hecha .num { fill:var(--blanco); }
   .mapa .parada.activa .halo { opacity:.18; }
@@ -1354,7 +1354,7 @@
   @media (max-width:640px) {
     .hero { min-height:400px; }
     .dia-cuerpo.con-foto { grid-template-columns:1fr; }
-    .mapa-svg svg { height:360px; }
+    .mapa-svg svg { height:280px; }
     .controles { width:100%; }
     .controles .boton { flex:1; justify-content:center; }
     details.dia > summary { padding:16px 16px; gap:12px; }
@@ -1417,7 +1417,7 @@
       if (paradas.length <= 8) mapa.classList.add('pocas');
       let actual = 0, timer = null;
       const quieto = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-      // Acercamiento: la vista se centra en la parada activa y sus vecinas cercanas (menos de 1.500 km).
+      // Acercamiento suave: la vista se centra en la parada activa con sus vecinas cercanas y bastante margen.
       const svg = $('.mapa-svg svg'), W = +svg.dataset.w, H = +svg.dataset.h;
       const pts = JSON.parse(svg.dataset.pts), km = JSON.parse(svg.dataset.km);
       let vista = [0, 0, W, H], anim = null;
@@ -1444,11 +1444,14 @@
       };
       const encuadre = i => {
         const grupo = [pts[i]];
-        if (i > 0 && km[i - 1] < 1500) grupo.push(pts[i - 1]);
-        if (i < pts.length - 1 && km[i] < 1500) grupo.push(pts[i + 1]);
+        for (const j of [i - 2, i - 1, i + 1, i + 2]) { // vecinas a menos de 2.500 km, para ver la parada en su contexto
+          if (j < 0 || j >= pts.length) continue;
+          const dist = j < i ? km.slice(j, i).reduce((a, b) => a + b, 0) : km.slice(i, j).reduce((a, b) => a + b, 0);
+          if (dist < 2500) grupo.push(pts[j]);
+        }
         let [x0, x1, y0, y1] = [Infinity, -Infinity, Infinity, -Infinity];
         grupo.forEach(([x, y]) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); });
-        let w = Math.max((x1 - x0) * 1.5, W / 22), h = Math.max((y1 - y0) * 1.5, H / 22);
+        let w = Math.max((x1 - x0) * 2.2, W / 8), h = Math.max((y1 - y0) * 2.2, H / 8);
         if (w / h > W / H) h = w * H / W; else w = h * W / H;
         if (w >= W) return [0, 0, W, H];
         const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
@@ -1668,8 +1671,8 @@
       return `<path class="tramo" data-i="${i + 1}" d="M${a[0]} ${a[1]}Q${cx} ${cy} ${b[0]} ${b[1]}"/>`;
     });
     const marcas = pts.map(([x, y], i) => `<g class="parada" data-i="${i}" tabindex="0" role="button" aria-label="${esc(paradas[i].nombre)}" transform="translate(${x} ${y})"><g class="escala-m">
-      <circle r="15" class="halo"/><circle r="11" class="punto-p"/><text class="num" y="4">${i + 1}</text>
-      <text class="etiqueta" x="17" y="-12">${esc(paradas[i].nombre)}</text></g></g>`);
+      <circle r="12" class="halo"/><circle r="8.5" class="punto-p"/><text class="num" y="3.2">${i + 1}</text>
+      <text class="etiqueta" x="13" y="-9">${esc(paradas[i].nombre)}</text></g></g>`);
     return { svg: `<svg viewBox="0 0 ${W} ${H}" data-w="${W}" data-h="${H}" data-pts="${esc(JSON.stringify(pts))}" data-km="${esc(JSON.stringify(paradas.slice(1).map((p, i) => Math.round(kmEntre([0, 0, 0, paradas[i].lat, paradas[i].lon], [0, 0, 0, p.lat, p.lon])))))}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Mapa de la ruta del viaje"><rect class="mar" width="${W}" height="${H}"/>${paths.join('')}${tramos.join('')}${marcas.join('')}</svg>`, visitados: [...visitados] };
   }
 
