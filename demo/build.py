@@ -4,9 +4,10 @@
 Uso:
     python3 demo/build.py
 
-Lee la plantilla oficial de la cotización, los logos y los datos de ejemplo
-directamente de original/ (sin modificarlos) y los incrusta en
-demo/app.html. El resultado queda en demo/caminos-documentos-demo.html.
+Lee las plantillas oficiales (cotización, confirmación y voucher), los logos y
+los datos de ejemplo directamente de original/ (sin modificarlos) y los
+incrusta en demo/app.html. El resultado queda en
+demo/caminos-documentos-demo.html.
 """
 import base64
 import json
@@ -29,20 +30,21 @@ def data_uri(ruta):
 
 
 def main():
-    plantilla = leer(os.path.join(COT, 'template', 'cotizacion.html'))
-    assets = {
-        '../assets/brand/estrella-crema.svg': os.path.join(COT, 'assets', 'brand', 'estrella-crema.svg'),
-        '../assets/logos/caminos-logo-white.svg': os.path.join(COT, 'assets', 'logos', 'caminos-logo-white.svg'),
-        '../assets/logos/caminos-logo-coral.svg': os.path.join(COT, 'assets', 'logos', 'caminos-logo-coral.svg'),
-    }
-    for rel, ruta in assets.items():
-        plantilla = plantilla.replace(rel, data_uri(ruta))
-    sobra = re.findall(r'src="\.\./[^"]+"', plantilla)
-    if sobra:
-        raise SystemExit('Quedaron recursos sin incrustar: ' + ', '.join(sobra))
-
-    ejemplo = json.loads(leer(os.path.join(COT, 'scripts', 'datos-ejemplo.json')))
-    ejemplo.pop('banco_consultado', None)
+    # Plantillas oficiales y datos de ejemplo de cada documento, leídos del plugin sin tocarlo.
+    plantillas, ejemplos = {}, {}
+    for doc in ('cotizacion', 'confirmacion', 'voucher'):
+        skill = os.path.join(PLUGIN, 'skills', 'caminos-' + doc)
+        tpl = leer(os.path.join(skill, 'template', doc + '.html'))
+        for rel in sorted(set(re.findall(r'src="(\.\./assets/[^"]+\.svg)"', tpl))):
+            tpl = tpl.replace(rel, data_uri(os.path.join(skill, rel[3:])))
+        sobra = re.findall(r'src="\.\./[^"]+"', tpl)
+        if sobra:
+            raise SystemExit(f'{doc}: quedaron recursos sin incrustar: ' + ', '.join(sobra))
+        plantillas[doc] = tpl
+        ej = json.loads(leer(os.path.join(skill, 'scripts', 'datos-ejemplo.json')))
+        ej.pop('banco_consultado', None)
+        ejemplos[doc] = ej
+    logos = os.path.join(COT, 'assets')
 
     # Íconos Lucide (lucide-static@0.445.0, el set del sistema de diseño), sin el comentario de licencia.
     carpeta = os.path.join(DEMO, 'iconos')
@@ -52,13 +54,20 @@ def main():
             svg = re.sub(r'<!--.*?-->', '', leer(os.path.join(carpeta, nombre)), flags=re.S)
             iconos[nombre[:-4]] = re.sub(r'\s+', ' ', svg).strip()
 
-    app = leer(os.path.join(DEMO, 'app.html'))
+    # Poppins del plugin (las mismas que usa el motor para el PDF), para medir y dibujar igual.
+    fuentes = ''.join(
+        "@font-face{font-family:'Poppins';font-style:normal;font-weight:%d;src:url(data:font/ttf;base64,%s) format('truetype');}"
+        % (peso, base64.b64encode(open(os.path.join(PLUGIN, 'fuentes', f'Poppins-{nombre}.ttf'), 'rb').read()).decode())
+        for nombre, peso in (('Regular', 400), ('Medium', 500), ('Bold', 700)))
+
+    app = leer(os.path.join(DEMO, 'app.html')).replace('/*__APP_JS__*/', leer(os.path.join(DEMO, 'app.js')))
     reemplazos = {
         '"__ICONOS__"': json.dumps(iconos),
-        '"__PLANTILLA__"': json.dumps(plantilla, ensure_ascii=False),
-        '"__EJEMPLO__"': json.dumps(ejemplo, ensure_ascii=False),
-        '__LOGO_CORAL__': data_uri(assets['../assets/logos/caminos-logo-coral.svg']),
-        '__ESTRELLA_CREMA__': data_uri(assets['../assets/brand/estrella-crema.svg']),
+        '"__FUENTES__"': json.dumps(fuentes),
+        '"__PLANTILLAS__"': json.dumps(plantillas, ensure_ascii=False),
+        '"__EJEMPLOS__"': json.dumps(ejemplos, ensure_ascii=False),
+        '__LOGO_CORAL__': data_uri(os.path.join(logos, 'logos', 'caminos-logo-coral.svg')),
+        '__ESTRELLA_CREMA__': data_uri(os.path.join(logos, 'brand', 'estrella-crema.svg')),
     }
     for marca, valor in reemplazos.items():
         if marca not in app:

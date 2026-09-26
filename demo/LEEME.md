@@ -1,9 +1,12 @@
 # Demo — app de documentos de Caminos
 
-Maqueta funcional de la app para asesores. Hoy funciona la **cotización** de
-punta a punta; los demás documentos aparecen como "versión completa".
+Maqueta funcional de la app para asesores. Funcionan de punta a punta la
+**cotización**, la **confirmación** y el **voucher**; los itinerarios aparecen
+como "versión completa".
 
-- `app.html` — la app (pantallas, formulario y puerto en JavaScript de `armar()` del motor de la cotización).
+- `app.html` — pantallas y estilos de la app.
+- `app.js` — formularios, lectura con Claude, puerto en JavaScript de los motores
+  (`armar()` de cotización, confirmación y voucher, y el reparto de `motor/flujo.py`).
 - `build.py` — arma `caminos-documentos-demo.html` incrustando la plantilla oficial,
   los logos y los datos de ejemplo **leídos de `original/` sin modificarlos**.
 - `iconos/` — íconos de `lucide-static@0.445.0` (licencia ISC en `iconos/LICENSE`).
