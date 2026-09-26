@@ -1,0 +1,427 @@
+{
+  "codigo": "CA2790",
+  "codigo_documento": "CAM-ITI-2790",
+  "subtitulo": "Viaje espiritual y cultural 2026",
+  "titulo": "Peregrinación a\nTailandia y Europa",
+  "fecha_inicio": "2026-09-04",
+  "fecha_fin": "2026-09-26",
+  "grupo": "Parroquia Santa María Magdalena",
+  "acompanamiento": "Pbro. Juan David Uribe Jaramillo",
+  "pasajero": "Jhon Jairo Guataquira",
+  "acomodacion": "Sencilla",
+  "bienvenida": "Con gran alegría te damos la bienvenida a esta peregrinación, un recorrido diseñado para vivir una experiencia profunda de fe, encuentro y crecimiento espiritual.\n\nDurante el viaje visitaremos santuarios marianos, templos y ciudades llenas de historia, mientras descubrimos la riqueza cultural de Tailandia y Europa.",
+  "frase": "Más que un viaje, una peregrinación que fortalece tu fe y enriquece tu espíritu.",
+  "vuelos": [
+    {
+      "vuelo": "AF435",
+      "fecha": "2026-09-04",
+      "origen": "Bogotá",
+      "destino": "París",
+      "sale": "21:35",
+      "llega": "15:00 05/09"
+    },
+    {
+      "vuelo": "AF198",
+      "fecha": "2026-09-05",
+      "origen": "París",
+      "destino": "Bangkok",
+      "sale": "16:45",
+      "llega": "09:10 06/09"
+    },
+    {
+      "vuelo": "AF199",
+      "fecha": "2026-09-12",
+      "origen": "Bangkok",
+      "destino": "París",
+      "sale": "11:25",
+      "llega": "18:50"
+    },
+    {
+      "vuelo": "AF1001",
+      "fecha": "2026-09-26",
+      "origen": "Madrid",
+      "destino": "París",
+      "sale": "10:05",
+      "llega": "12:10"
+    },
+    {
+      "vuelo": "AF436",
+      "fecha": "2026-09-26",
+      "origen": "París",
+      "destino": "Bogotá",
+      "sale": "15:40",
+      "llega": "19:25"
+    }
+  ],
+  "vuelos_internos": [
+    {
+      "vuelo": "TG102",
+      "fecha": "2026-09-08",
+      "origen": "Bangkok",
+      "destino": "Chiang Mai",
+      "sale": "10:30",
+      "llega": "11:45"
+    },
+    {
+      "vuelo": "TG111",
+      "fecha": "2026-09-11",
+      "origen": "Chiang Mai",
+      "destino": "Bangkok",
+      "sale": "17:20",
+      "llega": "18:40"
+    }
+  ],
+  "dias": [
+    {
+      "fecha": "2026-09-04",
+      "titulo": "Salida desde Bogotá",
+      "descripcion": "Encuentro en la Parroquia Santa María Magdalena, donde abordamos el bus que nos traslada al Aeropuerto Internacional El Dorado para tomar el vuelo con destino a Bangkok.",
+      "etiquetas": [
+        "Noche a bordo"
+      ]
+    },
+    {
+      "fecha": "2026-09-05",
+      "titulo": "Noche a bordo",
+      "descripcion": "Día de vuelo. Continuamos el trayecto hacia Bangkok con conexión en París.",
+      "etiquetas": [
+        "Noche a bordo"
+      ]
+    },
+    {
+      "fecha": "2026-09-06",
+      "titulo": "Llegada a Bangkok",
+      "descripcion": "Llegada al Aeropuerto Internacional de Suvarnabhumi. Nos recibe nuestro asistente hispanohablante y nos traslada al hotel. Resto del día libre para explorar Bangkok, una mezcla fascinante de lo antiguo y lo moderno, donde los templos dorados conviven con rascacielos y mercados tradicionales. Por la noche vivimos una cena de bienvenida en un crucero por el río Chao Phraya.",
+      "comidas": [
+        "Cena"
+      ],
+      "hotel": "Hotel Century Park"
+    },
+    {
+      "fecha": "2026-09-07",
+      "titulo": "Templos y mercado flotante",
+      "descripcion": "Salida por carretera hacia Mae Klong, donde conocemos el curioso mercado instalado sobre las vías del tren. Seguimos al mercado flotante de Damnoen Saduak, uno de los más importantes del país. De regreso a Bangkok visitamos Wat Traimit, con el Buda de oro macizo más grande del mundo; Wat Pho, famoso por su Buda reclinado de 46 metros; y el Gran Palacio Real.",
+      "comidas": [
+        "Desayuno",
+        "Almuerzo",
+        "Cena"
+      ],
+      "hotel": "Hotel Century Park"
+    },
+    {
+      "fecha": "2026-09-08",
+      "titulo": "Bangkok — Chiang Mai",
+      "descripcion": "Traslado al aeropuerto para volar a Chiang Mai, la joya del norte de Tailandia. Llegada, traslado al hotel y tarde para conocer el casco antiguo.",
+      "comidas": [
+        "Desayuno"
+      ],
+      "hotel": "Hotel Amora Thapae Gate"
+    },
+    {
+      "fecha": "2026-09-09",
+      "titulo": "Chiang Mai — Chiang Rai",
+      "descripcion": "Salida hacia un santuario de elefantes, donde conocemos el trabajo de conservación. Continuamos hacia Chiang Rai entre paisajes de montaña y plantaciones de té.",
+      "comidas": [
+        "Desayuno",
+        "Almuerzo"
+      ],
+      "hotel": "Hotel Heritage Chiang Rai"
+    },
+    {
+      "fecha": "2026-09-10",
+      "titulo": "Chiang Rai — Chiang Mai",
+      "descripcion": "Visita al famoso Templo Blanco (Wat Rong Khun), una obra contemporánea única. Regreso a Chiang Mai por la tarde.",
+      "comidas": [
+        "Desayuno",
+        "Almuerzo"
+      ],
+      "hotel": "Hotel Amora Thapae Gate"
+    },
+    {
+      "fecha": "2026-09-11",
+      "titulo": "Chiang Mai — Bangkok",
+      "descripcion": "Tiempo libre hasta el traslado al aeropuerto para volar de regreso a Bangkok.",
+      "comidas": [
+        "Desayuno"
+      ],
+      "hotel": "Hotel Century Park"
+    },
+    {
+      "fecha": "2026-09-12",
+      "titulo": "Bangkok — salida a Europa",
+      "descripcion": "Tiempo libre hasta el traslado al aeropuerto para tomar el vuelo con destino a París.",
+      "comidas": [
+        "Desayuno"
+      ],
+      "etiquetas": [
+        "Noche a bordo"
+      ]
+    },
+    {
+      "fecha": "2026-09-13",
+      "titulo": "París y la Medalla Milagrosa",
+      "descripcion": "Panorámica de París recorriendo sus principales avenidas y monumentos. Visitamos la capilla de la Medalla Milagrosa, lugar de las apariciones de la Virgen a Santa Catalina Labouré.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel Ibis Styles Meteor"
+    },
+    {
+      "fecha": "2026-09-14",
+      "titulo": "París — Montmartre",
+      "descripcion": "Continuación de la panorámica y visita a pie de Montmartre, con la Basílica del Sagrado Corazón. Por la tarde, paseo en barco por el río Sena.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel Ibis Styles Meteor"
+    },
+    {
+      "fecha": "2026-09-15",
+      "titulo": "París — Lourdes",
+      "descripcion": "Traslado a la Torre Eiffel y salida en tren hacia Lourdes. Llegada y acomodación.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel Paradis"
+    },
+    {
+      "fecha": "2026-09-16",
+      "titulo": "Lourdes",
+      "descripcion": "Día dedicado al santuario: la Gruta de Massabielle, las basílicas y los lugares de la vida de Santa Bernadette. Procesión de las antorchas.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel Paradis"
+    },
+    {
+      "fecha": "2026-09-17",
+      "titulo": "Lourdes — Zaragoza",
+      "descripcion": "Salida hacia los Pirineos rumbo a España. Llegada a Zaragoza y visita a la Basílica del Pilar.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel Real Ciudad de Zaragoza"
+    },
+    {
+      "fecha": "2026-09-18",
+      "titulo": "Zaragoza — Montserrat — Barcelona",
+      "descripcion": "Salida hacia Montserrat para conocer el santuario enclavado en la montaña. Continuación a Barcelona.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel en Barcelona"
+    },
+    {
+      "fecha": "2026-09-19",
+      "titulo": "Barcelona",
+      "descripcion": "Visita de la Sagrada Familia con guía local oficial. Tarde para recorrer el Barrio Gótico.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel en Barcelona"
+    },
+    {
+      "fecha": "2026-09-20",
+      "titulo": "Barcelona — Valencia",
+      "descripcion": "Salida a Valencia. Tarde de visita a la ciudad y a su catedral, donde se venera el Santo Cáliz.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel en Valencia"
+    },
+    {
+      "fecha": "2026-09-21",
+      "titulo": "Valencia — Caravaca — Granada",
+      "descripcion": "Salida hacia Caravaca de la Cruz, una de las cinco ciudades santas del mundo católico. Continuación a Granada.",
+      "comidas": [
+        "Desayuno",
+        "Almuerzo",
+        "Cena"
+      ],
+      "hotel": "Hotel en Granada"
+    },
+    {
+      "fecha": "2026-09-22",
+      "titulo": "Granada — Sevilla",
+      "descripcion": "Visita de la Alhambra con guía local oficial. Por la tarde, salida hacia Sevilla.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel en Sevilla"
+    },
+    {
+      "fecha": "2026-09-23",
+      "titulo": "Sevilla",
+      "descripcion": "Visita de la ciudad: la Catedral y la Giralda, el Real Alcázar y el barrio de Santa Cruz.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel en Sevilla"
+    },
+    {
+      "fecha": "2026-09-24",
+      "titulo": "Sevilla — Córdoba — Madrid",
+      "descripcion": "Traslado a Córdoba para visitar la Mezquita-Catedral con guía local oficial. Continuación a Madrid.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel en Madrid"
+    },
+    {
+      "fecha": "2026-09-25",
+      "titulo": "Madrid",
+      "descripcion": "Día en Madrid: el Palacio Real, la Plaza Mayor y la Catedral de la Almudena.",
+      "comidas": [
+        "Desayuno",
+        "Cena"
+      ],
+      "hotel": "Hotel en Madrid"
+    },
+    {
+      "fecha": "2026-09-26",
+      "titulo": "Madrid — regreso a Bogotá",
+      "descripcion": "Traslado al aeropuerto para el vuelo de regreso a Bogotá, vía París. Fin de nuestros servicios.",
+      "comidas": [
+        "Desayuno"
+      ]
+    }
+  ],
+  "incluye": [
+    "Traslado parroquia — aeropuerto — parroquia",
+    "Tiquetes internacionales Bogotá — París — Bangkok — Madrid — Bogotá",
+    "Un morral de máximo 8 kg bajo el asiento",
+    "Un equipaje en bodega de 23 kg por trayecto",
+    "Acompañamiento espiritual del Pbro. Juan David Uribe",
+    "Coordinador de viaje de Caminos",
+    "Auriculares en todas las visitas",
+    "Seguro médico con cobertura hasta USD 65.000",
+    {
+      "grupo": "En Tailandia",
+      "items": [
+        "Seis noches en hoteles 4 estrellas o similares",
+        "Dos vuelos domésticos con 20 kg en bodega",
+        "Todos los tours y comidas del programa",
+        "Guías profesionales con licencia, en español"
+      ]
+    },
+    {
+      "grupo": "En París",
+      "items": [
+        "Tres noches en régimen de media pensión",
+        "Guía oficial para panorámica y Montmartre",
+        "Paseo en barco por el río Sena",
+        "Tren París — Lourdes"
+      ]
+    },
+    {
+      "grupo": "En Lourdes y España",
+      "items": [
+        "Once noches en régimen de media pensión",
+        "Autobús privado, incluidos peajes",
+        "Guía acompañante durante todo el recorrido",
+        "Entradas a Sagrada Familia, Alhambra y Mezquita"
+      ]
+    }
+  ],
+  "no_incluye": [
+    "Alimentación no descrita en el programa",
+    "Gastos extras en hoteles",
+    "Trámites de documentación",
+    "Propinas para guías y conductores",
+    "Visa de Tailandia",
+    "Cualquier servicio no indicado en el incluye"
+  ],
+  "hoteles": [
+    {
+      "nombre": "Century Park Hotel",
+      "ciudad": "Bangkok",
+      "direccion": "9 Ratchaprarop Road, Makkasan, Ratchathewi, Bangkok 10400",
+      "telefono": "(66) 02 246 7800"
+    },
+    {
+      "nombre": "Heritage Hotel",
+      "ciudad": "Chiang Rai",
+      "direccion": "199 Moo 13, Paholyothin Road, Sansai, Mueang, 57000",
+      "telefono": "(66) 52 055 888"
+    },
+    {
+      "nombre": "Amora Thapae Gate",
+      "ciudad": "Chiang Mai",
+      "direccion": "22 Chaiyapoom Rd, Chang Moi, Mueang, Chiang Mai 50300",
+      "telefono": "(66) 53 251 531"
+    },
+    {
+      "nombre": "Ibis Styles Meteor",
+      "ciudad": "París",
+      "direccion": "12 Av. de la Pte. d'Italie, 75013 París, Francia",
+      "telefono": "(33) 1 45 85 10 10"
+    },
+    {
+      "nombre": "Paradis",
+      "ciudad": "Lourdes",
+      "direccion": "15 Av. du Paradis, 65100 Lourdes, Francia",
+      "telefono": "(33) 5 62 42 14 14"
+    },
+    {
+      "nombre": "Real Ciudad de Zaragoza",
+      "ciudad": "Zaragoza",
+      "direccion": "Carr. de Huesca Km 7, Ciudad del Transporte",
+      "telefono": "(34) 976 45 92 95"
+    }
+  ],
+  "recomendaciones": [
+    {
+      "tema": "Documentación y salud",
+      "items": [
+        "Porta el carné de vacunación contra la fiebre amarilla",
+        "Si la vacuna está contraindicada, presenta el certificado de la Cruz Roja",
+        "Lleva tus medicamentos en su empaque original",
+        "Si son formulados, lleva copia de la receta",
+        "Empaca los medicamentos esenciales en la maleta de bodega",
+        "Incluye antigripales y analgésicos"
+      ]
+    },
+    {
+      "tema": "Dinero y medios de pago",
+      "items": [
+        "Para Tailandia lleva dólares en billetes de 50 o 100 en buen estado",
+        "Presupuesto recomendado de 1.200 euros por persona",
+        "Activa tus tarjetas e informa a tu banco",
+        "Verifica que tengas habilitadas las compras internacionales",
+        "Propinas: USD 20 en Tailandia y EUR 40 en Europa"
+      ]
+    },
+    {
+      "tema": "Código de vestimenta",
+      "items": [
+        "En lugares de culto cubre hombros, escotes y rodillas",
+        "Lleva siempre un fular o chalina ligera",
+        "En templos budistas usa calzado fácil de retirar",
+        "Evita apuntar con la planta de los pies a imágenes o monjes",
+        "Mantén un tono de voz bajo en los templos",
+        "Usa calzado cómodo y antideslizante"
+      ]
+    },
+    {
+      "tema": "Antes de salir",
+      "items": [
+        "Hora de recogida en la parroquia: 4:00 p. m.",
+        "Caminos realiza el check-in web; el pase de abordar se entrega el día del viaje",
+        "Ten datos móviles activos y valida el roaming",
+        "Lleva convertidor de corriente, gorra y bloqueador"
+      ]
+    }
+  ],
+  "banco_consultado": true
+}

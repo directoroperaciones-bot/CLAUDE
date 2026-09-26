@@ -1,0 +1,35 @@
+{
+  "codigo": "CA9001",
+  "codigo_documento": "CAM-ITI-9001",
+  "subtitulo": "Viaje de fe 2026",
+  "titulo": "Peregrinación a\nChiquinquirá",
+  "fecha_inicio": "2026-06-12",
+  "fecha_fin": "2026-06-13",
+  "grupo": "Parroquia San José",
+  "acompanamiento": "Pbro. Luis Herrera",
+  "pasajero": "Ana Restrepo",
+  "acomodacion": "Doble",
+  "bienvenida": "Te damos la bienvenida a esta peregrinación de dos días al santuario de Chiquinquirá, un recorrido corto pensado para orar, compartir en comunidad y volver renovados.",
+  "dias": [
+    {
+      "fecha": "2026-06-12",
+      "titulo": "Salida a Chiquinquirá",
+      "descripcion": "Encuentro en la Parroquia San José y salida hacia el santuario de Nuestra Señora del Rosario de Chiquinquirá. Llegada, acomodación y participación en la misa de peregrinos.",
+      "comidas": [
+        "Almuerzo",
+        "Cena"
+      ],
+      "hotel": "Hotel Sausalito"
+    },
+    {
+      "fecha": "2026-06-13",
+      "titulo": "Regreso a Bogotá",
+      "descripcion": "Desayuno, tiempo para la oración personal en la basílica y visita al taller de artesanías donde se elaboran las réplicas de la imagen. Almuerzo y regreso a Bogotá.",
+      "comidas": [
+        "Desayuno",
+        "Almuerzo"
+      ]
+    }
+  ],
+  "banco_consultado": true
+}

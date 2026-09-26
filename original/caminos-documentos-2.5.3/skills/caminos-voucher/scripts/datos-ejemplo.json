@@ -1,0 +1,22 @@
+{
+  "tipo": "hotel",
+  "codigo_voucher": "CAM-VCH-0451-01",
+  "nombre_servicio": "Alojamiento — Hotel Dorado La 70",
+  "proveedor": "Hotel Dorado La 70",
+  "vigencia": {"desde": "2026-03-14", "hasta": "2026-03-17"},
+  "nombre_viajero": "María Fernanda Rojas",
+  "acompanantes": ["Carlos Rojas"],
+  "ubicacion": "Ipiales, Nariño",
+  "codigo_reserva": "CAM-2026-0451",
+  "hoteles": [
+    {"hotel": "Hotel Dorado La 70", "entrada": "2026-03-14", "salida": "2026-03-17", "acomodacion": "Doble", "confirmacion": "HTL-884512"}
+  ],
+  "incluye": [
+    "Alojamiento 3 noches, acomodación doble",
+    "Desayuno diario incluido",
+    "Wifi en todas las áreas",
+    "Registro de salida hasta las 12:00"
+  ],
+  "instrucciones": "Presenta este voucher junto con tu documento de identidad original en la recepción del hotel al momento del registro de entrada. El registro se realiza a partir de las 15:00.",
+  "condiciones": "Voucher no reembolsable ni transferible. Válido únicamente para las fechas y el titular indicados."
+}

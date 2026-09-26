@@ -1,0 +1,68 @@
+{
+  "codigo_cotizacion": "CA3311",
+  "codigo_documento": "CAM-COT-3311",
+  "titulo_destino": "Villa de Leyva, tres días",
+  "parrafo_intro": "Preparamos esta cotización para una familia de **cuatro personas** que viaja a Villa de Leyva del 8 al 11 de mayo de 2026. Incluye transporte, alojamiento con desayuno, tour guiado y asistencia médica.",
+  "destino": "Villa de Leyva, Boyacá",
+  "fecha_llegada": "2026-05-08",
+  "fecha_salida": "2026-05-11",
+  "noches": "3 noches",
+  "pasajeros": "4 personas",
+  "acomodacion": "Doble",
+  "incluye": [
+    "Transporte terrestre ida y regreso desde Bogotá",
+    "Alojamiento 3 noches en el hotel seleccionado",
+    "Desayuno diario",
+    "Tour guiado por el centro histórico",
+    "Entrada al Museo El Fósil",
+    "Tarjeta de asistencia médica"
+  ],
+  "no_incluye": [
+    "Gastos no especificados en el incluye",
+    "Almuerzos y cenas",
+    "Gastos de índole personal y propinas",
+    "Tours no estipulados"
+  ],
+  "tarifas": [
+    {
+      "hotel": "Hotel Plaza Mayor",
+      "acomodacion": "Doble",
+      "valor": "$780.000"
+    },
+    {
+      "hotel": "Hostería del Molino",
+      "acomodacion": "Doble / triple",
+      "valor": "$695.000"
+    },
+    {
+      "hotel": "Casa Terra",
+      "acomodacion": "Doble",
+      "valor": "$840.000"
+    }
+  ],
+  "itinerario": [
+    {
+      "servicio": "Transporte Bogotá — Villa de Leyva",
+      "fecha": "2026-05-08",
+      "detalle": "Salida 6:00 AM"
+    },
+    {
+      "servicio": "Tour centro histórico",
+      "fecha": "2026-05-09",
+      "detalle": "9:00 AM"
+    },
+    {
+      "servicio": "Transporte Villa de Leyva — Bogotá",
+      "fecha": "2026-05-11",
+      "detalle": "Salida 4:00 PM"
+    }
+  ],
+  "condiciones_pago": "Para confirmar la reserva se requiere un abono del **50%** del valor total. El saldo restante debe pagarse a más tardar 15 días antes de la fecha de salida. Las tarifas están sujetas a disponibilidad al momento de confirmar. Cancelaciones con menos de 7 días de anticipación no tienen reembolso del abono.",
+  "vigencia": "2026-04-20",
+  "asesor": {
+    "nombre": "Andrea Gómez",
+    "correo": "andrea@agenciacaminos.com.co",
+    "telefono": "+57 300 000 0000"
+  },
+  "banco_consultado": true
+}

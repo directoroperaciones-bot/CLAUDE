@@ -1,0 +1,16 @@
+{
+  "name": "caminos-documentos",
+  "version": "2.5.3",
+  "description": "Documentos comerciales de Caminos en PDF con el diseño oficial de marca: cotización, confirmación de reserva, voucher de servicio, itinerario de viaje e itinerario corto.",
+  "author": {
+    "name": "Caminos — Dirección de Operaciones"
+  },
+  "keywords": [
+    "caminos",
+    "cotizacion",
+    "confirmacion",
+    "voucher",
+    "itinerario",
+    "agencia de viajes"
+  ]
+}

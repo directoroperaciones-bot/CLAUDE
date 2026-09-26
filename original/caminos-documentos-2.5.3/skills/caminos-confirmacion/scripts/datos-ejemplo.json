@@ -1,0 +1,51 @@
+{
+  "codigo_reserva": "CAM-2026-2790",
+  "codigo_documento": "CAM-CONF-2790",
+  "titulo_viaje": "Tailandia y Europa",
+  "nombre_viajero": "Jhon Jairo Guataquira",
+  "parrafo_confirmacion": "Estos son los números de confirmación de cada servicio; tenlos a mano durante el viaje.",
+  "destino": "Tailandia y Europa",
+  "pasajeros": "1 adulto",
+  "estado_pago": "Pagado en su totalidad",
+  "fecha_salida": "2026-09-04",
+  "fecha_regreso": "2026-09-26",
+  "aereo": [
+    {
+      "aerolinea": "Air France",
+      "tiquete": "057-2298471055",
+      "record": "QKJ7PM",
+      "trayectos": [
+        {"vuelo": "AF 435", "fecha": "2026-09-04", "ruta": "BOG — CDG", "sale": "21:35", "llega": "15:00 +1"},
+        {"vuelo": "AF 198", "fecha": "2026-09-05", "ruta": "CDG — BKK", "sale": "16:45", "llega": "09:10 +1"},
+        {"vuelo": "AF 199", "fecha": "2026-09-12", "ruta": "BKK — CDG", "sale": "11:25", "llega": "18:50"},
+        {"vuelo": "AF 1001", "fecha": "2026-09-26", "ruta": "MAD — CDG", "sale": "10:05", "llega": "12:10"},
+        {"vuelo": "AF 436", "fecha": "2026-09-26", "ruta": "CDG — BOG", "sale": "15:40", "llega": "19:25"}
+      ]
+    }
+  ],
+  "hoteles": [
+    {"hotel": "Century Park Hotel", "entrada": "2026-09-06", "salida": "2026-09-08", "acomodacion": "Sencilla", "confirmacion": "CP-884512"},
+    {"hotel": "Heritage Chiang Rai", "entrada": "2026-09-09", "salida": "2026-09-10", "acomodacion": "Sencilla", "confirmacion": "HG-201877"},
+    {"hotel": "Ibis Styles Meteor", "entrada": "2026-09-13", "salida": "2026-09-15", "acomodacion": "Sencilla", "confirmacion": "IB-553091"}
+  ],
+  "traslados": [
+    {"operador": "Asia Travel", "trayecto": "Aeropuerto — Hotel", "fecha": "2026-09-06", "hora": "10:30", "confirmacion": "TR-20416"},
+    {"operador": "Asia Travel", "trayecto": "Hotel — Aeropuerto", "fecha": "2026-09-12", "hora": "07:00", "confirmacion": "TR-20417"}
+  ],
+  "servicios_confirmados": [
+    "Tiquetes aéreos internacionales",
+    "Alojamiento en los hoteles indicados",
+    "Traslados aeropuerto — hotel",
+    "Acompañamiento espiritual",
+    "Guías locales en español",
+    "Seguro médico de viaje"
+  ],
+  "pagos": [
+    {"concepto": "Abono inicial", "valor": "$8.500.000", "estado": "Pagado"},
+    {"concepto": "Saldo final", "valor": "$9.200.000", "estado": "Pagado"}
+  ],
+  "nota_importante": "Preséntate en el aeropuerto con cuatro horas de anticipación, con tu pasaporte vigente y el carné de vacunación contra la fiebre amarilla.",
+  "asesor": "Andrea Gómez",
+  "asesor_correo": "andrea@agenciacaminos.com.co",
+  "asesor_telefono": "+57 310 689 8813"
+}

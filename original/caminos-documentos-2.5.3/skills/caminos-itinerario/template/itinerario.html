@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* Lienzo real del motor de render: 1061 x 1373 px por página Letter.
+     NO agregar la regla @page — rompe el ancho completo. */
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Poppins',sans-serif; color:#3A3C42; background:#FFFFFF; }
+  .page { width:100%; height:1373px; position:relative; overflow:hidden; background:#FFFFFF; }
+
+  /* Franja de contacto — pie de todas las páginas */
+  .banda { position:absolute; left:0; right:0; bottom:0; height:150px; background:#F25061;
+           padding:24px 60px 20px; text-align:center; color:#FFFFFF; }
+  .banda-r1 { display:flex; align-items:center; justify-content:center; margin-bottom:11px; }
+  .bi { display:flex; align-items:center; font:700 18px/1 'Poppins',sans-serif; color:#FFFFFF;
+        margin:0 12px; white-space:nowrap; }
+  .banda-r2 { display:flex; align-items:center; justify-content:center;
+              font:700 23px/1.2 'Poppins',sans-serif; margin-bottom:11px; }
+  .banda-r3 { font:400 13px/1.5 'Poppins',sans-serif; }
+
+  .footer { position:absolute; bottom:168px; left:68px; right:68px;
+            display:flex; align-items:flex-end; justify-content:space-between; }
+  .footer-brand { font:600 16px/1.3 'Poppins',sans-serif; color:#1F2024; }
+  .footer-code { font:400 14px/1.3 'Poppins',sans-serif; letter-spacing:0.12em;
+                 text-transform:uppercase; color:#7E859A; }
+
+  .hdr { display:flex; align-items:center; padding-bottom:18px; }
+  .hdr img { height:44px; margin-right:24px; }
+  .hdr-sep { width:1px; align-self:stretch; background:#E2E0DD; margin-right:24px; }
+  .eyebrow { font:600 14px/1.3 'Poppins',sans-serif; letter-spacing:0.16em;
+             text-transform:uppercase; color:#7E859A; }
+  .rule { height:3px; background:#F25061; border-radius:2px; }
+  .dash { display:block; width:57px; height:4px; background:#F25061; border-radius:2px; }
+  h2.sec { margin:32px 0 0; font:700 42px/1.18 'Poppins',sans-serif; letter-spacing:-0.01em; color:#1F2024; }
+  h3.sub { margin:24px 0 0; font:700 31px/1.18 'Poppins',sans-serif; letter-spacing:-0.01em; color:#1F2024; }
+  .meta-label { display:block; font:600 14px/1.3 'Poppins',sans-serif; letter-spacing:0.16em;
+                text-transform:uppercase; color:#7E859A; margin-bottom:6px; }
+  .meta-value { font:600 18px/1.35 'Poppins',sans-serif; color:#1F2024; }
+  table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  th { text-align:left; padding:14px 21px; font:600 14px/1.3 'Poppins',sans-serif;
+       letter-spacing:0.16em; text-transform:uppercase; color:#7E859A; background:#EDEFF3; }
+  td { padding:18px 21px; font:400 17px/1.45 'Poppins',sans-serif; color:#3A3C42;
+       border-bottom:1px solid #E2E0DD; }
+  .nota { background:#FDE9EB; border-radius:26px; padding:22px 31px; margin-top:22px; }
+  .nota span { display:block; font:400 17px/1.55 'Poppins',sans-serif; color:#1F2024; }
+
+  /* Página de políticas — dos columnas, letra pequeña */
+  .pol-cols { display:flex; margin-top:26px; }
+  .pol-col { width:50%; }
+  .pol-col.izq { padding-right:26px; }
+  .pol-col.der { padding-left:26px; border-left:1px solid #E2E0DD; }
+  .pol-h { font:700 15px/1.3 'Poppins',sans-serif; color:#F25061; letter-spacing:0.04em;
+           text-transform:uppercase; margin:0 0 7px; }
+  .pol-p { font:400 13px/1.55 'Poppins',sans-serif; color:#3A3C42; margin:0 0 18px;
+           text-align:justify; }
+  .pol-p:last-child { margin-bottom:0; }
+
+  /* ---- Tarjetas de confirmación de servicios ---- */
+  .conf-tira { display:flex; flex-wrap:wrap; background:#F25061; border-radius:26px;
+               padding:18px 28px; margin-top:20px; }
+  .conf-tira .c { width:33.33%; }
+  .conf-tira .l { display:block; font:600 13px/1.3 'Poppins',sans-serif; letter-spacing:0.16em;
+                  text-transform:uppercase; color:rgba(255,255,255,.82); margin-bottom:4px; }
+  .conf-tira .v { font:700 18px/1.3 'Poppins',sans-serif; color:#FFFFFF; }
+
+  .conf-card { margin-top:16px; border:1px solid #E2E0DD; border-radius:26px; overflow:hidden; }
+  .conf-head { display:flex; align-items:center; background:#F8F5F2;
+               padding:12px 24px; border-bottom:1px solid #E2E0DD; }
+  .conf-pill { display:inline-flex; align-items:center; background:#F25061; color:#FFFFFF;
+               border-radius:999px; padding:6px 15px; margin-right:14px;
+               font:700 12px/1 'Poppins',sans-serif; letter-spacing:0.14em; text-transform:uppercase; }
+  .conf-prov { font:600 16px/1.3 'Poppins',sans-serif; color:#1F2024; }
+  .conf-cod { margin-left:auto; font:600 14px/1.3 'Poppins',sans-serif; color:#7E859A; }
+  .conf-cod b { font:700 14px/1.3 'Poppins',sans-serif; letter-spacing:0.04em; color:#F25061; }
+
+  /* tabla compacta: una línea por vuelo, hotel o traslado */
+  table.tc { width:100%; border-collapse:collapse; table-layout:fixed; }
+  table.tc th { text-align:left; padding:9px 24px; background:#FFFFFF;
+                font:600 11px/1.3 'Poppins',sans-serif; letter-spacing:0.15em;
+                text-transform:uppercase; color:#7E859A; border-bottom:1px solid #F0EEEB; }
+  table.tc td { padding:10px 24px; font:400 15px/1.35 'Poppins',sans-serif; color:#3A3C42;
+                border-bottom:1px solid #F0EEEB; white-space:nowrap; overflow:hidden;
+                text-overflow:ellipsis; }
+  table.tc tr:last-child td { border-bottom:none; }
+  table.tc td.fuerte { font:600 15px/1.35 'Poppins',sans-serif; color:#1F2024; }
+  table.tc td.codigo { font:700 15px/1.35 'Poppins',sans-serif; letter-spacing:0.03em; color:#F25061; }
+  table.tc td.ruta  { font:600 15px/1.35 'Poppins',sans-serif; color:#F25061; }
+
+
+  /* ---- Bloques de día ---- */
+  .dia { margin-bottom:18px; }
+  .dia-head { display:flex; align-items:center; margin-bottom:9px; }
+  .dia-pill { display:inline-flex; align-items:center; background:#F25061; color:#FFFFFF;
+              border-radius:999px; padding:7px 16px; margin-right:14px;
+              font:700 13px/1 'Poppins',sans-serif; letter-spacing:0.14em; text-transform:uppercase; }
+  .dia-fecha { font:600 14px/1 'Poppins',sans-serif; letter-spacing:0.14em;
+               text-transform:uppercase; color:#7E859A; }
+  .dia-titulo { margin:0 0 8px; font:700 23px/1.25 'Poppins',sans-serif;
+                letter-spacing:-0.01em; color:#1F2024; }
+  .dia-texto { margin:0; font:400 15px/1.6 'Poppins',sans-serif; color:#3A3C42; text-align:justify; }
+  .dia-tags { margin-top:10px; display:flex; flex-wrap:wrap; }
+  .tag { display:inline-flex; align-items:center; background:#FDE9EB; color:#1F2024;
+         border-radius:999px; padding:6px 15px; margin:0 9px 6px 0;
+         font:600 13px/1 'Poppins',sans-serif; }
+  .tag-hotel { background:#F8F5F2; border:1px solid #E2E0DD; color:#3A3C42; }
+
+  /* ---- Listas de dos columnas ---- */
+  .lista2 { display:flex; flex-wrap:wrap; margin-top:18px; }
+  .li2 { width:50%; padding-right:31px; margin-bottom:11px; display:flex; align-items:flex-start; }
+  .li2 .bolita { width:28px; height:28px; flex:0 0 auto; border-radius:999px; background:#F25061;
+                 display:flex; align-items:center; justify-content:center; margin-right:14px; }
+  .li2 .punto { width:8px; height:8px; flex:0 0 auto; border-radius:999px; background:#E2E0DD;
+                margin-top:8px; margin-right:14px; }
+  .li2 span.txt { font:400 15px/1.5 'Poppins',sans-serif; color:#1F2024; }
+  .grupo-h { font:700 15px/1.3 'Poppins',sans-serif; color:#F25061; letter-spacing:0.05em;
+             text-transform:uppercase; margin:16px 0 4px; width:100%; }
+
+  /* ---- Recomendaciones: cada tema es un bloque compacto, dos por fila ---- */
+  .rec-grid { display:flex; flex-wrap:wrap; margin-top:18px; }
+  .rec-grupo { width:50%; padding-right:34px; margin-bottom:20px; }
+  .rec-h { font:700 13px/1.3 'Poppins',sans-serif; color:#F25061; letter-spacing:0.12em;
+           text-transform:uppercase; margin:0 0 9px; padding-bottom:7px;
+           border-bottom:1px solid #F0EEEB; }
+  .rec-item { display:flex; align-items:flex-start; margin-bottom:6px; }
+  .rec-item .punto { width:5px; height:5px; flex:0 0 auto; border-radius:999px;
+                     background:#F25061; margin-top:8px; margin-right:11px; }
+  .rec-item span.t { font:400 14px/1.45 'Poppins',sans-serif; color:#3A3C42; }
+
+  /* ---- Contenedor de contenido dentro de una página ---- */
+  .cont { padding:0 68px; }
+  .cont-top { padding-top:34px; }
+  h2.blq { margin:0; font:700 34px/1.18 'Poppins',sans-serif;
+           letter-spacing:-0.01em; color:#1F2024; }
+  .blq-sep { margin-top:26px; }
+</style>
+</head>
+<body>
+
+<!-- ###############################################################
+     ITINERARIO DE VIAJE — CAMINOS
+     Plantilla por BLOQUES. Tú armas las páginas empaquetando bloques
+     hasta llenar cada hoja. NO hay una página fija por sección.
+     Lee "Cómo armar las páginas" en el SKILL.md antes de empezar.
+     ############################################################### -->
+
+
+<!-- ========================= ARMAZÓN DE PÁGINA =========================
+
+PÁGINA 1 (lleva el hero, no lleva encabezado). Alto útil: 1170 px en total, hero incluido.
+<section class="page">
+  BLOQUE_HERO
+  <div class="cont cont-top">
+    ...bloques que quepan...
+  </div>
+  PIE_Y_FRANJA
+</section>
+
+PÁGINAS SIGUIENTES (llevan encabezado, no hero). Alto útil: 985 px de bloques.
+<section class="page" style="padding-top:57px;">
+  <div class="cont">
+    <div class="hdr">
+      <img src="../assets/logos/caminos-logo-coral.svg" alt="Caminos">
+      <span class="hdr-sep"></span>
+      <span class="eyebrow">ETIQUETA</span>
+      <span class="eyebrow" style="margin-left:auto;font-weight:400;">CÓDIGO</span>
+    </div>
+    <div class="rule"></div>
+    <div style="margin-top:28px;">
+      ...bloques que quepan...
+    </div>
+  </div>
+  PIE_Y_FRANJA
+</section>
+
+ETIQUETA = el bloque principal de esa página ("Itinerario día a día",
+"Vuelos", "Qué incluye tu viaje", "Alojamiento", "Antes de viajar").
+Si la página mezcla bloques, usa el del primero.
+
+Al primer bloque de un contenedor quítale la clase .blq-sep (su margen
+superior sobra cuando va pegado al encabezado o al hero).
+====================================================================== -->
+
+<!-- PIE_Y_FRANJA · idéntico en todas las páginas, solo cambia el número:
+  <div class="footer"><span class="footer-brand">Caminos — Para ir más lejos</span><span class="footer-code">CÓDIGO_DOCUMENTO · N de TOTAL</span></div>
+  <div class="banda">
+    <div class="banda-r1">
+      <span class="bi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:9px;flex:0 0 auto"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>www.agenciacaminos.com.co</span>
+      <span class="bi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:9px;flex:0 0 auto"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>@agenciacaminos</span>
+      <span class="bi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:9px;flex:0 0 auto"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:9px;flex:0 0 auto"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>@Caminos Turismo Religioso</span>
+    </div>
+    <div class="banda-r2"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:9px;flex:0 0 auto"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>Calle 79 # 16a-20 Oficina 507, Bogotá, Colombia.</div>
+    <div class="banda-r3">La explotación y el abuso sexual de menores de edad son sancionados con pena privativa de la libertad,<br>LEY 679 DE 2001 y la LEY 1336 DE 2009</div>
+  </div>
+-->
+
+
+<!-- ========================= BLOQUE_HERO · 400 px · obligatorio, siempre primero
+<div style="position:relative;height:400px;overflow:hidden;background:#F25061;">
+  <img src="../assets/brand/estrella-crema.svg" style="position:absolute;right:-117px;top:-104px;height:416px;opacity:.10;">
+  <div style="position:absolute;top:42px;left:68px;right:68px;display:flex;align-items:center;justify-content:space-between;">
+    <img src="../assets/logos/caminos-logo-white.svg" alt="Caminos" style="height:46px;">
+    <span style="display:inline-flex;align-items:center;background:rgba(255,255,255,.92);border-radius:999px;padding:11px 23px;font:600 14px/1 'Poppins',sans-serif;letter-spacing:0.16em;text-transform:uppercase;color:#1F2024;">Itinerario de viaje</span>
+  </div>
+  <div style="position:absolute;left:68px;right:68px;bottom:38px;">
+    <span style="font:600 14px/1.3 'Poppins',sans-serif;letter-spacing:0.16em;text-transform:uppercase;color:#FFFFFF;">SUBTÍTULO</span>
+    <h1 style="margin:16px 0 0;font:700 44px/1.06 'Poppins',sans-serif;letter-spacing:-0.02em;color:#FFFFFF;">TÍTULO DEL VIAJE</h1>
+    <span style="display:inline-flex;align-items:center;margin-top:18px;background:rgba(255,255,255,.18);border-radius:999px;padding:10px 22px;font:700 17px/1 'Poppins',sans-serif;color:#FFFFFF;">RANGO DE FECHAS</span>
+  </div>
+</div>
+========================= -->
+
+<!-- ========================= BLOQUE_DATOS · 150 px (2 filas) · obligatorio
+Quita el <div> de cualquier campo que no tengas; los demás se reacomodan.
+<div style="display:flex;flex-wrap:wrap;padding-bottom:22px;border-bottom:1px solid #E2E0DD;">
+  <div style="width:50%;margin-bottom:18px;padding-right:20px;"><span class="meta-label">Grupo</span><span class="meta-value">VALOR</span></div>
+  <div style="width:50%;margin-bottom:18px;"><span class="meta-label">Acompañamiento espiritual</span><span class="meta-value">VALOR</span></div>
+  <div style="width:50%;padding-right:20px;"><span class="meta-label">Pasajero</span><span class="meta-value">VALOR</span></div>
+  <div style="width:50%;"><span class="meta-label">Acomodación</span><span class="meta-value">VALOR</span></div>
+</div>
+========================= -->
+
+<!-- ========================= BLOQUE_BIENVENIDA · 86 + (líneas × 27) px · opcional
+<div class="blq-sep">
+  <h2 class="blq">Te damos la <span style="color:#F25061;">bienvenida</span></h2>
+  <span class="dash" style="margin-top:14px;"></span>
+  <div style="margin-top:18px;font:400 17px/1.6 'Poppins',sans-serif;color:#3A3C42;">TEXTO</div>
+</div>
+========================= -->
+
+<!-- ========================= BLOQUE_FRASE · 110 px · OPCIONAL, es lo primero que se sacrifica
+<div class="blq-sep" style="padding:24px 30px;background:#FDE9EB;border-radius:26px;">
+  <p style="margin:0;font:700 19px/1.45 'Poppins',sans-serif;color:#1F2024;">FRASE</p>
+</div>
+========================= -->
+
+<!-- ========================= BLOQUE_VUELOS · 122 + (filas × 48) px · opcional
+<div class="blq-sep">
+  <h2 class="blq">Vuelos <span style="color:#F25061;">confirmados</span></h2>
+  <span class="dash" style="margin-top:14px;"></span>
+  <table style="margin-top:18px;">
+    <thead><tr><th style="width:110px;">Vuelo</th><th style="width:150px;">Fecha</th><th>Origen</th><th>Destino</th><th style="width:100px;">Sale</th><th style="width:150px;">Llega</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:13px 16px;font:600 16px/1.45 'Poppins',sans-serif;color:#F25061">AF435</td><td style="padding:13px 16px">04/09/2026</td><td style="padding:13px 16px;font:600 16px/1.45 'Poppins',sans-serif;color:#1F2024">Bogotá</td><td style="padding:13px 16px;font:600 16px/1.45 'Poppins',sans-serif;color:#1F2024">París</td><td style="padding:13px 16px">21:35</td><td style="padding:13px 16px">15:00 05/09</td></tr>
+    </tbody>
+  </table>
+</div>
+Para vuelos internos, repite el bloque cambiando el título a "Vuelos internos".
+========================= -->
+
+<!-- ========================= BLOQUE_DIA · alto según fórmula del SKILL.md · nunca se parte
+El primer día de cada página va precedido del título de sección (una vez por página):
+<h2 class="blq" style="margin-bottom:22px;">Itinerario <span style="color:#F25061;">día a día</span></h2>
+
+<div class="dia">
+  <div class="dia-head"><span class="dia-pill">Día 03</span><span class="dia-fecha">06 de septiembre</span></div>
+  <h3 class="dia-titulo">TÍTULO DEL DÍA</h3>
+  <p class="dia-texto">DESCRIPCIÓN</p>
+  <div class="dia-tags"><span class="tag">Desayuno</span><span class="tag tag-hotel">Hotel Century Park</span></div>
+</div>
+El div .dia-tags es opcional.
+========================= -->
+
+<!-- ========================= BLOQUE_INCLUYE · 104 + (filas de ítems × 39) px · opcional
+<div class="blq-sep">
+  <h2 class="blq">El precio <span style="color:#F25061;">incluye</span></h2>
+  <span class="dash" style="margin-top:14px;"></span>
+  <div class="lista2">
+    <div class="li2"><span class="bolita"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="txt">TEXTO</span></div>
+  </div>
+</div>
+Encabezado de grupo dentro de la lista: <div class="grupo-h">En Tailandia</div>
+Para "no incluye", el mismo bloque con <span class="punto"></span> en vez de .bolita.
+========================= -->
+
+<!-- ========================= BLOQUE_HOTELES · 122 + (filas × 62) px · opcional
+Teléfonos como TEXTO PLANO, nunca como enlaces.
+<div class="blq-sep">
+  <h2 class="blq">Hoteles <span style="color:#F25061;">confirmados</span></h2>
+  <span class="dash" style="margin-top:14px;"></span>
+  <table style="margin-top:18px;">
+    <thead><tr><th>Hotel</th><th style="width:170px;">Ciudad</th><th style="width:330px;">Dirección</th><th style="width:180px;">Teléfono</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:13px 16px;font:600 16px/1.4 'Poppins',sans-serif;color:#1F2024">NOMBRE</td><td style="padding:13px 16px">CIUDAD</td><td style="padding:13px 16px;font-size:15px">DIRECCIÓN</td><td style="padding:13px 16px;font-size:15px">TELÉFONO</td></tr>
+    </tbody>
+  </table>
+</div>
+========================= -->
+
+<!-- ========================= BLOQUE_RECOMENDACIONES · opcional · divisible por temas
+Cada tema es un bloque compacto con su propia lista; van DOS POR FILA.
+No pongas los ítems de un tema en dos columnas: eso dispersa la información.
+<div class="blq-sep">
+  <h2 class="blq">Recomendaciones <span style="color:#F25061;">del viaje</span></h2>
+  <span class="dash" style="margin-top:14px;"></span>
+  <div class="rec-grid">
+    <div class="rec-grupo">
+      <p class="rec-h">Documentación y salud</p>
+      <div class="rec-item"><span class="punto"></span><span class="t">TEXTO</span></div>
+      <div class="rec-item"><span class="punto"></span><span class="t">TEXTO</span></div>
+    </div>
+    <div class="rec-grupo">
+      <p class="rec-h">Dinero y medios de pago</p>
+      <div class="rec-item"><span class="punto"></span><span class="t">TEXTO</span></div>
+    </div>
+  </div>
+</div>
+Si los temas no caben todos, continúa en la página siguiente con el mismo
+bloque sin el título, de dos en dos.
+========================= -->
+
+<!-- ========================= BLOQUE_NOTA · 40 + (líneas × 24) px · opcional
+<div class="nota" style="margin-top:20px;padding:20px 28px;">
+  <span style="font-size:15px;">TEXTO DE LA NOTA</span>
+</div>
+========================= -->
+
+
+<!-- ======= PÁGINA FINAL: INFORMACIÓN ADICIONAL — siempre ocupa su propia hoja ======= -->
+<!-- ========== PÁGINA — INFORMACIÓN ADICIONAL ========== -->
+<section class="page" style="padding:57px 68px 0;">
+  <div class="hdr">
+    <img src="../assets/logos/caminos-logo-coral.svg" alt="Caminos">
+    <span class="hdr-sep"></span>
+    <span class="eyebrow">Condiciones y políticas</span>
+    <span class="eyebrow" style="margin-left:auto;font-weight:400;">CÓDIGO</span>
+  </div>
+  <div class="rule"></div>
+
+  <h2 class="sec">Información <span style="color:#F25061;">adicional</span></h2>
+  <span class="dash" style="margin-top:18px;"></span>
+  <p style="margin:20px 0 0;font:400 16px/1.5 'Poppins',sans-serif;color:#7E859A;">Política general de Agencia Caminos. Al adquirir nuestros servicios, el usuario conoce y acepta las siguientes condiciones.</p>
+
+  <div class="pol-cols">
+    <div class="pol-col izq">
+        <p class="pol-h">Transporte aéreo</p>
+        <p class="pol-p">AGENCIA CAMINOS no asume responsabilidad por la prestación del servicio de transporte aéreo; la prestación de dicho servicio, retrasos o modificaciones imprevistas en los horarios de los vuelos dispuestos por las aerolíneas, los derechos del usuario y los procedimientos para hacer efectivas las devoluciones de dinero a que estos hechos den lugar se rigen por lo dispuesto en el Reglamento Aeronáutico Colombiano (RAC 3), atendiendo las particularidades de la tarifa aérea adquirida.</p>
+        <p class="pol-h">Equipaje y objetos personales</p>
+        <p class="pol-p">La responsabilidad por el cuidado y custodia de los artículos personales recae exclusivamente en el pasajero, salvo que los mismos hayan sido puestos a disposición del prestador del servicio para su cuidado. En caso de llevar consigo objetos de valor, el usuario deberá darlo a conocer directamente al prestador del servicio, para tomar todas las medidas de cuidado necesarias para proteger dichos objetos; de lo contrario, las pérdidas y averías que sufran tales objetos deberá asumirlas en su integridad el usuario sin posibilidad de solicitar compensación o indemnización de perjuicios.</p>
+        <p class="pol-h">Cancelaciones, no show y penalidades</p>
+        <p class="pol-p">El usuario conoce y acepta las políticas de cancelación, no show y penalidades de cada proveedor elegido, a las cuales se encuentra adherido y con base en las cuales se efectuarán los reintegros de dinero a que haya lugar. No obstante lo anterior, cuando el usuario incumpla por no presentarse o no utilizar los servicios pactados, cualquiera que sea la causa, el prestador de servicios turísticos podrá exigir a su elección el pago del 20% de la totalidad del precio o tarifa establecida o retener el depósito o anticipo que previamente hubiere recibido del usuario, situación que el usuario conoce y acepta.</p>
+    </div>
+    <div class="pol-col der">
+        <p class="pol-h">Fuerza mayor y eventos ajenos</p>
+        <p class="pol-p">AGENCIA CAMINOS no asume responsabilidad frente al usuario o viajero por eventos tales como accidentes, huelgas, asonadas, terremotos, fenómenos climáticos o naturales, condiciones de seguridad, factores políticos, asuntos de índole legal en los que se vea inmiscuido el viajero, negación de permisos de ingreso o visados, asuntos de salubridad y cualquier otro caso de fuerza mayor que pudiere ocurrir durante el viaje.</p>
+        <p class="pol-h">Modificaciones al itinerario y reembolsos</p>
+        <p class="pol-p">En caso de fuerza mayor o caso fortuito antes o durante el viaje (accidentes, huelgas, asonadas, terremotos, factores climáticos o naturales, condiciones de seguridad, factores políticos, asuntos de índole legal en los que se vea inmiscuido el viajero, negación de permisos de ingreso o visados, asuntos de salubridad, entre otros), o simplemente con el fin de garantizar el éxito del plan, el prestador del servicio podrá modificar, reemplazar o cancelar itinerarios, fechas, horas, vuelos, hoteles y servicios opcionales, con miras a garantizar una adecuada prestación del servicio, lo cual es aceptado por el pasajero al momento de adquirir los servicios. Las políticas de reembolso de los servicios no prestados en razón a situaciones de fuerza mayor o caso fortuito, acción u omisión del pasajero o de terceros, que no sean atribuibles a AGENCIA CAMINOS, ya sea antes o durante el transcurso del viaje, que dieren lugar a devolución, serán definidas por cada operador y las mismas serán confirmadas una vez se reserven y expidan los documentos de viaje; en igual sentido los porcentajes correspondientes a las penalidades o deducciones que pudiesen llegar a causarse según el caso.</p>
+        <p class="pol-h">Precios, tarifas y vigencia</p>
+        <p class="pol-p">Todos los precios, tarifas e impuestos presentados en recibo, comprobante, cotización o página web están sujetos a cambio, disponibilidad y vigencia sin previo aviso, los cuales serán con cargo al viajero al momento de la emisión de los correspondientes documentos de viaje. Aplican restricciones y condiciones para cada tarifa publicada según su vigencia. Las tarifas hoteleras dependen de la acomodación seleccionada. Las políticas de cancelación, penalidades, restricciones y condiciones particulares del paquete serán informadas al pasajero al momento de la expedición de los documentos de viaje.</p>
+    </div>
+  </div>
+
+  <div class="footer"><span class="footer-brand">Caminos — Para ir más lejos</span><span class="footer-code">CÓDIGO_DOCUMENTO · N de TOTAL</span></div>
+  <div class="banda">
+    <div class="banda-r1">
+      <span class="bi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:9px;flex:0 0 auto"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>www.agenciacaminos.com.co</span>
+      <span class="bi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:9px;flex:0 0 auto"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>@agenciacaminos</span>
+      <span class="bi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:9px;flex:0 0 auto"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:9px;flex:0 0 auto"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>@Caminos Turismo Religioso</span>
+    </div>
+    <div class="banda-r2"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:9px;flex:0 0 auto"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>Calle 79 # 16a-20 Oficina 507, Bogotá, Colombia.</div>
+    <div class="banda-r3">La explotación y el abuso sexual de menores de edad son sancionados con pena privativa de la libertad,<br>LEY 679 DE 2001 y la LEY 1336 DE 2009</div>
+  </div>
+</section>
+
+</body>
+</html>
