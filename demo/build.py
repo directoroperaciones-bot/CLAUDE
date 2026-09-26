@@ -26,7 +26,15 @@ def leer(ruta):
 
 
 def data_uri(ruta):
-    return 'data:image/svg+xml;base64,' + base64.b64encode(open(ruta, 'rb').read()).decode()
+    svg = leer(ruta)
+    # Sin width/height, html2canvas (PDF) toma el tamaño por defecto de 300×150 y recorta el logo:
+    # se le ponen las medidas del viewBox. De paso sale la firma C2PA, que no se ve y pesa.
+    svg = re.sub(r'<metadata>.*?</metadata>', '', svg, flags=re.S)
+    raiz = re.match(r'\s*(?:<\?xml[^>]*>\s*)?<svg\b[^>]*>', svg)
+    vb = re.search(r'viewBox="\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)', raiz.group(0)) if raiz else None
+    if vb and not re.search(r'\swidth=', raiz.group(0)):
+        svg = svg[:raiz.end() - 1] + f' width="{vb.group(1)}" height="{vb.group(2)}"' + svg[raiz.end() - 1:]
+    return 'data:image/svg+xml;base64,' + base64.b64encode(svg.encode('utf-8')).decode()
 
 
 def main():
