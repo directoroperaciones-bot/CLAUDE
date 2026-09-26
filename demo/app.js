@@ -255,7 +255,7 @@
   // Los límites del motor (1178 px, y 1156 en la cotización) se miden sobre la tinta del PDF;
   // aquí se mide la caja, que queda unos píxeles más abajo, así que se usan 6 px más.
   const HOLGURA_CAJA = 6;
-  function fluir(doc, { limite: limiteMotor = 1178, etiqueta = null, pegarNota = false } = {}) {
+  function fluir(doc, { limite: limiteMotor = 1178, etiqueta = null, pegarNota = false, juntar = false } = {}) {
     const limite = limiteMotor + HOLGURA_CAJA;
     const esPol = p => !!p.querySelector('.pol-cols');
     const paginas = () => [...doc.querySelectorAll('section.page')];
@@ -317,8 +317,18 @@
       const ref = primero || r.querySelector(':scope > .footer');
       els.forEach(x => (ref ? ref.before(x) : r.append(x)));
       const mt = parseFloat(getComputedStyle(els[0]).marginTop) || 0;
-      if (mt > 26) els[0].style.marginTop = '26px';
+      if (mt > 26) { els[0].dataset.mt = els[0].style.marginTop; els[0].style.marginTop = '26px'; }
     }
+    // Al final de una hoja (después de su último bloque); el margen recortado al abrir hoja se devuelve.
+    function alFinal(p, els) {
+      const ult = flujoDe(p).at(-1);
+      if (!ult) return aHoja(p, els);
+      ult.after(...els);
+      if (els[0].dataset.mt !== undefined) { els[0].style.marginTop = els[0].dataset.mt; delete els[0].dataset.mt; }
+    }
+    const contenido = () => paginas().filter(p => !esPol(p));
+    const cabe = p => bloques(p).every(b => fondo(b.at(-1), p) <= limite);
+    function repartir() {
     for (let vuelta = 0; vuelta < 60; vuelta++) {
       const todas = paginas();
       const idx = todas.findIndex(p => !esPol(p) && bloques(p).some(b => fondo(b.at(-1), p) > limite));
@@ -331,6 +341,7 @@
       const copia = partir(ultimo, p);
       if (copia) {
         // La copia repite el encabezado de la tarjeta o el thead de la tabla; el título se queda con lo que cupo.
+        copia.dataset.cont = '1';
         mover.push(copia);
       } else {
         if (k === 0) break; // un solo bloque más alto que la hoja: no se puede hacer nada mejor
@@ -341,8 +352,36 @@
       const destino = siguiente && !esPol(siguiente) ? siguiente : hojaNueva(todas.find(esPol));
       aHoja(destino, mover);
     }
-    // Quita hojas de contenido que hayan quedado vacías (nunca la primera) y renumera.
+    subir();
+    // Quita hojas de contenido que hayan quedado vacías (nunca la primera).
     paginas().forEach((p, i) => { if (i > 0 && !esPol(p) && !flujoDe(p).length) p.remove(); });
+    }
+    // Repaso final del motor: si el primer bloque de una hoja cabe al final de la anterior, sube.
+    // Solo bloques completos (no las continuaciones de una tabla partida), y solo si la medición lo confirma.
+    function subir() {
+      for (let k = 0, intentos = 0; intentos < 80; intentos++) {
+        const cont = contenido();
+        if (k >= cont.length - 1) break;
+        const a = cont[k], b = cont[k + 1], primero = bloques(b)[0];
+        if (!primero || primero[0].dataset.cont) { k++; continue; }
+        alFinal(a, primero);
+        if (cabe(a)) continue;
+        aHoja(b, primero);
+        k++;
+      }
+    }
+    if (juntar && contenido().length > 1) {
+      // Como el motor con juntar=True (confirmación): se prueba también todo el contenido en una sola
+      // secuencia desde la primera hoja y se queda la opción con menos hojas.
+      const original = doc.body.innerHTML;
+      repartir();
+      const nSeparado = paginas().length, separado = doc.body.innerHTML;
+      doc.body.innerHTML = original;
+      const cont = contenido();
+      for (const p of cont.slice(1)) { const els = flujoDe(p); if (els.length) alFinal(cont[0], els); }
+      repartir();
+      if (paginas().length >= nSeparado) doc.body.innerHTML = separado;
+    } else repartir();
     const total = paginas().length;
     paginas().forEach((p, i) => {
       const c = p.querySelector('.footer-code');
@@ -807,7 +846,7 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
       nombre: 'Confirmación', titulo: 'Nueva <span class="c">confirmación</span>', eyebrow: 'Confirmación de reserva', icono: 'badge-check',
       desc: 'Confirma la reserva con los números de vuelo, hotel y traslados.', hojas: '3 hojas',
       boton: 'Generar la confirmación', archivo: 'Confirmacion', codigo: d => d.codigo_reserva, tituloDe: d => d.titulo_viaje, clienteDe: d => d.nombre_viajero,
-      armar: armarConfirmacion, flujo: { limite: 1178 },
+      armar: armarConfirmacion, flujo: { limite: 1178, juntar: true },
       pegar: 'Pega aquí las reservas del sistema',
       ayuda: ['Las reservas copiadas del sistema: tiquete, récord, vuelos', 'Confirmaciones de hoteles y traslados', 'Pagos recibidos y lo que falta por pagar'],
       grupos: [
