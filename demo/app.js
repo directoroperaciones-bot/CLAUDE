@@ -1442,6 +1442,8 @@ ${texto}
     ponerVista('pdf');
     $('#vistas').hidden = !d.interactivo;
     $('#btn-html').hidden = !d.interactivo;
+    $('#btn-publicar').hidden = !d.interactivo;
+    mostrarPublicado(d.interactivo ? publicacionDe(datos) : null);
     const fuentes = `<style>${FUENTES}</style>`;
     const vista = `<style>html,body{background:transparent!important}.page{box-shadow:0 12px 32px rgba(31,32,36,.14)}.page+.page{margin-top:${GAP}px}</style>`;
     html = html.replace('<head>', '<head>' + fuentes).replace('</head>', vista + '</head>');
@@ -1506,6 +1508,109 @@ ${texto}
     } catch (err) {
       out.className = 'estado error';
       out.textContent = err?.code === 'declined' ? 'Cancelaste la descarga.' : 'No se pudo preparar la versión interactiva. Inténtalo de nuevo.';
+    } finally { btn.disabled = false; }
+  });
+
+  // ================= publicar para el grupo =================
+  // El itinerario (versión de grupo, sin nombre de pasajero) se sube como archivo al repositorio
+  // público de GitHub a través del conector Composio; GitHub Pages lo sirve en un enlace fijo.
+  // Cada código de viaje guarda su ruta en la base de la app (colección "publicados"), así que
+  // volver a publicar reemplaza el mismo archivo y el enlace que tienen los pasajeros no cambia.
+  const SITIO = { dueno: 'directoroperaciones-bot', repo: 'itinerarios', web: 'https://directoroperaciones-bot.github.io/itinerarios/' };
+  const COMPOSIO = 'Composio';
+  let mcp = null, publicados = {};
+  (async () => {
+    mcp = window.claude?.use ? await window.claude.use('mcp').catch(() => null) : null;
+    if (!mcp) $('#btn-publicar').title = 'Publicar funciona al abrir la app desde claude.ai con Composio conectado';
+    const db = window.claude?.use ? await window.claude.use('db').catch(() => null) : null;
+    if (db) db.collection('publicados').onSnapshot(snap => {
+      publicados = {};
+      snap.docs.filter(x => x.exists).forEach(x => { publicados[x.id] = x.data(); });
+      if (docActual && doc().interactivo) mostrarPublicado(publicacionDe(docActual));
+    }, () => {});
+  })();
+  const slugCodigo = c => String(c || 'viaje').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toUpperCase() || 'VIAJE';
+  const publicacionDe = datos => publicados[slugCodigo(doc().codigo(datos))] || null;
+  function mostrarPublicado(pub) {
+    $('#publicado').hidden = !pub;
+    if (!pub) return;
+    $('#pub-enlace').textContent = pub.url; $('#pub-enlace').href = pub.url; $('#pub-abrir').href = pub.url;
+    const cuando = pub.cuando ? new Date(pub.cuando).toLocaleString('es-CO', { day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' }) : pub.fecha;
+    $('#pub-nota').textContent = `Publicado el ${cuando} · si actualizas el itinerario, el enlace sigue siendo el mismo`;
+  }
+  $('#pub-copiar').addEventListener('click', async () => {
+    const url = $('#pub-enlace').href, b = $('#pub-copiar');
+    try { await navigator.clipboard.writeText(url); } catch (_) {
+      const r = document.createRange(); r.selectNodeContents($('#pub-enlace')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy');
+    }
+    b.innerHTML = '<i data-lucide="check"></i>Copiado'; iconos(b);
+    setTimeout(() => { b.innerHTML = '<i data-lucide="copy"></i>Copiar enlace'; iconos(b); }, 2000);
+  });
+  const aBase64 = texto => new Promise((ok, mal) => {
+    const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1]); fr.onerror = mal;
+    fr.readAsDataURL(new Blob([texto], { type: 'text/plain' }));
+  });
+  const MENSAJES_MCP = {
+    server_not_connected: 'Composio no está conectado en esta cuenta de Claude. Conéctalo en claude.ai → Configuración → Conectores y vuelve a intentar.',
+    needs_reauth: 'La conexión con Composio se venció. Vuelve a conectarla en claude.ai → Configuración → Conectores.',
+    selection_required: 'Hay más de una conexión de Composio. Elige cuál usar en el aviso de Claude y vuelve a intentar.',
+    not_in_manifest: 'Esta página no tiene permiso para usar Composio. Recarga la página y acepta el permiso cuando Claude lo pida.',
+    blocked_by_policy: 'La organización no permite usar Composio desde esta página.',
+    approval_required: 'La organización exige aprobar cada uso de Composio; desde esta página todavía no se puede.',
+  };
+  $('#btn-publicar').addEventListener('click', async () => {
+    const out = $('#estado-3'), btn = $('#btn-publicar');
+    if (!mcp) { out.className = 'estado error'; out.textContent = 'Publicar funciona al abrir la app desde claude.ai con el conector Composio.'; return; }
+    const codigo = slugCodigo(doc().codigo(docActual));
+    const previa = publicados[codigo];
+    // La ruta lleva unas letras al azar para que el enlace no se pueda adivinar; se conserva entre publicaciones.
+    const ruta = previa?.ruta || `${codigo}-${Array.from(crypto.getRandomValues(new Uint8Array(6)), n => 'abcdefghijkmnpqrstuvwxyz23456789'[n % 32]).join('')}.html`;
+    btn.disabled = true;
+    out.className = 'estado girando';
+    out.innerHTML = `<i data-lucide="loader-circle"></i><span>${previa ? 'Actualizando' : 'Publicando'} el itinerario del grupo…</span>`;
+    iconos(out);
+    try {
+      // Versión de grupo: el mismo enlace es para todos los pasajeros, sin nombre individual.
+      const html = await doc().interactivo({ ...docActual, pasajero: '' }, { incrustar: true });
+      const lista = await mcp.listTools().catch(() => null);
+      let contenido;
+      if (lista?.fileArgs) contenido = { $file: { data: new Blob([html], { type: 'text/plain' }), name: 'itinerario.txt', type: 'text/plain' } };
+      else {
+        contenido = await aBase64(html);
+        if (contenido.length > 950000) throw { code: 'muy_grande' };
+      }
+      const r = await mcp.callTool(COMPOSIO, 'COMPOSIO_MULTI_EXECUTE_TOOL', {
+        tools: [{ tool_slug: 'GITHUB_CREATE_OR_UPDATE_FILE_CONTENTS', arguments: {
+          owner: SITIO.dueno, repo: SITIO.repo, path: ruta, content: contenido,
+          message: `${previa ? 'Actualizar' : 'Publicar'} itinerario ${codigo}` } }],
+        sync_response_to_workbench: false,
+        thought: 'Publicar el itinerario interactivo del grupo en GitHub Pages.',
+        current_step: 'PUBLICAR_ITINERARIO',
+      });
+      let p = r?.payload;
+      if (typeof p === 'string') { try { p = JSON.parse(p); } catch (_) {} }
+      const res = p?.data?.results?.[0]?.response;
+      if (!res?.successful) throw { code: 'no_publicado', message: res?.error || p?.error || '' };
+      const pub = { codigo, ruta, url: SITIO.web + ruta, titulo: doc().tituloDe(docActual) || '', fecha: hoy(),
+        cuando: new Date().toISOString(), documento: doc().nombre };
+      publicados[codigo] = pub;
+      const db = await window.claude.use('db').catch(() => null);
+      if (db) await db.doc('publicados/' + codigo).set(pub).catch(() => {});
+      mostrarPublicado(pub);
+      out.className = 'estado';
+      out.textContent = previa
+        ? 'Listo: actualizamos el itinerario. En más o menos un minuto los pasajeros ven los cambios con el mismo enlace.'
+        : 'Listo: el itinerario queda en línea en más o menos un minuto. Copia el enlace y ánclalo en el grupo de WhatsApp.';
+    } catch (err) {
+      out.className = 'estado error';
+      const c = err?.code;
+      out.textContent = MENSAJES_MCP[c]
+        || (c === 'muy_grande' ? 'El itinerario es demasiado pesado para publicarlo desde esta vista. Prueba con fotos más livianas.'
+        : c === 'no_publicado' ? 'GitHub no aceptó la publicación' + (err.message ? `: ${String(err.message).slice(0, 160)}` : '.') + ' Inténtalo de nuevo.'
+        : c === 'tool_error' ? 'Composio respondió con un error: ' + String(err.message || '').slice(0, 160)
+        : c === 'server_unavailable' || c === 'upstream_error'
+          ? 'No tuvimos respuesta a tiempo. Puede que sí se haya publicado: espera un minuto y abre el enlace; si no cambió, vuelve a publicar.'
+          : 'No se pudo publicar. Inténtalo de nuevo.');
     } finally { btn.disabled = false; }
   });
 

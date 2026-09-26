@@ -24,6 +24,12 @@ los hoteles).
   los nombres repetidos se resuelven por la ruta más coherente.
   El mapa solo aparece si el viaje pasa por 3 destinos distintos o más; al recorrer la
   ruta, un avión vuela cada tramo (en los vuelos largos la vista se abre para seguirlo).
+- **Publicar para el grupo** (itinerarios): sube la versión interactiva de grupo (sin nombre de
+  pasajero) al repositorio público `directoroperaciones-bot/itinerarios` mediante el conector
+  **Composio** (herramienta `GITHUB_CREATE_OR_UPDATE_FILE_CONTENTS`), y GitHub Pages la sirve en
+  `https://directoroperaciones-bot.github.io/itinerarios/<CODIGO>-<letras>.html`. La ruta de cada
+  código se guarda en la colección `publicados` de la base de la app: volver a publicar reemplaza
+  el mismo archivo y el enlace no cambia. `publicar/` tiene el service worker y la portada del sitio.
 - `ejemplos/Itinerario-CA2790.html` — el ejemplo del plugin (Tailandia y Europa) en
   versión interactiva.
 - `iconos/` — íconos de `lucide-static@0.445.0` (licencia ISC en `iconos/LICENSE`).

@@ -234,6 +234,13 @@
     .lienzo { padding: 12px; }
     .demo-tag { display: none; }
   }
+  .publicado { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px 20px; margin-top:12px; border-left:4px solid var(--coral); }
+  .publicado[hidden] { display:none; }
+  .pub-info { display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .pub-eti { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--coral); }
+  #pub-enlace { font-weight:600; color:var(--texto); word-break:break-all; }
+  .pub-nota { font-size:13px; color:#6B6B6B; }
+  .pub-acc { display:flex; gap:8px; flex-wrap:wrap; }
 </style>
 
 <header class="top">
@@ -371,6 +378,7 @@
         <div class="prev-acc">
           <button type="button" class="btn btn-txt" id="btn-editar"><i data-lucide="pencil"></i>Editar datos</button>
           <button type="button" class="btn btn-sec" id="btn-html" hidden><i data-lucide="download"></i>Descargar HTML</button>
+          <button type="button" class="btn btn-sec" id="btn-publicar" hidden><i data-lucide="send"></i>Publicar para el grupo</button>
           <button type="button" class="btn btn-pri" id="btn-pdf"><i data-lucide="download"></i>Descargar PDF</button>
         </div>
       </div>
@@ -385,6 +393,13 @@
         </div>
       </div>
       <p class="estado" id="estado-3" aria-live="polite" style="margin-top:12px;"></p>
+      <div class="papel bloque publicado" id="publicado" hidden>
+        <div class="pub-info"><span class="pub-eti">Enlace del grupo</span><a id="pub-enlace" target="_blank" rel="noopener"></a><span class="pub-nota" id="pub-nota"></span></div>
+        <div class="pub-acc">
+          <button type="button" class="btn btn-sec" id="pub-copiar"><i data-lucide="copy"></i>Copiar enlace</button>
+          <a class="btn btn-txt" id="pub-abrir" target="_blank" rel="noopener"><i data-lucide="external-link"></i>Abrir</a>
+        </div>
+      </div>
       <div class="lienzo">
         <div class="escala" id="escala"><div class="escala-in" id="escala-in"><iframe id="doc-frame" title="Vista previa del documento"></iframe></div></div>
         <div class="marco-html" id="marco-html" hidden><iframe id="html-frame" title="Vista previa de la versión interactiva"></iframe></div>
