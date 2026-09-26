@@ -2064,7 +2064,7 @@ ${ABRE}>${JS_INTERACTIVO}${CIERRE}
       nombre: 'Cotización', titulo: 'Nueva <span class="c">cotización</span>', eyebrow: 'Cotización de viaje', icono: 'file-text',
       desc: 'Propuesta con tarifas por hotel, qué incluye e itinerario de servicios.', hojas: '3 hojas',
       boton: 'Generar la cotización', archivo: 'Cotizacion', codigo: d => d.codigo_cotizacion, tituloDe: d => d.titulo_destino, clienteDe: d => d.pasajeros,
-      armar: armarCotizacion, flujo: { limite: 1156, pegarNota: true },
+      armar: armarCotizacion, flujo: { limite: 1156, pegarNota: true }, desdeBase: true,
       pegar: 'Pega aquí la información del viaje',
       ayuda: ['Notas del cliente: destino, fechas, cuántas personas', 'Tarifas por hotel, copiadas del proveedor', 'Servicios del itinerario y condiciones de pago'],
       grupos: [
@@ -3318,7 +3318,7 @@ ${texto}
     }
     return filas;
   }
-  async function leerVentaDeBase(consecutivo, avance = () => {}) {
+  async function leerVentaDeBase(consecutivo, avance = () => {}, { cotizacion = false } = {}) {
     const num = String(consecutivo).toUpperCase().replace(/^CA-?/, '').trim();
     avance('Buscando la venta…');
     // 1) PIPELINE: solo las columnas que usa la confirmación.
@@ -3337,7 +3337,14 @@ ${texto}
     const idsPax = new Set([...String(venta.Pasajeros_Viajando || '').split(/\s*,\s*/), venta.Titular_Vacacional, ...SERVICIOS.map(x => x.ID_Pasajero)].filter(Boolean));
     const [colPax] = await lecturaBase(['PASAJEROS!A1:A6000']);
     const PASAJEROS = idsPax.size ? await filasDeHoja('PASAJEROS', [['A', 'C']], filasCon(colPax, idsPax)) : [];
-    return { PIPELINE: [venta], SERVICIOS, CONTROL_PAGOS, PASAJEROS, PROVEEDORES: tablaDe([provs]), PANEL_DE_COSTEOS: tablaDe([planes]), ASESORES: tablaDe([asesores]) };
+    const tab = { PIPELINE: [venta], SERVICIOS, CONTROL_PAGOS, PASAJEROS, PROVEEDORES: tablaDe([provs]), PANEL_DE_COSTEOS: tablaDe([planes]), ASESORES: tablaDe([asesores]) };
+    if (cotizacion) {
+      avance('Leyendo las opciones de la cotización…');
+      const [colOp, colCo] = await lecturaBase(['COTIZACION_OPCIONES!B1:B6000', 'PANEL_DE_COSTEOS!A1:A3000']);
+      tab.COTIZACION_OPCIONES = await filasDeHoja('COTIZACION_OPCIONES', [['A', 'R']], filasCon(colOp, ids));
+      tab.COSTEO = venta.Paquete_Religioso ? await filasDeHoja('PANEL_DE_COSTEOS', [['A', 'AU']], filasCon(colCo, new Set([venta.Paquete_Religioso]))) : [];
+    }
+    return tab;
   }
   const isoDeBase = f => { const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(f || ''); return m ? `${m[3]}-${dosDig(m[2])}-${dosDig(m[1])}` : (RE_ISO.test(f || '') ? f : ''); };
   const pesos = n => { const v = Math.round(Number(String(n).replace(/[^\d.-]/g, ''))); return Number.isFinite(v) && String(n).trim() ? '$' + v.toLocaleString('es-CO').replace(/,/g, '.') : ''; };
@@ -3404,6 +3411,63 @@ ${texto}
       asesor: asesora ? nombrePropio(asesora.Nombre) : '', asesor_correo: venta.Agente || '', asesor_telefono: '',
     };
   }
+  const NUMEROS = ['cero', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 'once', 'doce', 'trece', 'catorce', 'quince'];
+  const numero = v => { const n = Number(String(v).replace(/[^\d.-]/g, '')); return Number.isFinite(n) && String(v).trim() ? n : 0; };
+  // Cotización desde la base. Los precios NO se copian al documento: en la base hay costos netos con factores de
+  // margen y, en los costeos, varias columnas de venta que no siempre coinciden. Se muestran como referencia y la
+  // asesora escribe el valor final.
+  function cotizacionDesdeBase(tab, consecutivo) {
+    const num = String(consecutivo).toUpperCase().replace(/^CA-?/, '').trim();
+    const venta = (tab.PIPELINE || [])[0];
+    if (!venta) return null;
+    const ida = isoDeBase(venta.Fecha_Ida), regreso = isoDeBase(venta.Fecha_Regreso);
+    const dias = ida && regreso ? Math.round((diaUTC(regreso) - diaUTC(ida)) / 864e5) + 1 : 0;
+    const costeo = (tab.COSTEO || [])[0], plan = costeo || (tab.PANEL_DE_COSTEOS || []).find(x => x.ID_Costeo && x.ID_Costeo === venta.Paquete_Religioso);
+    const opciones = (tab.COTIZACION_OPCIONES || []).sort((a, b) => numero(a.Numero_Opcion) - numero(b.Numero_Opcion));
+    const servicios = tab.SERVICIOS || [];
+    const asesora = (tab.ASESORES || []).find(x => x.Email === venta.Agente);
+    const acomodacion = (servicios.find(x => x.Tipo_Acomodacion) || {}).Tipo_Acomodacion || venta.Acomodacion_Religiosa || '';
+    const referencias = [];
+    let tarifas = [];
+    if (opciones.length) {
+      tarifas = opciones.map(o => ({ hotel: nombrePropio(o.Nombre_Opcion) || `Opción ${o.Numero_Opcion}`, acomodacion, valor: '' }));
+      opciones.forEach(o => {
+        const partes = [['tiquete', o.Neto_Tkt], ['TA', o.TA_Tkt], ['hotel neto', o.Neto_Hotel, o.Markup_Hotel], ['terrestre neto', o.Neto_Terrestre, o.Markup_Terrestre],
+          ['asistencia neta', o.Neto_Asistencia, o.Markup_Asistencia], ['otros netos', o.Neto_Otros, o.Markup_Otros]]
+          .filter(([, v]) => numero(v) > 0).map(([n, v, f]) => `${n} ${pesos(v)}${f ? ` (factor ${String(f).replace('.', ',')})` : ''}`);
+        if (partes.length) referencias.push(`«${nombrePropio(o.Nombre_Opcion) || 'Opción ' + o.Numero_Opcion}»: ${partes.join(' + ')}`);
+      });
+    } else if (costeo) {
+      for (const [ac, g, tf, aj] of [['Sencilla', 'Gran_Total_Venta_Sencilla', 'Total_Final_COP_Sencilla', 'Ajuste_Venta_Sencilla'], ['Doble', 'Gran_Total_Venta_Doble', 'Total_Final_COP_Doble', 'Ajuste_Venta_Doble'], ['Triple', 'Gran_Total_Venta_Triple', 'Total_Final_COP_Triple', 'Ajuste_Venta_Triple']]) {
+        const vals = [['total venta', costeo[g]], ['total final COP', costeo[tf]], ['ajuste de venta', costeo[aj]]].filter(([, v]) => numero(v) > 0);
+        if (!vals.length) continue;
+        tarifas.push({ hotel: nombrePropio(costeo.Nombre_Plan), acomodacion: ac, valor: '' });
+        referencias.push(`${ac}: ${vals.map(([n, v]) => `${n} ${pesos(v)}`).join(' · ')}`);
+      }
+    }
+    if (!tarifas.length) tarifas = [{ hotel: '', acomodacion, valor: '' }];
+    // Qué incluye: solo los componentes que la base registra para la venta.
+    const o1 = opciones[0] || {};
+    const tipos = new Set(servicios.map(x => x.Tipo_Servicio));
+    const incluye = [
+      (numero(o1.Neto_Tkt) > 0 || tipos.has('Vuelo')) && 'Tiquetes aéreos',
+      (numero(o1.Neto_Hotel) > 0 || tipos.has('Hotel')) && 'Alojamiento',
+      (numero(o1.Neto_Terrestre) > 0 || tipos.has('Plan Terrestre')) && `Plan terrestre${acomodacion ? ` en acomodación ${acomodacion.toLowerCase()}` : ''}`,
+      (numero(o1.Neto_Asistencia) > 0 || tipos.has('Asistencia')) && 'Tarjeta de asistencia médica',
+    ].filter(Boolean);
+    const n = numero(venta.Numero_Pasajeros_Estimados);
+    return {
+      datos: {
+        codigo_cotizacion: 'CA' + num,
+        titulo_destino: plan?.Nombre_Plan ? nombrePropio(plan.Nombre_Plan) : `${venta.Destino || 'Viaje'}${dias ? `, ${dias < NUMEROS.length ? NUMEROS[dias].replace(/^un$/, 'un') : dias} ${dias === 1 ? 'día' : 'días'}` : ''}`,
+        parrafo_intro: '', destino: venta.Destino || '', fecha_llegada: ida, fecha_salida: regreso,
+        noches: dias > 1 ? `${dias - 1} ${dias - 1 === 1 ? 'noche' : 'noches'}` : '', pasajeros: n ? `${n} ${n === 1 ? 'persona' : 'personas'}` : '', acomodacion,
+        incluye, no_incluye: [], tarifas, itinerario: [], condiciones_pago: '', vigencia: '',
+        asesor: { nombre: asesora ? nombrePropio(asesora.Nombre) : '', correo: venta.Agente || '', telefono: '' },
+      },
+      referencias,
+    };
+  }
   const MENSAJES_BASE = {
     sin_mcp: 'Traer de la base funciona al abrir la app desde claude.ai con el conector Composio.',
     no_leida: 'No pudimos leer la base. Revisa que la cuenta de Google conectada en Composio tenga acceso a la hoja.',
@@ -3416,10 +3480,21 @@ ${texto}
     btn.disabled = true;
     pinta('Consultando la base (solo lectura)…', 'girando');
     try {
-      const tab = await leerVentaDeBase(cons, t => pinta(`${t} (solo lectura)`, 'girando'));
-      const datos = tab && confirmacionDesdeBase(tab, cons);
-      if (!datos) { pinta(`No encontramos la venta ${cons.toUpperCase()} en la base. Revisa el consecutivo.`, 'error'); return; }
+      const esCot = docId === 'cotizacion';
+      const tab = await leerVentaDeBase(cons, t => pinta(`${t} (solo lectura)`, 'girando'), { cotizacion: esCot });
+      if (!tab) { pinta(`No encontramos la venta ${cons.toUpperCase()} en la base. Revisa el consecutivo.`, 'error'); return; }
       out.textContent = '';
+      const nombreVenta = `la venta ${cons.toUpperCase().replace(/^(\d)/, 'CA$1')} de la base`;
+      if (esCot) {
+        const { datos, referencias } = cotizacionDesdeBase(tab, cons);
+        const falta = ['el valor por persona de cada opción', 'las condiciones de pago', 'la vigencia', 'tu teléfono', 'lo que no incluye y el itinerario, si aplican'];
+        return abrirConvertido('cotizacion', datos, {
+          desde: nombreVenta, pegar: 'Pegar la información para completar',
+          texto: `Trajimos el destino, las fechas, los pasajeros, las opciones y lo que incluye. Por seguridad, los precios no se copian solos: escribe el valor final de cada opción.${referencias.length ? ' Valores de la base, solo como referencia: ' + referencias.join(' | ') + '.' : ''} Falta: ${falta.join(', ')}.`,
+        });
+      }
+      const datos = confirmacionDesdeBase(tab, cons);
+      if (!datos) { pinta(`No encontramos la venta ${cons.toUpperCase()} en la base. Revisa el consecutivo.`, 'error'); return; }
       const faltan = [];
       if (datos.aereo.some(a => a.trayectos.some(t => !t.vuelo))) faltan.push('número de vuelo, fecha y horas de cada trayecto');
       if (!datos.estado_pago) faltan.push('el estado de pago (la base no dice si ya se pagó todo: elige «Abono recibido» o «Pagado en su totalidad»)');
@@ -3427,7 +3502,7 @@ ${texto}
       else faltan.push('el nombre y las fechas exactas de cada hotel');
       if (!datos.asesor_telefono) faltan.push('tu teléfono');
       abrirConvertido('confirmacion', datos, {
-        desde: `la venta ${cons.toUpperCase().replace(/^(\d)/, 'CA$1')} de la base`, pegar: 'Pegar la reserva para completar',
+        desde: nombreVenta, pegar: 'Pegar la reserva para completar',
         texto: `Trajimos de la base los pasajeros, las fechas, los tiquetes con su localizador, los servicios y los pagos con su estado. Revisa y completa lo que la base no tiene: ${faltan.join('; ')}. Puedes pegar la reserva del sistema y Claude lo suma.`,
       });
     } catch (err) {
