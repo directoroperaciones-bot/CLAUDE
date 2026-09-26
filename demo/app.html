@@ -183,6 +183,29 @@
   #doc-frame { width: 1061px; border: 0; display: block; background: transparent; }
 
 
+  /* banco de fotos */
+  .banco-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+  .banco-stats { display: flex; gap: 28px; font-size: 13px; color: var(--pizarra); }
+  .banco-stats b { display: block; font: 700 28px/1.1 var(--fuente); color: var(--carbon); font-variant-numeric: tabular-nums; }
+  .banco-barra { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 28px; }
+  .banco-barra .campo { flex: 1 1 280px; width: auto; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font: 500 14px/1 var(--fuente); padding: 11px 16px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--blanco); color: var(--texto); cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--coral); border-color: var(--coral); color: var(--blanco); }
+  .banco-panel { margin-top: 18px; }
+  .banco-grupo { margin-top: 32px; }
+  .banco-grupo h2 { display: flex; align-items: baseline; gap: 10px; }
+  .banco-grupo h2 small { font: 400 14px/1 var(--fuente); color: var(--pizarra); }
+  .banco-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px; margin-top: 18px; }
+  .foto-card { overflow: hidden; display: flex; flex-direction: column; }
+  .foto-card .ph { aspect-ratio: 4 / 3; background: var(--hueso) center / cover no-repeat; max-width: 100%; }
+  .foto-card .meta { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--pizarra); }
+  .foto-card .meta b { font: 600 16px/1.3 var(--fuente); color: var(--carbon); }
+  .foto-card .meta .aviso-chica { color: var(--coral-hover); }
+  .foto-card .fila-acc { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .banco-nota { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--hairline); font-size: 13px; color: var(--pizarra); max-width: 90ch; }
+  .banco-nota code, .foto-card code { font-size: 12px; }
+
   .pie { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--hairline); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--pizarra); }
   .pie b { color: var(--carbon); font-weight: 600; }
 
@@ -210,6 +233,7 @@
     <nav class="nav" aria-label="Secciones">
       <button type="button" data-ir="inicio" aria-current="page">Inicio</button>
       <button type="button" data-ir="documentos">Mis documentos</button>
+      <button type="button" data-ir="banco">Banco de fotos</button>
     </nav>
     <div class="top-der">
       <span class="demo-tag">Demo</span>
@@ -251,6 +275,38 @@
     <h1 class="display">Mis <span class="c">documentos</span></h1>
     <p class="lead">Todo lo que has generado. Abre cualquiera para verlo de nuevo o descargarlo.</p>
     <div class="tabla-wrap" style="margin-top:28px;"><table class="lista" id="tabla-todos"></table></div>
+  </section>
+
+  <!-- ================= BANCO DE FOTOS ================= -->
+  <section id="v-banco" hidden>
+    <div class="banco-head">
+      <div>
+        <span class="eyebrow">Fotos de destinos y hoteles</span>
+        <h1 class="display">Banco de <span class="c">fotos</span></h1>
+        <p class="lead">Las fotos que los asesores ya ubicaron en una cotización o un itinerario. Cuando un documento no trae foto, la app la toma de aquí; cuando trae una nueva, la guarda aquí.</p>
+      </div>
+      <div class="banco-stats"><div><b id="b-dest">0</b>destinos</div><div><b id="b-hot">0</b>hoteles</div><div><b id="b-fot">0</b>fotos</div></div>
+    </div>
+    <div class="banco-barra">
+      <input type="search" class="campo" id="b-q" placeholder="Buscar destino u hotel (ej. San Andrés, Calypso)" aria-label="Buscar en el banco">
+      <div class="chips" role="group" aria-label="Filtrar">
+        <button type="button" class="chip" data-f="todos" aria-pressed="true">Todos</button>
+        <button type="button" class="chip" data-f="destino" aria-pressed="false">Destinos</button>
+        <button type="button" class="chip" data-f="hotel" aria-pressed="false">Hoteles</button>
+      </div>
+      <button type="button" class="btn btn-sec" id="b-abrir" hidden><i data-lucide="plus"></i>Agregar foto</button>
+    </div>
+    <div class="papel bloque banco-panel" id="b-panel" hidden>
+      <div class="rejilla">
+        <div class="s3"><label class="lbl" for="b-tipo">Tipo</label><select class="campo" id="b-tipo"><option value="destino">Destino</option><option value="hotel">Hotel</option></select></div>
+        <div class="s3"><label class="lbl" for="b-nombre">Nombre</label><input class="campo" id="b-nombre" placeholder="San Andrés o el hotel"></div>
+        <div class="s3"><label class="lbl" for="b-ciudad">Ciudad (hoteles)</label><input class="campo" id="b-ciudad" placeholder="San Andrés"></div>
+        <div class="s3"><label class="lbl" for="b-archivo">Foto (JPG o PNG)</label><input class="campo" type="file" id="b-archivo" accept="image/jpeg,image/png,image/webp"></div>
+      </div>
+      <div class="acciones"><button type="button" class="btn btn-pri" id="b-subir">Guardar en el banco</button><p class="estado" id="b-msg" role="status" aria-live="polite"></p></div>
+    </div>
+    <div id="b-lista"><div class="vacio papel">Cargando el banco…</div></div>
+    <p class="banco-nota">Cada foto se identifica por su clave: <code>destino:san-andres</code> o <code>hotel:calypso--san-andres</code>. Usa fotos propias, oficiales del hotel o con licencia; lo ideal es que tengan al menos 1.600 px de ancho. No guardes capturas de pantalla, fotos de documentos ni fotos de personas.</p>
   </section>
 
   <!-- ================= DOCUMENTO (cotización, confirmación, voucher) ================= -->

@@ -1,0 +1,156 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Banco de fotos Caminos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#FAF6F5;--surface:#FFFFFF;--ink:#1F2024;--muted:#6D6668;--line:#E9E0DE;--coral:#F25061;--coral-ink:#D93A4B;--coral-soft:#FDE9EB;--hueso:#F8F5F2;--r:10px;
+  font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#15161A;--surface:#1F2024;--ink:#F3EFEE;--muted:#A9A2A3;--line:#35363C;--coral:#F46273;--coral-ink:#F68A96;--coral-soft:#3A2227;--hueso:#26272C}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#15161A;--surface:#1F2024;--ink:#F3EFEE;--muted:#A9A2A3;--line:#35363C;--coral:#F46273;--coral-ink:#F68A96;--coral-soft:#3A2227;--hueso:#26272C}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px;line-height:1.5;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1180px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding-block:28px 18px;border-bottom:1px solid var(--line)}
+h1{margin:0;font-size:24px;font-weight:700;letter-spacing:-.01em}
+h1 span{color:var(--coral)}
+.sub{margin:4px 0 0;color:var(--muted);font-size:13px;max-width:620px}
+.stats{display:flex;gap:18px;font-size:12.5px;color:var(--muted)}
+.stats b{display:block;font-size:20px;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding-block:18px}
+.bar input[type=search]{flex:1 1 260px;font:inherit;font-size:14px;padding:10px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);color:var(--ink)}
+.chip{font:inherit;font-size:13px;font-weight:500;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--coral);border-color:var(--coral);color:#fff}
+.btn{font:inherit;font-size:13.5px;font-weight:600;padding:10px 16px;border-radius:var(--r);border:1px solid var(--coral);background:var(--coral);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--coral-ink)}
+.btn:disabled{opacity:.5;cursor:default}
+section h2{font-size:18px;font-weight:600;margin:22px 0 12px;display:flex;align-items:center;gap:10px}
+section h2::before{content:"";width:18px;height:3px;border-radius:2px;background:var(--coral)}
+section h2 small{font-size:12px;color:var(--muted);font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.ph{aspect-ratio:4/3;background:var(--hueso) center/cover no-repeat;max-width:100%}
+.meta{padding:12px 14px 14px;display:flex;flex-direction:column;gap:2px}
+.meta b{font-weight:600;font-size:15px}
+.meta span{font-size:12px;color:var(--muted)}
+.warn{color:var(--coral-ink)!important}
+.row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px}
+.x{font:inherit;font-size:12px;border:0;background:none;color:var(--muted);cursor:pointer;padding:4px 6px;border-radius:6px}
+.x:hover{color:var(--coral-ink);background:var(--coral-soft)}
+.empty{padding:40px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px;margin-top:6px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.panel label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);flex:1 1 180px}
+.panel input,.panel select{font:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.msg{font-size:12.5px;min-height:18px;color:var(--muted);margin-top:6px}
+.msg.err{color:var(--coral-ink)}
+.note{font-size:12px;color:var(--muted);margin-top:26px;border-top:1px solid var(--line);padding-top:14px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(242,80,97,.35);outline-offset:1px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Banco de fotos <span>Caminos</span></h1>
+      <p class="sub">Fotos de destinos y hoteles que los asesores ya ubicaron en una cotización o un itinerario. Claude las reutiliza cuando un documento no trae foto.</p>
+    </div>
+    <div class="stats"><div><b id="nDest">0</b>destinos</div><div><b id="nHot">0</b>hoteles</div><div><b id="nFot">0</b>fotos</div></div>
+  </header>
+
+  <div class="bar">
+    <input type="search" id="q" placeholder="Buscar destino u hotel (ej. San Andrés, Calypso)" aria-label="Buscar">
+    <button class="chip" data-f="todos" aria-pressed="true">Todos</button>
+    <button class="chip" data-f="destino" aria-pressed="false">Destinos</button>
+    <button class="chip" data-f="hotel" aria-pressed="false">Hoteles</button>
+    <button class="btn ghost" id="abrir" hidden>Agregar foto</button>
+  </div>
+
+  <div class="panel" id="panel" hidden>
+    <label>Tipo<select id="fTipo"><option value="destino">Destino</option><option value="hotel">Hotel</option></select></label>
+    <label>Nombre<input id="fNombre" placeholder="San Andrés · o nombre del hotel"></label>
+    <label>Ciudad (hoteles)<input id="fCiudad" placeholder="San Andrés"></label>
+    <label>Foto (JPG o PNG)<input type="file" id="fArchivo" accept="image/jpeg,image/png,image/webp"></label>
+    <button class="btn" id="subir">Guardar</button>
+    <div class="msg" id="msg" role="status" aria-live="polite" style="flex-basis:100%"></div>
+  </div>
+
+  <div id="lista"><div class="empty">Cargando el banco…</div></div>
+
+  <p class="note">Cada foto se identifica por su clave: <code>destino:san-andres</code> o <code>hotel:calypso--san-andres</code>. Usa fotos propias, oficiales del hotel o con licencia. Lo ideal es que tengan al menos 1.600 px de ancho.</p>
+</div>
+
+<script>
+(function(){
+var docs=[], filtro='todos', q='', db=null, assets=null, user=null;
+var $=function(id){return document.getElementById(id)};
+function slug(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
+function clave(t,n,c){return t==='hotel'?('hotel:'+slug(n).replace(/^(hotel|hostal|hosteria|hostel)-/,'')+(c?'--'+slug(c):'')):('destino:'+slug(n))}
+function docId(k){return k.replace(':','__')}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+function render(){
+  var vis=docs.filter(function(d){var x=d.data();if(filtro!=='todos'&&x.tipo!==filtro)return false;
+    if(!q)return true;var t=slug((x.nombre||'')+' '+(x.ciudad||''));return t.indexOf(slug(q))>=0});
+  var dest=docs.filter(function(d){return d.data().tipo==='destino'}).length, hot=docs.length-dest;
+  $('nDest').textContent=dest;$('nHot').textContent=hot;$('nFot').textContent=docs.length;
+  if(!docs.length){$('lista').innerHTML='<div class="empty">El banco está vacío. Las fotos aparecen aquí cuando un asesor ubica una foto en un documento.</div>';return}
+  if(!vis.length){$('lista').innerHTML='<div class="empty">No hay fotos que coincidan con la búsqueda.</div>';return}
+  var grupos={destino:[],hotel:[]};vis.forEach(function(d){(grupos[d.data().tipo]||grupos.destino).push(d)});
+  var h='';
+  [['destino','Destinos'],['hotel','Hoteles']].forEach(function(g){
+    var L=grupos[g[0]];if(!L.length)return;
+    L.sort(function(a,b){return (a.data().nombre||'').localeCompare(b.data().nombre||'','es')});
+    h+='<section><h2>'+g[1]+' <small>'+L.length+'</small></h2><div class="grid">';
+    L.forEach(function(d){var x=d.data();
+      var chica=x.ancho&&x.ancho<1200;
+      h+='<div class="card"><div class="ph" style="background-image:url(\'/_blob/'+esc(x.asset)+'\')" role="img" aria-label="'+esc(x.nombre)+'"></div><div class="meta"><b>'+esc(x.nombre)+'</b>'+
+        '<span>'+(x.tipo==='hotel'&&x.ciudad?esc(x.ciudad)+' · ':'')+esc(x.clave)+'</span>'+
+        '<span class="'+(chica?'warn':'')+'">'+(x.ancho?x.ancho+' × '+x.alto+' px'+(chica?' · pequeña para portada':''):'')+'</span>'+
+        '<span>'+(x.fecha?'Agregada el '+esc(x.fecha):'')+(x.documento?' · '+esc(x.documento):'')+'</span>'+
+        (assets?'<div class="row"><span></span><button class="x" data-del="'+esc(d.id)+'">Quitar</button></div>':'')+
+        '</div></div>'});
+    h+='</div></section>'});
+  $('lista').innerHTML=h;
+}
+
+document.querySelectorAll('.chip').forEach(function(b){b.onclick=function(){filtro=b.dataset.f;document.querySelectorAll('.chip').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});render()}});
+$('q').addEventListener('input',function(e){q=e.target.value;render()});
+$('abrir').onclick=function(){$('panel').hidden=!$('panel').hidden};
+
+var armado=null;
+$('lista').addEventListener('click',function(e){var b=e.target.closest('[data-del]');if(!b)return;
+  if(armado!==b){if(armado)armado.textContent='Quitar';armado=b;b.textContent='¿Quitar? Toca otra vez';setTimeout(function(){if(armado===b){b.textContent='Quitar';armado=null}},3500);return}
+  armado=null;var d=docs.filter(function(x){return x.id===b.dataset.del})[0];if(!d)return;
+  b.disabled=true;b.textContent='Quitando…';
+  db.doc('fotos/'+d.id).delete().then(function(){return assets.delete(d.data().asset)}).catch(function(){b.disabled=false;b.textContent='No se pudo quitar'})});
+
+$('subir').onclick=function(){
+  var f=$('fArchivo').files[0],t=$('fTipo').value,n=$('fNombre').value.trim(),c=$('fCiudad').value.trim(),m=$('msg');
+  m.className='msg';
+  if(!n){m.className='msg err';m.textContent='Escribe el nombre del destino o del hotel.';return}
+  if(!f){m.className='msg err';m.textContent='Elige una foto.';return}
+  var k=clave(t,n,c),btn=$('subir');btn.disabled=true;m.textContent='Guardando…';
+  var img=new Image(),url=URL.createObjectURL(f);
+  img.onload=function(){
+    assets.upload(f,{type:f.type||'image/jpeg'}).then(function(r){
+      var hoy=new Date();var fecha=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+      return db.doc('fotos/'+docId(k)).set({clave:k,tipo:t,nombre:n,ciudad:c,asset:r.id,ancho:img.naturalWidth,alto:img.naturalHeight,fecha:fecha,documento:'Cargada desde el banco'});
+    }).then(function(){m.textContent='Guardada como '+k+'.';$('fArchivo').value='';$('fNombre').value='';$('fCiudad').value=''})
+    .catch(function(e){m.className='msg err';m.textContent=(e&&e.code==='too_large')?'La foto pesa más de 20 MB.':'No se pudo guardar la foto.'})
+    .then(function(){btn.disabled=false;URL.revokeObjectURL(url)});
+  };
+  img.onerror=function(){m.className='msg err';m.textContent='No se pudo leer la imagen. Usa JPG o PNG.';btn.disabled=false};
+  img.src=url;
+};
+
+(async function(){
+  db=await claude.use('db');
+  if(!db){$('lista').innerHTML='<div class="empty">El banco no está disponible en esta vista.</div>';return}
+  assets=await claude.use('assets');
+  if(assets)$('abrir').hidden=false;
+  db.collection('fotos').onSnapshot(function(s){docs=s.docs.filter(function(d){return d.exists});render()},
+    function(){$('lista').innerHTML='<div class="empty">No se pudo leer el banco. Recarga la página.</div>'});
+})();
+})();
+</script>
+
+</body></html>
