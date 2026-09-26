@@ -17,6 +17,11 @@ los hoteles).
   HTML (letras, logos y fotos incluidos) para el celular del viajero, con cuenta
   regresiva, días desplegables, vuelos, hoteles con mapa, lista de preparación que
   se puede marcar y la política general copiada tal cual de la plantilla.
+- `geo/` — datos del **mapa de ruta**: `paises.json` (contornos de Natural Earth,
+  dominio público, vía `world-atlas`) y `ciudades.json` (GeoNames, CC BY 4.0, vía
+  `all-the-cities`), preparados con `geo/preparar.py`. Cada día se ubica por su título
+  o por el campo "Lugar en el mapa"; los vuelos del mismo día agregan las conexiones y
+  los nombres repetidos se resuelven por la ruta más coherente.
 - `ejemplos/Itinerario-CA2790.html` — el ejemplo del plugin (Tailandia y Europa) en
   versión interactiva.
 - `iconos/` — íconos de `lucide-static@0.445.0` (licencia ISC en `iconos/LICENSE`).

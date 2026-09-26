@@ -79,6 +79,8 @@ def main():
         '"__ICONOS__"': json.dumps(iconos),
         '"__FUENTES__"': json.dumps(fuentes),
         '"__RECURSOS__"': json.dumps(recursos),
+        '"__CIUDADES__"': leer(os.path.join(DEMO, 'geo', 'ciudades.json')),
+        '"__PAISES__"': leer(os.path.join(DEMO, 'geo', 'paises.json')),
         '"__PLANTILLAS__"': json.dumps(plantillas, ensure_ascii=False),
         '"__EJEMPLOS__"': json.dumps(ejemplos, ensure_ascii=False),
         '__LOGO_CORAL__': data_uri(os.path.join(logos, 'logos', 'caminos-logo-coral.svg')),

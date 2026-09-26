@@ -939,7 +939,7 @@ El voucher no es reembolsable ni transferible.`,
       { tipo: 'filas', k: 'vuelos_internos', titulo: 'Vuelos internos', mas: 'Agregar vuelo interno', min: 0, cols: COLS_VUELO }] }] : []),
     { t: 'Día a día', sub: 'Un bloque por día. Un día nunca se parte entre dos hojas.', icono: 'route', campos: [
       { tipo: 'bloques', k: 'dias', req: 1, titulo: 'Día', numerar: true, mas: 'Agregar día', campos: [
-        D('fecha', 'Fecha', 4), T('titulo', 'Título del día', 8), A('descripcion', 'Qué hacemos', 12, { filas: 3 }),
+        D('fecha', 'Fecha', 3), T('titulo', 'Título del día', 6), T('lugar', 'Lugar en el mapa', 3, { ph: 'Chiang Mai' }), A('descripcion', 'Qué hacemos', 12, { filas: 3 }),
         { k: 'comidas', label: 'Comidas incluidas', w: 4, tipo: 'coma', ph: 'Desayuno, Almuerzo' }, { k: 'etiquetas', label: 'Etiquetas', w: 4, tipo: 'coma', ph: 'Noche a bordo' },
         T('hotel', 'Hotel de esa noche', 4), { k: 'foto', label: 'Foto del día (opcional)', w: 12, tipo: 'foto', max: 900 }] }] },
     { t: 'Qué incluye', sub: 'Un renglón por ítem. Empieza un renglón con # para poner un subtítulo de grupo.', icono: 'badge-check', campos: [
@@ -972,6 +972,7 @@ El voucher no es reembolsable ni transferible.`,
     reglasBase: `- "titulo": usa \n para partirlo en dos renglones, por ejemplo "Peregrinación a\nFátima y Lourdes".
 - "descripcion" de cada día en dos o tres líneas, en primera persona del plural ("salimos", "visitamos"). Conserva todos los datos: lugares, horas y detalles. No agregues lugares ni actividades.
 - "comidas": solo las incluidas ("Desayuno", "Almuerzo", "Cena"). "hotel": el hotel de esa noche, si lo hay.
+- "lugar" de cada día: la ciudad donde termina el día, en español, tal como la nombra el texto ("Chiang Mai", "Fátima"). Vacío si el día es solo de vuelo.
 - "incluye" y "no_incluye": frases cortas; si el texto agrupa ítems, usa {"grupo": "...", "items": [...]}.
 - "recomendaciones": lista de {"tema", "items"}. "nota": un aviso final corto, solo si lo hay.
 - "codigo": solo si el texto trae uno.`,
@@ -980,7 +981,7 @@ El voucher no es reembolsable ni transferible.`,
     ...baseItinerario, interactivo: htmlItinerario, nombre: 'Itinerario', titulo: 'Nuevo <span class="c">itinerario</span>', eyebrow: 'Itinerario de viaje', icono: 'route',
     desc: 'El día a día del viaje, con vuelos, hoteles, fotos y recomendaciones.', hojas: 'Hojas según el viaje', boton: 'Generar el itinerario',
     pegar: 'Pega aquí el programa del viaje', grupos: gruposItinerario(true),
-    forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","frase":"","vuelos":[{"vuelo":"","fecha":"","origen":"","destino":"","sale":"","llega":""}],"vuelos_internos":[],"dias":[{"fecha":"","titulo":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"hoteles":[{"nombre":"","ciudad":"","direccion":"","telefono":""}],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
+    forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","frase":"","vuelos":[{"vuelo":"","fecha":"","origen":"","destino":"","sale":"","llega":""}],"vuelos_internos":[],"dias":[{"fecha":"","titulo":"","lugar":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"hoteles":[{"nombre":"","ciudad":"","direccion":"","telefono":""}],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
     reglas: baseItinerario.reglasBase + `
 - "frase": una frase destacada del viaje, solo si el texto la trae.
 - "llega" de un vuelo que aterriza otro día: la hora y la fecha, por ejemplo "15:00 05/09".`,
@@ -1005,7 +1006,7 @@ Recomendaciones: llevar pasaporte vigente y copia; zapatos cómodos para caminar
     ...baseItinerario, interactivo: htmlItinerario, nombre: 'Itinerario corto', titulo: 'Nuevo <span class="c">itinerario corto</span>', eyebrow: 'Itinerario corto', icono: 'map',
     desc: 'Para pasadías y viajes de uno a cuatro días, por lo general terrestres.', hojas: '2 hojas', boton: 'Generar el itinerario',
     pegar: 'Pega aquí el plan del viaje', grupos: gruposItinerario(false),
-    forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","dias":[{"fecha":"","titulo":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
+    forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","dias":[{"fecha":"","titulo":"","lugar":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
     reglas: baseItinerario.reglasBase + `
 - Es un viaje corto (1 a 4 días): no lleva vuelos, hoteles ni frase destacada. Si es pasadía, "fecha_inicio" y "fecha_fin" son iguales.`,
     ejemploTexto: `Pasadía a Monserrate con el grupo de oración de la Parroquia San Pedro Claver, el sábado 20 de marzo de 2027. Código CA5120. Responsable: Carolina Méndez. Acompaña el Pbro. Felipe Rojas.
