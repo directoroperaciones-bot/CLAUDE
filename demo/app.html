@@ -272,6 +272,8 @@
   .releer { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; margin-bottom:20px; padding:14px 20px; }
   .releer[hidden] { display:none; }
   .releer > span:first-child { color:var(--pizarra); }
+  .marca-txt { font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--pizarra); }
+  @media (max-width: 720px) { .marca-txt { display: none; } }
 </style>
 
 <header class="top">
@@ -282,13 +284,7 @@
       <button type="button" data-ir="documentos">Mis documentos</button>
       <button type="button" data-ir="banco">Banco de fotos</button>
     </nav>
-    <div class="top-der">
-      <span class="demo-tag">Demo</span>
-      <div class="asesor">
-        <div class="avatar" id="avatar">AG</div>
-        <div class="asesor-txt"><b id="asesor-nombre">Andrea Gómez</b><span>Asesora de viajes</span></div>
-      </div>
-    </div>
+    <div class="top-der"><span class="marca-txt">Documentos de viaje</span></div>
   </div>
 </header>
 
@@ -474,7 +470,7 @@
 
   <footer class="pie">
     <span><b>Caminos</b> — Para ir más lejos</span>
-    <span>Demo de la app de documentos · Los datos de ejemplo están marcados como «Ejemplo»</span>
+    <span>Documentos de viaje · Agencia de viajes Caminos</span>
   </footer>
 </main>
 

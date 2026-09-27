@@ -272,6 +272,8 @@
   .releer { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; margin-bottom:20px; padding:14px 20px; }
   .releer[hidden] { display:none; }
   .releer > span:first-child { color:var(--pizarra); }
+  .marca-txt { font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--pizarra); }
+  @media (max-width: 720px) { .marca-txt { display: none; } }
 </style>
 
 <header class="top">
@@ -282,13 +284,7 @@
       <button type="button" data-ir="documentos">Mis documentos</button>
       <button type="button" data-ir="banco">Banco de fotos</button>
     </nav>
-    <div class="top-der">
-      <span class="demo-tag">Demo</span>
-      <div class="asesor">
-        <div class="avatar" id="avatar">AG</div>
-        <div class="asesor-txt"><b id="asesor-nombre">Andrea Gómez</b><span>Asesora de viajes</span></div>
-      </div>
-    </div>
+    <div class="top-der"><span class="marca-txt">Documentos de viaje</span></div>
   </div>
 </header>
 
@@ -474,7 +470,7 @@
 
   <footer class="pie">
     <span><b>Caminos</b> — Para ir más lejos</span>
-    <span>Demo de la app de documentos · Los datos de ejemplo están marcados como «Ejemplo»</span>
+    <span>Documentos de viaje · Agencia de viajes Caminos</span>
   </footer>
 </main>
 
@@ -494,7 +490,14 @@
   // Logos, estrella y degradado de protección del itinerario, por su ruta en la plantilla.
   const RECURSOS = {"../assets/brand/estrella-crema.svg": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjIxMS4wMyAzODEuMTcgMzA4LjA1IDQxMy41NSIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJFc3RyZWxsYSBkZSBDYW1pbm9zIiB4bWxuczpjMnBhPSJodHRwOi8vYzJwYS5vcmcvbWFuaWZlc3QiIHdpZHRoPSIzMDguMDUiIGhlaWdodD0iNDEzLjU1Ij4KPHRpdGxlPkVzdHJlbGxhIGRlIG9jaG8gcHVudGFzIOKAlCByb3NhIGRlIGxvcyB2aWVudG9zIC8gZXN0cmVsbGEgZGUgQmVsw6luPC90aXRsZT4KPHBhdGggZmlsbD0iI0Y2RTdDOSIgZD0iTTMzOS4xNiw1ODcuMTlsMjUuOSwyMDcuNTMsMjYuMTItMjA1LjMyLDY2LjY4LDM4Ljk5LTQwLjE2LTY4LjI0LDEwMS4zOC0yNS43My0xMDIuNTUtMjMuNzksNDIuNS02OC42My02OS4wMiw0MC45NC0yNC43Ni0xMDEuNzctMjMuOTgsMTAyLjU1LTY5LjAyLTQzLjI4LDQyLjUsNjkuOC0xMDMuNzIsMjMuNzksMTAzLjMzLDI0LjU2cy00NC44NCw3MC45Ny00Mi44OSw3MC4xOWMxLjk1LS43OCw2Ny42OS00MS42LDY3LjY5LTQxLjZaIj48L3BhdGg+Cjwvc3ZnPg==", "../assets/logos/caminos-logo-white.svg": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjgzLjEgMjQwLjI5IDE4MDYuNyA1OTkuNDQiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iQ2FtaW5vcyIgeG1sbnM6YzJwYT0iaHR0cDovL2MycGEub3JnL21hbmlmZXN0IiB3aWR0aD0iMTgwNi43IiBoZWlnaHQ9IjU5OS40NCI+Cjx0aXRsZT5DYW1pbm9zPC90aXRsZT4KPGcgZmlsbD0iI0ZGRkZGRiI+PHBhdGggZD0iTTc2Mi45NSw0MzQuMjd2MjAxLjI3aC02Ny45NXYtMjQuMDhjLTYuODgsOC42LTE2LjI3LDE1LjYzLTI4LjE3LDIxLjA3LTExLjksNS40NC0yNC43Myw4LjE3LTM4LjQ5LDguMTctMjguMSwwLTUxLjgyLTEwLjE3LTcxLjE4LTMwLjUzLTE5LjM1LTIwLjM1LTI5LjAzLTQ1LjQ0LTI5LjAzLTc1LjI2czkuNjgtNTQuOSwyOS4wMy03NS4yNmMxOS4zNS0yMC4zNSw0My4wNy0zMC41Myw3MS4xOC0zMC41MywxMy43NiwwLDI2LjU5LDIuNzMsMzguNDksOC4xNywxMS44OSw1LjQ1LDIxLjI5LDEyLjQ3LDI4LjE3LDIxLjA3di0yNC4wOGg2Ny45NVpNNjc4LjY1LDU2OC40NWM5LjE3LTkuMTcsMTMuNzYtMjAuMzUsMTMuNzYtMzMuNTRzLTQuNTktMjQuMzctMTMuNzYtMzMuNTVjLTkuMTgtOS4xNy0yMC4zNi0xMy43Ni0zMy41NC0xMy43NnMtMjQuMzcsNC41OS0zMy41NSwxMy43NmMtOS4xOCw5LjE4LTEzLjc2LDIwLjM2LTEzLjc2LDMzLjU1czQuNTgsMjQuMzcsMTMuNzYsMzMuNTRjOS4xNyw5LjE4LDIwLjM1LDEzLjc2LDMzLjU1LDEzLjc2czI0LjM3LTQuNTgsMzMuNTQtMTMuNzZaIj48L3BhdGg+PHBhdGggZD0iTTEwNDEuNDgsNjM1LjU0di0xMTEuNjljMC04LjgyLTIuNzYtMTYuMTMtOC4yNy0yMS45Mi01LjUyLTUuNzktMTIuNDEtOC42OS0yMC42OC04LjY5cy0xNS4xNywyLjktMjAuNjgsOC42OWMtNS41Miw1Ljc5LTguMjcsMTMuMS04LjI3LDIxLjkydjExMS42OWgtNjUuMzZ2LTExMS42OWMwLTguODItMi43Ni0xNi4xMy04LjI3LTIxLjkyLTUuNTItNS43OS0xMi40MS04LjY5LTIwLjY4LTguNjlzLTE1LjE3LDIuOS0yMC42OCw4LjY5Yy01LjUyLDUuNzktOC4yNywxMy4xLTguMjcsMjEuOTJ2MTExLjY5aC02NS4zNnYtMTkzLjZoNjUuMzZ2MjIuNzVjMTQuNjEtMTguNDcsMzMuMzctMjcuNzIsNTYuMjYtMjcuNzIsMjQuMjcsMCw0My4wMiwxMC4yMSw1Ni4yNiwzMC42MSwxNy4zNy0yMC40MSwzOS40My0zMC42MSw2Ni4xOS0zMC42MSwxOS44NiwwLDM2LjEzLDYuNDgsNDguODEsMTkuNDQsMTIuNjgsMTIuOTcsMTkuMDMsMzAuMzQsMTkuMDMsNTIuMTJ2MTI3aC02NS4zNloiPjwvcGF0aD48cGF0aCBkPSJNMTE0Ni4xMywzODUuMjRjLTcuNzQtNy43NC0xMS42MS0xNy4wNi0xMS42MS0yNy45NXMzLjg3LTIwLjE0LDExLjYxLTI3Ljc0YzcuNzQtNy41OSwxNy4wNi0xMS40LDI3Ljk1LTExLjRzMjAuMjEsMy44LDI3Ljk1LDExLjRjNy43NCw3LjYsMTEuNjEsMTYuODUsMTEuNjEsMjcuNzRzLTMuODcsMjAuMTUtMTEuNjEsMjcuNzRjLTcuNzQsNy42LTE3LjA2LDExLjQtMjcuOTUsMTEuNHMtMjAuMjEtMy43Mi0yNy45NS0xMS4xOFpNMTIwOC4wNiw0MzQuMjd2MjAxLjI3aC02Ny45NXYtMjAxLjI3aDY3Ljk1WiI+PC9wYXRoPjxwYXRoIGQ9Ik0xMzA1LjE5LDUyMi41MnYxMTMuMDJoLTY2LjE0di0xOTUuOWg2Ni4xNHYyMy4wMmMxMy45NS0xOC42OSwzMy42Mi0yOC4wNCw1OS4wMi0yOC4wNCwxOC45NywwLDM0LjY3LDYuNDksNDcuMDksMTkuNDYsMTIuNDEsMTIuOTgsMTguNjMsMzAuMzUsMTguNjMsNTIuMTF2MTI5LjM0aC02Ni4xNHYtMTEzLjAyYzAtOC45My0yLjc5LTE2LjMzLTguMzctMjIuMTktNS41OS01Ljg2LTEyLjU2LTguNzktMjAuOTMtOC43OXMtMTUuMzUsMi45My0yMC45Myw4Ljc5Yy01LjU5LDUuODYtOC4zNywxMy4yNi04LjM3LDIyLjE5WiI+PC9wYXRoPjxwYXRoIGQ9Ik0xNjM1LjYzLDQ2NC43OGMyMS4yMiwxOS44MywzMS44Myw0NC4xMiwzMS44Myw3Mi44OHMtMTAuNTQsNTMuMTMtMzEuNjIsNzMuMDljLTIxLjA5LDE5Ljk3LTQ2Ljg1LDI5Ljk1LTc3LjI4LDI5Ljk1cy01Ni4yLTkuOTgtNzcuMjgtMjkuOTVjLTIxLjA5LTE5Ljk2LTMxLjYyLTQ0LjMzLTMxLjYyLTczLjA5czEwLjU0LTUzLjEyLDMxLjYyLTczLjA5YzIxLjA4LTE5Ljk2LDQ2Ljg0LTI5Ljk1LDc3LjI4LTI5Ljk1czU2LjEzLDEwLjA1LDc3LjA3LDMwLjE2Wk0xNTg4LjMsNTY4LjI0YzguNjUtOC4xLDEyLjk5LTE4LjI5LDEyLjk5LTMwLjU4cy00LjMzLTIyLjQ3LTEyLjk5LTMwLjU4Yy04LjY2LTguMS0xOC41Ny0xMi4xNS0yOS43NC0xMi4xNXMtMjEuMDksNC4wNS0yOS43NCwxMi4xNWMtOC42Niw4LjEtMTIuOTksMTguMjktMTIuOTksMzAuNThzNC4zMywyMi40OCwxMi45OSwzMC41OGM4LjY1LDguMSwxOC41NywxMi4xNSwyOS43NCwxMi4xNXMyMS4wOC00LjA1LDI5Ljc0LTEyLjE1WiI+PC9wYXRoPjxwYXRoIGQ9Ik0xODIxLjQ4LDU3NS4zNmMwLDE4Ljk5LTYuNDMsMzQuNjMtMTkuMjcsNDYuOTEtMTIuODUsMTIuMjktMzAuODYsMTguNDMtNTQuMDMsMTguNDMtMzEuNTYsMC01Ni44My0xMC4wNS03NS44MS0zMC4xNmwzMC41OC0zOS4zN2MxMC42MSwxMi44NSwyMi4wNiwxOS4yNywzNC4zNSwxOS4yNyw1LjU4LDAsOS45OC0xLjI2LDEzLjE5LTMuNzcsMy4yMS0yLjUxLDQuODItNiw0LjgyLTEwLjQ3LDAtNS4wMy0xLjQtOS4yMi00LjE5LTEyLjU3LTIuNzktMy4zNS04LjI0LTYuNy0xNi4zMy0xMC4wNS0zMy41MS0xNC4yNC01MC4yNy0zNS4wNC01MC4yNy02Mi40MSwwLTE2Ljc1LDYuMTQtMzAuMzcsMTguNDMtNDAuODQsMTIuMjgtMTAuNDcsMjguMzQtMTUuNzEsNDguMTctMTUuNzEsMjMuNzMsMCw0NC40LDcuNjgsNjEuOTksMjMuMDRsLTI4LjksMzYuODZjLTUuODYtNi40Mi0xMi44NS05LjYzLTIwLjk0LTkuNjNzLTEyLjU3LDIuOC0xMi41Nyw4LjM4YzAsMy4wOCwxLjUzLDUuODYsNC42MSw4LjM4LDMuMDcsMi41MSw5LjM1LDUuODYsMTguODUsMTAuMDUsMzEuNTUsMTMuOTcsNDcuMzMsMzUuMTksNDcuMzMsNjMuNjdaIj48L3BhdGg+PHBhdGggZD0iTTM3My4wMSwyNDAuNDJjLTE2MC4xNyw1LjExLTI4Ny40OSwxMzQuNy0yODkuODgsMjk1LjAxLTEuMiw4MC45NywyOS40LDE1Ny4yOSw4Ni4xOCwyMTQuOTIsNTYuNzksNTcuNjQsMTMyLjYyLDg5LjM4LDIxMy41Miw4OS4zOCw2OC41NCwwLDEzNS41NC0yMy43NCwxODguNjctNjYuODUsNS4xLTQuMTQsNy45NS0xMS4xNCw2LjY3LTE3LjY3LTEuNDEtNy4yMi03LjEyLTEzLjMxLTExLjkyLTE4LjUzLTkuNDctMTAuMjktMTkuMjQtMjAuMzItMjkuMjctMzAuMDYtNS4wMi00Ljg3LTEwLjEtOS42OC0xNS4yNS0xNC40MS0yLjYzLTIuNDEtNS40MS00LjcxLTcuOTUtNy4yLTEuOTgtMS45NC0zLjkzLTQuMDgtNi45OS00LjA4LTYuODUsMC0xMS45MSw1LjQ2LTE2Ljk5LDkuMy0yMy43NiwxNy45Ni01MS44NCwzMC4xNi04MS4xNSwzNS4zOS0xMy4yNCwyLjM2LTI2Ljc2LDMuMjgtNDAuMiwyLjgzLTEuMjMtLjA0LTIuNDYtLjA5LTMuNjktLjE2LTcuODMtLjQxLTE1LjUzLTEuMjktMjMuMDktMi42My04Ny44NC0xNS41NC0xNTUuNDgtOTEuOTEtMTU4LTE4My4wNS0xLjQ0LTUyLjE3LDE3Ljc3LTEwMS40Nyw1NC4xLTEzOC44MiwzNi4zNC0zNy4zNiw4NS4wNi01Ny45NCwxMzcuMTctNTcuOTQsNDYuMDgsMCw4OC4xLDE3Ljc3LDEyMy45Nyw0NS43OCwxLjM4LDEuMDcsMi43NSwyLjE1LDQuMTMsMy4yMiwxLjA4Ljg0LDIuMjUsMS43MiwzLjYxLDEuODEsMi4wMS4xMywzLjY3LTEuNDQsNS4wNi0yLjksMTUuMDEtMTUuODIsMzAuMDYtMzEuNiw0NS4xMi00Ny4zNyw0LjU4LTQuOCw5LjQ3LTkuMjgsMTQuMDgtMTQuMDUsMy43Ni0zLjg5LDkuMzYtOS4wOSw4LjUzLTE1LjEtLjQ2LTMuMzMtMy4wMy01LjkzLTUuNTUtOC4xNi0xMC41NC05LjM2LTIyLjQ4LTE3LjIzLTM0LjQ2LTI0LjYtMTMuMjgtOC4xNS0yNy4xOC0xNS4zLTQxLjU3LTIxLjI4LTI3LjcxLTExLjUxLTU3LjE1LTE4LjgxLTg3LjAzLTIxLjYtOS4zNi0uODgtMTguNzYtMS4zMS0yOC4xNi0xLjMxLTMuMjMsMC02LjQ1LjA1LTkuNjguMTVaIj48L3BhdGg+PC9nPgo8cGF0aCBmaWxsPSIjRjVCNzVGIiBkPSJNMzM5LjE2LDU4Ny4xOWwyNS45LDIwNy41MywyNi4xMi0yMDUuMzIsNjYuNjgsMzguOTktNDAuMTYtNjguMjQsMTAxLjM4LTI1LjczLTEwMi41NS0yMy43OSw0Mi41LTY4LjYzLTY5LjAyLDQwLjk0LTI0Ljc2LTEwMS43Ny0yMy45OCwxMDIuNTUtNjkuMDItNDMuMjgsNDIuNSw2OS44LTEwMy43MiwyMy43OSwxMDMuMzMsMjQuNTZzLTQ0Ljg0LDcwLjk3LTQyLjg5LDcwLjE5YzEuOTUtLjc4LDY3LjY5LTQxLjYsNjcuNjktNDEuNloiPjwvcGF0aD4KPGcgaWQ9Im1hcmNhLXJlZ2lzdHJhZGEiIGFyaWEtbGFiZWw9Ik1hcmNhIHJlZ2lzdHJhZGEiPjxjaXJjbGUgY3g9IjE4MzcuMzEiIGN5PSIzNjkuMjMiIHI9IjQyLjc0IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iNy41MCIvPjxwYXRoIGZpbGw9IiNGRkZGRkYiIGQ9Ik0xODQyLjg4ODQ4MTQ1NDE3NCAzOTUuNDc2ODI1IDE4MzMuMDE0MTg5MTgzNzU2NiAzNzUuNjYzNjAxNzA5NDAxNzVIMTgzMC4yNDEyNzE0OTEzNzkyVjM5NS40NzY4MjVIMTgxOC42NzYxNzU3NDk5OTk5VjM0Mi45OTA0NzVIMTgzOC4wODY1OTk1OTY2NDIxUTE4NDMuNzAwMDY3MTIwMjM1NiAzNDIuOTkwNDc1IDE4NDcuNjU2NTQ3MjQyMjg2NSAzNDUuMTU4NzE0NTI5OTE0NVExODUxLjYxMzAyNzM2NDMzNzMgMzQ3LjMyNjk1NDA1OTgyOTA2IDE4NTMuNTc0MzU5MzkwNjUzMiAzNTEuMTAyNjgxNTE3MDk0UTE4NTUuNTM1NjkxNDE2OTY4OCAzNTQuODc4NDA4OTc0MzU5IDE4NTUuNTM1NjkxNDE2OTY4OCAzNTkuNTEzOTU1NTU1NTU1NlExODU1LjUzNTY5MTQxNjk2ODggMzY0Ljc0NzYzNzE3OTQ4NzIgMTg1Mi44NjQyMjE5MzI4NDkgMzY4Ljg1OTgxNTU5ODI5MDY1UTE4NTAuMTkyNzUyNDQ4NzI5NCAzNzIuOTcxOTk0MDE3MDk0MDYgMTg0NC45ODUwNzc3NTgxNjY3IDM3NC42OTE2MzIyNjQ5NTcyNkwxODU1Ljk0MTQ4NDI0OTk5OTggMzk1LjQ3NjgyNVpNMTgzMC4yNDEyNzE0OTEzNzkyIDM2Ni42MTY4MDkxODgwMzQySDE4MzcuNDEwMjc4MjA4MjU3NVExODQwLjU4ODk4ODczMzY2NiAzNjYuNjE2ODA5MTg4MDM0MiAxODQyLjE3ODM0Mzk5NjM3MDEgMzY0Ljg5NzE3MDk0MDE3MDk1UTE4NDMuNzY3Njk5MjU5MDc0IDM2My4xNzc1MzI2OTIzMDc3IDE4NDMuNzY3Njk5MjU5MDc0IDM2MC4wMzczMjM3MTc5NDg3N1ExODQzLjc2NzY5OTI1OTA3NCAzNTcuMDQ2NjQ4NTA0MjczNTUgMTg0Mi4xNzgzNDM5OTYzNzAxIDM1NS4zMjcwMTAyNTY0MTAzUTE4NDAuNTg4OTg4NzMzNjY2IDM1My42MDczNzIwMDg1NDcwMyAxODM3LjQxMDI3ODIwODI1NzUgMzUzLjYwNzM3MjAwODU0NzAzSDE4MzAuMjQxMjcxNDkxMzc5MloiLz48L2c+PC9zdmc+", "../assets/logos/caminos-logo-coral.svg": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjgzLjEgMjQwLjI5IDE4MDYuNyA1OTkuNDQiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iQ2FtaW5vcyIgeG1sbnM6YzJwYT0iaHR0cDovL2MycGEub3JnL21hbmlmZXN0IiB3aWR0aD0iMTgwNi43IiBoZWlnaHQ9IjU5OS40NCI+Cjx0aXRsZT5DYW1pbm9zPC90aXRsZT4KPGcgZmlsbD0iI0YyNTA2MSI+PHBhdGggZD0iTTc2Mi45NSw0MzQuMjd2MjAxLjI3aC02Ny45NXYtMjQuMDhjLTYuODgsOC42LTE2LjI3LDE1LjYzLTI4LjE3LDIxLjA3LTExLjksNS40NC0yNC43Myw4LjE3LTM4LjQ5LDguMTctMjguMSwwLTUxLjgyLTEwLjE3LTcxLjE4LTMwLjUzLTE5LjM1LTIwLjM1LTI5LjAzLTQ1LjQ0LTI5LjAzLTc1LjI2czkuNjgtNTQuOSwyOS4wMy03NS4yNmMxOS4zNS0yMC4zNSw0My4wNy0zMC41Myw3MS4xOC0zMC41MywxMy43NiwwLDI2LjU5LDIuNzMsMzguNDksOC4xNywxMS44OSw1LjQ1LDIxLjI5LDEyLjQ3LDI4LjE3LDIxLjA3di0yNC4wOGg2Ny45NVpNNjc4LjY1LDU2OC40NWM5LjE3LTkuMTcsMTMuNzYtMjAuMzUsMTMuNzYtMzMuNTRzLTQuNTktMjQuMzctMTMuNzYtMzMuNTVjLTkuMTgtOS4xNy0yMC4zNi0xMy43Ni0zMy41NC0xMy43NnMtMjQuMzcsNC41OS0zMy41NSwxMy43NmMtOS4xOCw5LjE4LTEzLjc2LDIwLjM2LTEzLjc2LDMzLjU1czQuNTgsMjQuMzcsMTMuNzYsMzMuNTRjOS4xNyw5LjE4LDIwLjM1LDEzLjc2LDMzLjU1LDEzLjc2czI0LjM3LTQuNTgsMzMuNTQtMTMuNzZaIj48L3BhdGg+PHBhdGggZD0iTTEwNDEuNDgsNjM1LjU0di0xMTEuNjljMC04LjgyLTIuNzYtMTYuMTMtOC4yNy0yMS45Mi01LjUyLTUuNzktMTIuNDEtOC42OS0yMC42OC04LjY5cy0xNS4xNywyLjktMjAuNjgsOC42OWMtNS41Miw1Ljc5LTguMjcsMTMuMS04LjI3LDIxLjkydjExMS42OWgtNjUuMzZ2LTExMS42OWMwLTguODItMi43Ni0xNi4xMy04LjI3LTIxLjkyLTUuNTItNS43OS0xMi40MS04LjY5LTIwLjY4LTguNjlzLTE1LjE3LDIuOS0yMC42OCw4LjY5Yy01LjUyLDUuNzktOC4yNywxMy4xLTguMjcsMjEuOTJ2MTExLjY5aC02NS4zNnYtMTkzLjZoNjUuMzZ2MjIuNzVjMTQuNjEtMTguNDcsMzMuMzctMjcuNzIsNTYuMjYtMjcuNzIsMjQuMjcsMCw0My4wMiwxMC4yMSw1Ni4yNiwzMC42MSwxNy4zNy0yMC40MSwzOS40My0zMC42MSw2Ni4xOS0zMC42MSwxOS44NiwwLDM2LjEzLDYuNDgsNDguODEsMTkuNDQsMTIuNjgsMTIuOTcsMTkuMDMsMzAuMzQsMTkuMDMsNTIuMTJ2MTI3aC02NS4zNloiPjwvcGF0aD48cGF0aCBkPSJNMTE0Ni4xMywzODUuMjRjLTcuNzQtNy43NC0xMS42MS0xNy4wNi0xMS42MS0yNy45NXMzLjg3LTIwLjE0LDExLjYxLTI3Ljc0YzcuNzQtNy41OSwxNy4wNi0xMS40LDI3Ljk1LTExLjRzMjAuMjEsMy44LDI3Ljk1LDExLjRjNy43NCw3LjYsMTEuNjEsMTYuODUsMTEuNjEsMjcuNzRzLTMuODcsMjAuMTUtMTEuNjEsMjcuNzRjLTcuNzQsNy42LTE3LjA2LDExLjQtMjcuOTUsMTEuNHMtMjAuMjEtMy43Mi0yNy45NS0xMS4xOFpNMTIwOC4wNiw0MzQuMjd2MjAxLjI3aC02Ny45NXYtMjAxLjI3aDY3Ljk1WiI+PC9wYXRoPjxwYXRoIGQ9Ik0xMzA1LjE5LDUyMi41MnYxMTMuMDJoLTY2LjE0di0xOTUuOWg2Ni4xNHYyMy4wMmMxMy45NS0xOC42OSwzMy42Mi0yOC4wNCw1OS4wMi0yOC4wNCwxOC45NywwLDM0LjY3LDYuNDksNDcuMDksMTkuNDYsMTIuNDEsMTIuOTgsMTguNjMsMzAuMzUsMTguNjMsNTIuMTF2MTI5LjM0aC02Ni4xNHYtMTEzLjAyYzAtOC45My0yLjc5LTE2LjMzLTguMzctMjIuMTktNS41OS01Ljg2LTEyLjU2LTguNzktMjAuOTMtOC43OXMtMTUuMzUsMi45My0yMC45Myw4Ljc5Yy01LjU5LDUuODYtOC4zNywxMy4yNi04LjM3LDIyLjE5WiI+PC9wYXRoPjxwYXRoIGQ9Ik0xNjM1LjYzLDQ2NC43OGMyMS4yMiwxOS44MywzMS44Myw0NC4xMiwzMS44Myw3Mi44OHMtMTAuNTQsNTMuMTMtMzEuNjIsNzMuMDljLTIxLjA5LDE5Ljk3LTQ2Ljg1LDI5Ljk1LTc3LjI4LDI5Ljk1cy01Ni4yLTkuOTgtNzcuMjgtMjkuOTVjLTIxLjA5LTE5Ljk2LTMxLjYyLTQ0LjMzLTMxLjYyLTczLjA5czEwLjU0LTUzLjEyLDMxLjYyLTczLjA5YzIxLjA4LTE5Ljk2LDQ2Ljg0LTI5Ljk1LDc3LjI4LTI5Ljk1czU2LjEzLDEwLjA1LDc3LjA3LDMwLjE2Wk0xNTg4LjMsNTY4LjI0YzguNjUtOC4xLDEyLjk5LTE4LjI5LDEyLjk5LTMwLjU4cy00LjMzLTIyLjQ3LTEyLjk5LTMwLjU4Yy04LjY2LTguMS0xOC41Ny0xMi4xNS0yOS43NC0xMi4xNXMtMjEuMDksNC4wNS0yOS43NCwxMi4xNWMtOC42Niw4LjEtMTIuOTksMTguMjktMTIuOTksMzAuNThzNC4zMywyMi40OCwxMi45OSwzMC41OGM4LjY1LDguMSwxOC41NywxMi4xNSwyOS43NCwxMi4xNXMyMS4wOC00LjA1LDI5Ljc0LTEyLjE1WiI+PC9wYXRoPjxwYXRoIGQ9Ik0xODIxLjQ4LDU3NS4zNmMwLDE4Ljk5LTYuNDMsMzQuNjMtMTkuMjcsNDYuOTEtMTIuODUsMTIuMjktMzAuODYsMTguNDMtNTQuMDMsMTguNDMtMzEuNTYsMC01Ni44My0xMC4wNS03NS44MS0zMC4xNmwzMC41OC0zOS4zN2MxMC42MSwxMi44NSwyMi4wNiwxOS4yNywzNC4zNSwxOS4yNyw1LjU4LDAsOS45OC0xLjI2LDEzLjE5LTMuNzcsMy4yMS0yLjUxLDQuODItNiw0LjgyLTEwLjQ3LDAtNS4wMy0xLjQtOS4yMi00LjE5LTEyLjU3LTIuNzktMy4zNS04LjI0LTYuNy0xNi4zMy0xMC4wNS0zMy41MS0xNC4yNC01MC4yNy0zNS4wNC01MC4yNy02Mi40MSwwLTE2Ljc1LDYuMTQtMzAuMzcsMTguNDMtNDAuODQsMTIuMjgtMTAuNDcsMjguMzQtMTUuNzEsNDguMTctMTUuNzEsMjMuNzMsMCw0NC40LDcuNjgsNjEuOTksMjMuMDRsLTI4LjksMzYuODZjLTUuODYtNi40Mi0xMi44NS05LjYzLTIwLjk0LTkuNjNzLTEyLjU3LDIuOC0xMi41Nyw4LjM4YzAsMy4wOCwxLjUzLDUuODYsNC42MSw4LjM4LDMuMDcsMi41MSw5LjM1LDUuODYsMTguODUsMTAuMDUsMzEuNTUsMTMuOTcsNDcuMzMsMzUuMTksNDcuMzMsNjMuNjdaIj48L3BhdGg+PHBhdGggZD0iTTM3My4wMSwyNDAuNDJjLTE2MC4xNyw1LjExLTI4Ny40OSwxMzQuNy0yODkuODgsMjk1LjAxLTEuMiw4MC45NywyOS40LDE1Ny4yOSw4Ni4xOCwyMTQuOTIsNTYuNzksNTcuNjQsMTMyLjYyLDg5LjM4LDIxMy41Miw4OS4zOCw2OC41NCwwLDEzNS41NC0yMy43NCwxODguNjctNjYuODUsNS4xLTQuMTQsNy45NS0xMS4xNCw2LjY3LTE3LjY3LTEuNDEtNy4yMi03LjEyLTEzLjMxLTExLjkyLTE4LjUzLTkuNDctMTAuMjktMTkuMjQtMjAuMzItMjkuMjctMzAuMDYtNS4wMi00Ljg3LTEwLjEtOS42OC0xNS4yNS0xNC40MS0yLjYzLTIuNDEtNS40MS00LjcxLTcuOTUtNy4yLTEuOTgtMS45NC0zLjkzLTQuMDgtNi45OS00LjA4LTYuODUsMC0xMS45MSw1LjQ2LTE2Ljk5LDkuMy0yMy43NiwxNy45Ni01MS44NCwzMC4xNi04MS4xNSwzNS4zOS0xMy4yNCwyLjM2LTI2Ljc2LDMuMjgtNDAuMiwyLjgzLTEuMjMtLjA0LTIuNDYtLjA5LTMuNjktLjE2LTcuODMtLjQxLTE1LjUzLTEuMjktMjMuMDktMi42My04Ny44NC0xNS41NC0xNTUuNDgtOTEuOTEtMTU4LTE4My4wNS0xLjQ0LTUyLjE3LDE3Ljc3LTEwMS40Nyw1NC4xLTEzOC44MiwzNi4zNC0zNy4zNiw4NS4wNi01Ny45NCwxMzcuMTctNTcuOTQsNDYuMDgsMCw4OC4xLDE3Ljc3LDEyMy45Nyw0NS43OCwxLjM4LDEuMDcsMi43NSwyLjE1LDQuMTMsMy4yMiwxLjA4Ljg0LDIuMjUsMS43MiwzLjYxLDEuODEsMi4wMS4xMywzLjY3LTEuNDQsNS4wNi0yLjksMTUuMDEtMTUuODIsMzAuMDYtMzEuNiw0NS4xMi00Ny4zNyw0LjU4LTQuOCw5LjQ3LTkuMjgsMTQuMDgtMTQuMDUsMy43Ni0zLjg5LDkuMzYtOS4wOSw4LjUzLTE1LjEtLjQ2LTMuMzMtMy4wMy01LjkzLTUuNTUtOC4xNi0xMC41NC05LjM2LTIyLjQ4LTE3LjIzLTM0LjQ2LTI0LjYtMTMuMjgtOC4xNS0yNy4xOC0xNS4zLTQxLjU3LTIxLjI4LTI3LjcxLTExLjUxLTU3LjE1LTE4LjgxLTg3LjAzLTIxLjYtOS4zNi0uODgtMTguNzYtMS4zMS0yOC4xNi0xLjMxLTMuMjMsMC02LjQ1LjA1LTkuNjguMTVaIj48L3BhdGg+PC9nPgo8cGF0aCBmaWxsPSIjRjVCNzVGIiBkPSJNMzM5LjE2LDU4Ny4xOWwyNS45LDIwNy41MywyNi4xMi0yMDUuMzIsNjYuNjgsMzguOTktNDAuMTYtNjguMjQsMTAxLjM4LTI1LjczLTEwMi41NS0yMy43OSw0Mi41LTY4LjYzLTY5LjAyLDQwLjk0LTI0Ljc2LTEwMS43Ny0yMy45OCwxMDIuNTUtNjkuMDItNDMuMjgsNDIuNSw2OS44LTEwMy43MiwyMy43OSwxMDMuMzMsMjQuNTZzLTQ0Ljg0LDcwLjk3LTQyLjg5LDcwLjE5YzEuOTUtLjc4LDY3LjY5LTQxLjYsNjcuNjktNDEuNloiPjwvcGF0aD4KPGcgaWQ9Im1hcmNhLXJlZ2lzdHJhZGEiIGFyaWEtbGFiZWw9Ik1hcmNhIHJlZ2lzdHJhZGEiPjxjaXJjbGUgY3g9IjE4MzcuMzEiIGN5PSIzNjkuMjMiIHI9IjQyLjc0IiBmaWxsPSJub25lIiBzdHJva2U9IiNGMjUwNjEiIHN0cm9rZS13aWR0aD0iNy41MCIvPjxwYXRoIGZpbGw9IiNGMjUwNjEiIGQ9Ik0xODQyLjg4ODQ4MTQ1NDE3NCAzOTUuNDc2ODI1IDE4MzMuMDE0MTg5MTgzNzU2NiAzNzUuNjYzNjAxNzA5NDAxNzVIMTgzMC4yNDEyNzE0OTEzNzkyVjM5NS40NzY4MjVIMTgxOC42NzYxNzU3NDk5OTk5VjM0Mi45OTA0NzVIMTgzOC4wODY1OTk1OTY2NDIxUTE4NDMuNzAwMDY3MTIwMjM1NiAzNDIuOTkwNDc1IDE4NDcuNjU2NTQ3MjQyMjg2NSAzNDUuMTU4NzE0NTI5OTE0NVExODUxLjYxMzAyNzM2NDMzNzMgMzQ3LjMyNjk1NDA1OTgyOTA2IDE4NTMuNTc0MzU5MzkwNjUzMiAzNTEuMTAyNjgxNTE3MDk0UTE4NTUuNTM1NjkxNDE2OTY4OCAzNTQuODc4NDA4OTc0MzU5IDE4NTUuNTM1NjkxNDE2OTY4OCAzNTkuNTEzOTU1NTU1NTU1NlExODU1LjUzNTY5MTQxNjk2ODggMzY0Ljc0NzYzNzE3OTQ4NzIgMTg1Mi44NjQyMjE5MzI4NDkgMzY4Ljg1OTgxNTU5ODI5MDY1UTE4NTAuMTkyNzUyNDQ4NzI5NCAzNzIuOTcxOTk0MDE3MDk0MDYgMTg0NC45ODUwNzc3NTgxNjY3IDM3NC42OTE2MzIyNjQ5NTcyNkwxODU1Ljk0MTQ4NDI0OTk5OTggMzk1LjQ3NjgyNVpNMTgzMC4yNDEyNzE0OTEzNzkyIDM2Ni42MTY4MDkxODgwMzQySDE4MzcuNDEwMjc4MjA4MjU3NVExODQwLjU4ODk4ODczMzY2NiAzNjYuNjE2ODA5MTg4MDM0MiAxODQyLjE3ODM0Mzk5NjM3MDEgMzY0Ljg5NzE3MDk0MDE3MDk1UTE4NDMuNzY3Njk5MjU5MDc0IDM2My4xNzc1MzI2OTIzMDc3IDE4NDMuNzY3Njk5MjU5MDc0IDM2MC4wMzczMjM3MTc5NDg3N1ExODQzLjc2NzY5OTI1OTA3NCAzNTcuMDQ2NjQ4NTA0MjczNTUgMTg0Mi4xNzgzNDM5OTYzNzAxIDM1NS4zMjcwMTAyNTY0MTAzUTE4NDAuNTg4OTg4NzMzNjY2IDM1My42MDczNzIwMDg1NDcwMyAxODM3LjQxMDI3ODIwODI1NzUgMzUzLjYwNzM3MjAwODU0NzAzSDE4MzAuMjQxMjcxNDkxMzc5MloiLz48L2c+PC9zdmc+", "proteccion.png": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAPoCAYAAADjo7+UAAAA/klEQVR4nO3OwQkCQRBFwVHMQw/mH6MZ7GFAeLNdfe0Hvx7vz3dd3fPyKxAIBAKBQCAQCAQCgUAgEAgEAoFAIBAIBAKBQCAQCG4ZvNZaDxNTJgoGE52JgsHEqImCwcSoiYLBxKiJgsHEqImCwcSoiYLBRGeiYDAxaqJgMDFqomAwMWqiYDAxaqJgMDFqomAw0ZkoGEyMmigYTIyaKBhMjJooGEyMmigY7jHBwMDA8L+ggGRgYNgICkgGBoaNoIBkYGBoGo5AMjAwbAQFJAMDQ9NwBJKBgWEjKCAZGBg2ggKSgYGhaTgCycDAsBEUkAwMDE3DEUgGBoaNoIC8h+EHZeIKiOqJrI4AAAAASUVORK5CYII="};
 
-  const ASESOR = { nombre: 'Andrea Gómez', correo: 'andrea@agenciacaminos.com.co', telefono: '+57 300 000 0000' };
+  // Datos de contacto del asesor: la cuenta de Claude es compartida, así que no se identifica a nadie; cada computador
+  // recuerda el último nombre, correo y teléfono usados, y la primera vez quedan vacíos para escribirlos.
+  const ASESOR = (() => { try { return { nombre: '', correo: '', telefono: '', ...JSON.parse(localStorage.getItem('caminos-asesor') || '{}') }; } catch (_) { return { nombre: '', correo: '', telefono: '' }; } })();
+  const recordarAsesor = (nombre, correo, telefono) => {
+    if (!String(nombre || correo || telefono || '').trim()) return;
+    Object.assign(ASESOR, { nombre: nombre || ASESOR.nombre, correo: correo || ASESOR.correo, telefono: telefono || ASESOR.telefono });
+    try { localStorage.setItem('caminos-asesor', JSON.stringify(ASESOR)); } catch (_) {}
+  };
 
   // ================= utilidades =================
   const $ = (s, r = document) => r.querySelector(s);
@@ -2099,7 +2102,8 @@ ${ABRE}>${JS_INTERACTIVO}${CIERRE}
         if (!(d.tarifas || []).some(t => !vacio(t.valor))) f.push(['tarifas', 'Al menos una tarifa con su valor']);
         return f;
       },
-      preparar: d => ({ ...d, codigo_cotizacion: vacio(d.codigo_cotizacion) ? 'CA' + Math.floor(1000 + Math.random() * 9000) : d.codigo_cotizacion, asesor: vacio(d.asesor) ? { ...ASESOR } : d.asesor }),
+      preparar: d => ({ ...d, codigo_cotizacion: vacio(d.codigo_cotizacion) ? 'CA' + Math.floor(1000 + Math.random() * 9000) : d.codigo_cotizacion, asesor: { nombre: getPath(d, 'asesor.nombre') || ASESOR.nombre, correo: getPath(d, 'asesor.correo') || ASESOR.correo,
+        telefono: getPath(d, 'asesor.telefono') || (!getPath(d, 'asesor.correo') || getPath(d, 'asesor.correo') === ASESOR.correo ? ASESOR.telefono : '') } }),
       meta: d => `Vigente hasta el ${fecha(d.vigencia, 'de')}`,
       // Fotos que se buscan en el banco y se guardan en él (mismas claves que el motor del plugin).
       fotos(d) {
@@ -2178,7 +2182,8 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
         return f;
       },
       // Los datos de ejemplo de la asesora solo se usan si no viene ninguno (si vienen de la base, lo que falte queda marcado).
-      preparar: d => (vacio(d.asesor) && vacio(d.asesor_correo) ? { ...d, asesor: ASESOR.nombre, asesor_correo: ASESOR.correo, asesor_telefono: vacio(d.asesor_telefono) ? ASESOR.telefono : d.asesor_telefono } : { ...d }),
+      preparar: d => ({ ...d, asesor: d.asesor || ASESOR.nombre, asesor_correo: d.asesor_correo || ASESOR.correo,
+        asesor_telefono: d.asesor_telefono || (!d.asesor_correo || d.asesor_correo === ASESOR.correo ? ASESOR.telefono : '') }),
       meta: d => `Viaje del ${rango(d.fecha_salida, d.fecha_regreso)}`,
       ejemploTexto: `Confirmación para enviar a Laura Pineda (reserva CAM-2026-3140), viaje a San Andrés.
 2 adultos: Laura Pineda y Andrés Pineda.
@@ -2633,8 +2638,9 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
       mostrarDocumento(leerFormulario());
       return;
     }
-    $('#pegado').value = d.ejemploTexto;
-    estado1('Texto de ejemplo. Reemplázalo por la información real.');
+    $('#pegado').value = '';
+    $('#pegado').placeholder = 'Ejemplo:\n\n' + d.ejemploTexto;
+    estado1('');
     $('#desde-base').hidden = !d.desdeBase;
     $('#estado-base').textContent = '';
     paso(1);
@@ -2652,7 +2658,7 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
     $('#docs').innerHTML = tarjetas.map(t => `
       <button type="button" class="papel doc" data-tipo="${t.id}">
         <div class="doc-head"><span class="tile"><i data-lucide="${t.icono}"></i></span>
-          <span class="tag ${t.listo ? 'tag-listo' : 'tag-pronto'}">${t.listo ? 'Listo en la demo' : 'Versión completa'}</span></div>
+          </div>
         <h3>${esc(t.nombre)}</h3>
         <p>${esc(t.desc)}</p>
         <div class="doc-pie"><span>${esc(t.hojas)}</span><i data-lucide="arrow-right"></i></div>
@@ -2691,7 +2697,7 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
       </tr>`;
   }
   function pintarListas() {
-    const todos = [...guardados, ...EJEMPLOS_RECIENTES];
+    const todos = [...guardados];
     $('#tabla-recientes').innerHTML = filasTabla(todos.slice(0, 4));
     $('#tabla-todos').innerHTML = filasTabla(todos, true);
     $$('[data-abrir]').forEach(b => b.addEventListener('click', () => { const r = todos[+b.dataset.abrir]; abrirDoc(r.doc, DOCS[r.doc].preparar(clonar(r.datos))); }));
@@ -2847,6 +2853,8 @@ ${texto}
     if (nuevas) partes.push(`Guardamos ${nuevas} ${nuevas === 1 ? 'foto nueva' : 'fotos nuevas'} en el banco`);
     if (partes.length) { $('#estado-3').className = 'estado'; $('#estado-3').textContent = partes.join(' · ') + '.'; }
     const codigo = doc().codigo(datos);
+    if (docId === 'cotizacion') recordarAsesor(getPath(datos, 'asesor.nombre'), getPath(datos, 'asesor.correo'), getPath(datos, 'asesor.telefono'));
+    if (docId === 'confirmacion') recordarAsesor(datos.asesor, datos.asesor_correo, datos.asesor_telefono);
     const nuevo = { doc: docId, fecha: hoy(), cuando: new Date().toISOString(), datos };
     guardados = [nuevo, ...guardados.filter(g => !(g.doc === docId && DOCS[g.doc].codigo(g.datos) === codigo))];
     guardar();
@@ -3001,7 +3009,7 @@ ${texto}
   // los vuelos, hoteles y traslados); si no, el itinerario se arma solo con el servicio del voucher.
   async function voucherAItinerario(v) {
     const exp = expedienteDe(v.codigo_reserva || v.codigo_voucher);
-    const conf = [...guardados, ...EJEMPLOS_RECIENTES].find(r => r.doc === 'confirmacion' && expedienteDe(r.datos.codigo_reserva) === exp);
+    const conf = guardados.find(r => r.doc === 'confirmacion' && expedienteDe(r.datos.codigo_reserva) === exp);
     if (conf) {
       const i = await elegir('¿Desde dónde armamos el itinerario?', `Encontramos la confirmación ${conf.datos.codigo_reserva} de este mismo viaje.`, [
         { t: `Desde la confirmación ${conf.datos.codigo_reserva}`, d: 'Recomendado: trae todos los vuelos, hoteles y traslados del viaje.' },
@@ -3063,7 +3071,7 @@ ${texto}
     let incluye = plano(c.servicios_confirmados), noIncluye = [];
     if (!incluye.length) {
       const exp = expedienteDe(c.codigo_reserva);
-      const cot = [...guardados, ...EJEMPLOS_RECIENTES].find(r => r.doc === 'cotizacion' && expedienteDe(r.datos.codigo_cotizacion) === exp);
+      const cot = guardados.find(r => r.doc === 'cotizacion' && expedienteDe(r.datos.codigo_cotizacion) === exp);
       if (cot) { incluye = plano(cot.datos.incluye); noIncluye = plano(cot.datos.no_incluye); }
     }
     const largo = vuelos.length > 0 || dias.length > 4;
@@ -3558,11 +3566,11 @@ ${texto}
   let downloads = null;
   (async () => {
     downloads = window.claude?.use ? await window.claude.use('downloads').catch(() => null) : null;
-    if (!downloads) $('#btn-pdf').title = 'La descarga funciona al abrir la demo desde claude.ai';
+    if (!downloads) $('#btn-pdf').title = 'La descarga funciona al abrir la app desde claude.ai';
   })();
   $('#btn-pdf').addEventListener('click', async () => {
     const out = $('#estado-3');
-    if (!downloads) { out.textContent = 'La descarga funciona al abrir la demo desde claude.ai.'; return; }
+    if (!downloads) { out.textContent = 'La descarga funciona al abrir la app desde claude.ai.'; return; }
     if (!window.html2canvas || !window.jspdf) { out.textContent = 'No se pudo cargar el generador de PDF. Recarga la página e inténtalo de nuevo.'; return; }
     const btn = $('#btn-pdf');
     btn.disabled = true;

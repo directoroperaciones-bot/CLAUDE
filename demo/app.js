@@ -11,7 +11,14 @@
   // Logos, estrella y degradado de protección del itinerario, por su ruta en la plantilla.
   const RECURSOS = "__RECURSOS__";
 
-  const ASESOR = { nombre: 'Andrea Gómez', correo: 'andrea@agenciacaminos.com.co', telefono: '+57 300 000 0000' };
+  // Datos de contacto del asesor: la cuenta de Claude es compartida, así que no se identifica a nadie; cada computador
+  // recuerda el último nombre, correo y teléfono usados, y la primera vez quedan vacíos para escribirlos.
+  const ASESOR = (() => { try { return { nombre: '', correo: '', telefono: '', ...JSON.parse(localStorage.getItem('caminos-asesor') || '{}') }; } catch (_) { return { nombre: '', correo: '', telefono: '' }; } })();
+  const recordarAsesor = (nombre, correo, telefono) => {
+    if (!String(nombre || correo || telefono || '').trim()) return;
+    Object.assign(ASESOR, { nombre: nombre || ASESOR.nombre, correo: correo || ASESOR.correo, telefono: telefono || ASESOR.telefono });
+    try { localStorage.setItem('caminos-asesor', JSON.stringify(ASESOR)); } catch (_) {}
+  };
 
   // ================= utilidades =================
   const $ = (s, r = document) => r.querySelector(s);
@@ -857,7 +864,8 @@
         if (!(d.tarifas || []).some(t => !vacio(t.valor))) f.push(['tarifas', 'Al menos una tarifa con su valor']);
         return f;
       },
-      preparar: d => ({ ...d, codigo_cotizacion: vacio(d.codigo_cotizacion) ? 'CA' + Math.floor(1000 + Math.random() * 9000) : d.codigo_cotizacion, asesor: vacio(d.asesor) ? { ...ASESOR } : d.asesor }),
+      preparar: d => ({ ...d, codigo_cotizacion: vacio(d.codigo_cotizacion) ? 'CA' + Math.floor(1000 + Math.random() * 9000) : d.codigo_cotizacion, asesor: { nombre: getPath(d, 'asesor.nombre') || ASESOR.nombre, correo: getPath(d, 'asesor.correo') || ASESOR.correo,
+        telefono: getPath(d, 'asesor.telefono') || (!getPath(d, 'asesor.correo') || getPath(d, 'asesor.correo') === ASESOR.correo ? ASESOR.telefono : '') } }),
       meta: d => `Vigente hasta el ${fecha(d.vigencia, 'de')}`,
       // Fotos que se buscan en el banco y se guardan en él (mismas claves que el motor del plugin).
       fotos(d) {
@@ -936,7 +944,8 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
         return f;
       },
       // Los datos de ejemplo de la asesora solo se usan si no viene ninguno (si vienen de la base, lo que falte queda marcado).
-      preparar: d => (vacio(d.asesor) && vacio(d.asesor_correo) ? { ...d, asesor: ASESOR.nombre, asesor_correo: ASESOR.correo, asesor_telefono: vacio(d.asesor_telefono) ? ASESOR.telefono : d.asesor_telefono } : { ...d }),
+      preparar: d => ({ ...d, asesor: d.asesor || ASESOR.nombre, asesor_correo: d.asesor_correo || ASESOR.correo,
+        asesor_telefono: d.asesor_telefono || (!d.asesor_correo || d.asesor_correo === ASESOR.correo ? ASESOR.telefono : '') }),
       meta: d => `Viaje del ${rango(d.fecha_salida, d.fecha_regreso)}`,
       ejemploTexto: `Confirmación para enviar a Laura Pineda (reserva CAM-2026-3140), viaje a San Andrés.
 2 adultos: Laura Pineda y Andrés Pineda.
@@ -1391,8 +1400,9 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
       mostrarDocumento(leerFormulario());
       return;
     }
-    $('#pegado').value = d.ejemploTexto;
-    estado1('Texto de ejemplo. Reemplázalo por la información real.');
+    $('#pegado').value = '';
+    $('#pegado').placeholder = 'Ejemplo:\n\n' + d.ejemploTexto;
+    estado1('');
     $('#desde-base').hidden = !d.desdeBase;
     $('#estado-base').textContent = '';
     paso(1);
@@ -1410,7 +1420,7 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
     $('#docs').innerHTML = tarjetas.map(t => `
       <button type="button" class="papel doc" data-tipo="${t.id}">
         <div class="doc-head"><span class="tile"><i data-lucide="${t.icono}"></i></span>
-          <span class="tag ${t.listo ? 'tag-listo' : 'tag-pronto'}">${t.listo ? 'Listo en la demo' : 'Versión completa'}</span></div>
+          </div>
         <h3>${esc(t.nombre)}</h3>
         <p>${esc(t.desc)}</p>
         <div class="doc-pie"><span>${esc(t.hojas)}</span><i data-lucide="arrow-right"></i></div>
@@ -1449,7 +1459,7 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
       </tr>`;
   }
   function pintarListas() {
-    const todos = [...guardados, ...EJEMPLOS_RECIENTES];
+    const todos = [...guardados];
     $('#tabla-recientes').innerHTML = filasTabla(todos.slice(0, 4));
     $('#tabla-todos').innerHTML = filasTabla(todos, true);
     $$('[data-abrir]').forEach(b => b.addEventListener('click', () => { const r = todos[+b.dataset.abrir]; abrirDoc(r.doc, DOCS[r.doc].preparar(clonar(r.datos))); }));
@@ -1605,6 +1615,8 @@ ${texto}
     if (nuevas) partes.push(`Guardamos ${nuevas} ${nuevas === 1 ? 'foto nueva' : 'fotos nuevas'} en el banco`);
     if (partes.length) { $('#estado-3').className = 'estado'; $('#estado-3').textContent = partes.join(' · ') + '.'; }
     const codigo = doc().codigo(datos);
+    if (docId === 'cotizacion') recordarAsesor(getPath(datos, 'asesor.nombre'), getPath(datos, 'asesor.correo'), getPath(datos, 'asesor.telefono'));
+    if (docId === 'confirmacion') recordarAsesor(datos.asesor, datos.asesor_correo, datos.asesor_telefono);
     const nuevo = { doc: docId, fecha: hoy(), cuando: new Date().toISOString(), datos };
     guardados = [nuevo, ...guardados.filter(g => !(g.doc === docId && DOCS[g.doc].codigo(g.datos) === codigo))];
     guardar();
@@ -1759,7 +1771,7 @@ ${texto}
   // los vuelos, hoteles y traslados); si no, el itinerario se arma solo con el servicio del voucher.
   async function voucherAItinerario(v) {
     const exp = expedienteDe(v.codigo_reserva || v.codigo_voucher);
-    const conf = [...guardados, ...EJEMPLOS_RECIENTES].find(r => r.doc === 'confirmacion' && expedienteDe(r.datos.codigo_reserva) === exp);
+    const conf = guardados.find(r => r.doc === 'confirmacion' && expedienteDe(r.datos.codigo_reserva) === exp);
     if (conf) {
       const i = await elegir('¿Desde dónde armamos el itinerario?', `Encontramos la confirmación ${conf.datos.codigo_reserva} de este mismo viaje.`, [
         { t: `Desde la confirmación ${conf.datos.codigo_reserva}`, d: 'Recomendado: trae todos los vuelos, hoteles y traslados del viaje.' },
@@ -1821,7 +1833,7 @@ ${texto}
     let incluye = plano(c.servicios_confirmados), noIncluye = [];
     if (!incluye.length) {
       const exp = expedienteDe(c.codigo_reserva);
-      const cot = [...guardados, ...EJEMPLOS_RECIENTES].find(r => r.doc === 'cotizacion' && expedienteDe(r.datos.codigo_cotizacion) === exp);
+      const cot = guardados.find(r => r.doc === 'cotizacion' && expedienteDe(r.datos.codigo_cotizacion) === exp);
       if (cot) { incluye = plano(cot.datos.incluye); noIncluye = plano(cot.datos.no_incluye); }
     }
     const largo = vuelos.length > 0 || dias.length > 4;
@@ -2316,11 +2328,11 @@ ${texto}
   let downloads = null;
   (async () => {
     downloads = window.claude?.use ? await window.claude.use('downloads').catch(() => null) : null;
-    if (!downloads) $('#btn-pdf').title = 'La descarga funciona al abrir la demo desde claude.ai';
+    if (!downloads) $('#btn-pdf').title = 'La descarga funciona al abrir la app desde claude.ai';
   })();
   $('#btn-pdf').addEventListener('click', async () => {
     const out = $('#estado-3');
-    if (!downloads) { out.textContent = 'La descarga funciona al abrir la demo desde claude.ai.'; return; }
+    if (!downloads) { out.textContent = 'La descarga funciona al abrir la app desde claude.ai.'; return; }
     if (!window.html2canvas || !window.jspdf) { out.textContent = 'No se pudo cargar el generador de PDF. Recarga la página e inténtalo de nuevo.'; return; }
     const btn = $('#btn-pdf');
     btn.disabled = true;
