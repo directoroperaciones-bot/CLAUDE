@@ -42,6 +42,8 @@
   .nav button { background: none; border: 0; padding: 8px 14px; border-radius: 10px; font-weight: 500; color: var(--texto); cursor: pointer; }
   .nav button[aria-current="page"] { color: var(--coral); background: var(--coral-5); }
   .nav button:hover { color: var(--coral); }
+  .nav-guia { padding: 8px 14px; border-radius: 10px; font-weight: 500; color: var(--texto); text-decoration: none; }
+  .nav-guia:hover { color: var(--coral); }
   .top-der { margin-left: auto; display: flex; align-items: center; gap: 14px; }
   .demo-tag { font: 600 11px/1 var(--fuente); letter-spacing: .16em; text-transform: uppercase; color: var(--coral); background: var(--coral-suave); padding: 7px 12px; border-radius: 999px; }
   .asesor { display: flex; align-items: center; gap: 10px; }
@@ -225,6 +227,7 @@
   }
   @media (max-width: 640px) {
     .top-in { padding: 12px 16px; gap: 14px; flex-wrap: wrap; }
+    .nav { flex-wrap: wrap; }
     main { padding-inline: 16px; padding-block: 28px 64px; }
     .display { font-size: 32px; }
     .lead { font-size: 16px; }
@@ -283,6 +286,7 @@
       <button type="button" data-ir="inicio" aria-current="page">Inicio</button>
       <button type="button" data-ir="documentos">Mis documentos</button>
       <button type="button" data-ir="banco">Banco de fotos</button>
+      <a class="nav-guia" href="https://claude.ai/artifact/KkjQw9pAN5qGzSf7KZqfk1" target="_blank" rel="noopener">Guía en video</a>
     </nav>
     <div class="top-der"><span class="marca-txt">Documentos de viaje</span></div>
   </div>
@@ -2909,7 +2913,8 @@ ${texto}
     $('#conv-pegar-txt').textContent = c.pegar;
     $('#conv-nota-1').textContent = `Lo que pegues aquí se suma a los datos que trajimos ${de(c.desde)}.`;
   }
-  $('#conv-pegar').addEventListener('click', () => { paso(1); $('#pegado').focus(); });
+  // Lo que la asesora ya cambió en el formulario (por ejemplo, el estado de pago) se conserva al pegar más información.
+  $('#conv-pegar').addEventListener('click', () => { if (conversion && formulario) conversion.base = fusionar(conversion.base, leerFormulario()); paso(1); $('#pegado').focus(); });
   function abrirConvertido(id, datos, info) {
     abrirDoc(id);
     conversion = { ...info, base: datos };
@@ -2999,6 +3004,8 @@ ${texto}
     else Object.assign(datos, {
       nombre_servicio: `Tiquete aéreo — ${o.a.aerolinea || ''}`.trim(), proveedor: o.a.aerolinea || '', vigencia: extremos(o.a.trayectos.map(x => x.fecha)), aereo: o.a,
       instrucciones: 'Preséntate en el mostrador de la aerolínea con tu documento de identidad: 3 horas antes en vuelos internacionales y 2 horas antes en nacionales.' });
+    // Si el servicio no trae fechas (p. ej. tramos de la base sin fecha), se usan las del viaje.
+    datos.vigencia = { desde: datos.vigencia.desde || c.fecha_salida || '', hasta: datos.vigencia.hasta || c.fecha_regreso || '' };
     abrirConvertido('voucher', datos, {
       desde: `la confirmación ${c.codigo_reserva}`, pegar: 'Pegar la reserva del servicio',
       texto: 'Pasamos el servicio, las fechas, el titular y los números de confirmación. Las instrucciones y condiciones son un texto sugerido: revísalas. Agrega los acompañantes y lo que incluye.',

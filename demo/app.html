@@ -42,6 +42,8 @@
   .nav button { background: none; border: 0; padding: 8px 14px; border-radius: 10px; font-weight: 500; color: var(--texto); cursor: pointer; }
   .nav button[aria-current="page"] { color: var(--coral); background: var(--coral-5); }
   .nav button:hover { color: var(--coral); }
+  .nav-guia { padding: 8px 14px; border-radius: 10px; font-weight: 500; color: var(--texto); text-decoration: none; }
+  .nav-guia:hover { color: var(--coral); }
   .top-der { margin-left: auto; display: flex; align-items: center; gap: 14px; }
   .demo-tag { font: 600 11px/1 var(--fuente); letter-spacing: .16em; text-transform: uppercase; color: var(--coral); background: var(--coral-suave); padding: 7px 12px; border-radius: 999px; }
   .asesor { display: flex; align-items: center; gap: 10px; }
@@ -225,6 +227,7 @@
   }
   @media (max-width: 640px) {
     .top-in { padding: 12px 16px; gap: 14px; flex-wrap: wrap; }
+    .nav { flex-wrap: wrap; }
     main { padding-inline: 16px; padding-block: 28px 64px; }
     .display { font-size: 32px; }
     .lead { font-size: 16px; }
@@ -283,6 +286,7 @@
       <button type="button" data-ir="inicio" aria-current="page">Inicio</button>
       <button type="button" data-ir="documentos">Mis documentos</button>
       <button type="button" data-ir="banco">Banco de fotos</button>
+      <a class="nav-guia" href="https://claude.ai/artifact/KkjQw9pAN5qGzSf7KZqfk1" target="_blank" rel="noopener">Guía en video</a>
     </nav>
     <div class="top-der"><span class="marca-txt">Documentos de viaje</span></div>
   </div>

@@ -1671,7 +1671,8 @@ ${texto}
     $('#conv-pegar-txt').textContent = c.pegar;
     $('#conv-nota-1').textContent = `Lo que pegues aquí se suma a los datos que trajimos ${de(c.desde)}.`;
   }
-  $('#conv-pegar').addEventListener('click', () => { paso(1); $('#pegado').focus(); });
+  // Lo que la asesora ya cambió en el formulario (por ejemplo, el estado de pago) se conserva al pegar más información.
+  $('#conv-pegar').addEventListener('click', () => { if (conversion && formulario) conversion.base = fusionar(conversion.base, leerFormulario()); paso(1); $('#pegado').focus(); });
   function abrirConvertido(id, datos, info) {
     abrirDoc(id);
     conversion = { ...info, base: datos };
@@ -1761,6 +1762,8 @@ ${texto}
     else Object.assign(datos, {
       nombre_servicio: `Tiquete aéreo — ${o.a.aerolinea || ''}`.trim(), proveedor: o.a.aerolinea || '', vigencia: extremos(o.a.trayectos.map(x => x.fecha)), aereo: o.a,
       instrucciones: 'Preséntate en el mostrador de la aerolínea con tu documento de identidad: 3 horas antes en vuelos internacionales y 2 horas antes en nacionales.' });
+    // Si el servicio no trae fechas (p. ej. tramos de la base sin fecha), se usan las del viaje.
+    datos.vigencia = { desde: datos.vigencia.desde || c.fecha_salida || '', hasta: datos.vigencia.hasta || c.fecha_regreso || '' };
     abrirConvertido('voucher', datos, {
       desde: `la confirmación ${c.codigo_reserva}`, pegar: 'Pegar la reserva del servicio',
       texto: 'Pasamos el servicio, las fechas, el titular y los números de confirmación. Las instrucciones y condiciones son un texto sugerido: revísalas. Agrega los acompañantes y lo que incluye.',
