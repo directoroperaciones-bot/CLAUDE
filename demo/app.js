@@ -2094,7 +2094,7 @@ ${texto}
     const idV = venta.ID_Venta;
     avance('Leyendo servicios y pagos…');
     // 2) Qué filas son de esta venta (solo se leen las columnas de códigos).
-    const [colSv, colPg, provs, planes, asesores] = await lecturaBase(['SERVICIOS!B1:B6000', 'CONTROL_PAGOS!B1:B6000', 'PROVEEDORES!A1:C1000', 'PANEL_DE_COSTEOS!A1:B1000', 'ASESORES!A1:B100']);
+    const [colSv, colPg, provs, planes, asesores] = await lecturaBase(['SERVICIOS!B1:B6000', 'CONTROL_PAGOS!B1:B6000', 'PROVEEDORES!A1:D1000', 'PANEL_DE_COSTEOS!A1:B1000', 'ASESORES!A1:B100']);
     const ids = new Set([idV]);
     const SERVICIOS = await filasDeHoja('SERVICIOS', [['A', 'H'], ['R', 'R'], ['X', 'X'], ['AE', 'AE']], filasCon(colSv, ids));
     const CONTROL_PAGOS = await filasDeHoja('CONTROL_PAGOS', [['B', 'F']], filasCon(colPg, ids));
@@ -2119,6 +2119,11 @@ ${texto}
     .map((w, i) => (i > 0 && MINUS.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
   const oracion = t => { const x = String(t || '').toLowerCase().trim(); return x.charAt(0).toUpperCase() + x.slice(1); };
 
+  const nombreHotelDe = tab => {
+    const hoteles = Object.fromEntries((tab.PROVEEDORES || []).filter(x => /hotel/i.test(x['Categoría'] || ''))
+      .map(x => [x['ID Proveedor'], nombrePropio(x['Nombre Comercial'] || x['Razón Social'])]));
+    return id => hoteles[id] || '';
+  };
   function confirmacionDesdeBase(tab, consecutivo) {
     const num = String(consecutivo).toUpperCase().replace(/^CA-?/, '').trim();
     const venta = (tab.PIPELINE || []).find(v => String(v.Numero_Consecutivo).trim() === num || String(v.Codigo_Visual_VYE).toUpperCase() === 'CA' + num);
@@ -2126,7 +2131,9 @@ ${texto}
     const idV = venta.ID_Venta;
     const servicios = (tab.SERVICIOS || []).filter(x => x.ID_Venta === idV);
     const nombreDe = Object.fromEntries((tab.PASAJEROS || []).map(x => [x.ID_Pasajero, nombrePropio(x.Nombre_Completo)]));
-    const proveedor = Object.fromEntries((tab.PROVEEDORES || []).map(x => [x['ID Proveedor'], nombrePropio(x['Nombre Comercial'] || x['Razón Social'])]));
+    // Los documentos van al cliente: solo se usa el nombre de un proveedor que sea un hotel (categoría «Hotel…»).
+    // Mayoristas, consolidadores y operadores son internos y nunca se muestran.
+    const hotelDe = nombreHotelDe(tab);
     const idsPax = String(venta.Pasajeros_Viajando || '').split(/\s*,\s*/).filter(Boolean);
     const pax = [...new Set([...idsPax, ...servicios.map(x => x.ID_Pasajero).filter(Boolean)])].map(i => nombreDe[i]).filter(Boolean);
     const titular = nombrePropio(nombreDe[venta.Titular_Vacacional] || venta.Titular_Vacacional || '') || pax[0] || '';
@@ -2153,12 +2160,12 @@ ${texto}
     }));
     const acomodacion = (servicios.find(x => x.Tipo_Acomodacion) || {}).Tipo_Acomodacion || venta.Acomodacion_Religiosa || '';
     const hoteles = [...new Map(servicios.filter(x => x.Tipo_Servicio === 'Hotel').map(x => [x.Proveedor + x.Localizador, {
-      hotel: proveedor[x.Proveedor] || '', entrada: ida, salida: regreso, acomodacion: x.Tipo_Acomodacion || acomodacion, confirmacion: x.Localizador || '' }])).values()];
+      hotel: hotelDe(x.Proveedor), entrada: ida, salida: regreso, acomodacion: x.Tipo_Acomodacion || acomodacion, confirmacion: x.Localizador || '' }])).values()];
     const unico = (tipo, texto) => [...new Set(servicios.filter(x => x.Tipo_Servicio === tipo).map(texto).filter(Boolean))];
     const servicios_confirmados = [
       ...unico('Vuelo', x => `Tiquetes aéreos ${String(x['Aerolínea'] || '').split(',')[0].trim()}`.trim()),
-      ...unico('Plan Terrestre', x => `Plan terrestre${proveedor[x.Proveedor] ? ' con ' + proveedor[x.Proveedor] : ''}${x.Tipo_Acomodacion ? ` (acomodación ${x.Tipo_Acomodacion.toLowerCase()})` : ''}`),
-      ...unico('Hotel', x => proveedor[x.Proveedor] ? `Alojamiento en ${proveedor[x.Proveedor]}` : 'Alojamiento'),
+      ...unico('Plan Terrestre', x => `Plan terrestre${x.Tipo_Acomodacion ? ` en acomodación ${x.Tipo_Acomodacion.toLowerCase()}` : ''}`),
+      ...unico('Hotel', x => hotelDe(x.Proveedor) ? `Alojamiento en ${hotelDe(x.Proveedor)}` : 'Alojamiento'),
       ...unico('Asistencia', () => 'Tarjeta de asistencia médica'),
     ];
     const pagos = (tab.CONTROL_PAGOS || []).filter(x => x.ID_Venta === idV).map(x => ({
@@ -2198,7 +2205,9 @@ ${texto}
     // Regla de precios (de Caminos): 1) si la venta tiene servicios, el valor es la suma de Gran_Total_Servicio
     // (PIPELINE suma a sus hijos de SERVICIOS por ID_Venta): un solo valor total de la venta. 2) Si no tiene
     // servicios, sale de cada opción de COTIZACION_OPCIONES.
-    const proveedor = Object.fromEntries((tab.PROVEEDORES || []).map(x => [x['ID Proveedor'], nombrePropio(x['Nombre Comercial'] || x['Razón Social'])]));
+    // Los documentos van al cliente: solo se usa el nombre de un proveedor que sea un hotel (categoría «Hotel…»).
+    // Mayoristas, consolidadores y operadores son internos y nunca se muestran.
+    const hotelDe = nombreHotelDe(tab);
     // Fórmulas de AppSheet (leídas del editor, solo lectura):
     //   PIPELINE.Total_Servicios = SUM(SERVICIOS[Gran_Total_Servicio]) de la venta.
     //   COTIZACION_OPCIONES.Total_Venta_Opcion («Valor total de la opción») = Total_Vuelo + Total_Hotel +
@@ -2212,31 +2221,29 @@ ${texto}
       const comunes = suma(servicios.filter(x => !x.ID_Pasajero));
       const porPax = pax.map(id => suma(servicios.filter(x => x.ID_Pasajero === id)) + comunes);
       const iguales = porPax.length > 1 && porPax.every(v => Math.round(v) === Math.round(porPax[0]));
-      const hoteles = [...new Set(servicios.filter(x => x.Tipo_Servicio === 'Hotel').map(x => proveedor[x.Proveedor]).filter(Boolean))];
+      const hoteles = [...new Set(servicios.filter(x => x.Tipo_Servicio === 'Hotel').map(x => hotelDe(x.Proveedor)).filter(Boolean))];
       const nombre = hoteles.join(' / ') || (opciones.length === 1 && nombrePropio(opciones[0].Nombre_Opcion)) || (plan?.Nombre_Plan && nombrePropio(plan.Nombre_Plan)) || `Paquete ${venta.Destino || ''}`.trim();
       let valor, detalle;
       if (pax.length > 1 && !iguales) { modo = 'total'; valor = suma(servicios); detalle = `el total del viaje: suma de Gran_Total_Servicio de los ${servicios.length} servicios de los ${pax.length} pasajeros (tienen valores distintos)`; }
       else if (pax.length > 1) { modo = 'persona'; valor = porPax[0]; detalle = `por persona: cada uno de los ${pax.length} pasajeros suma lo mismo en Gran_Total_Servicio`; }
       else { modo = 'persona'; valor = suma(servicios); detalle = `por persona: suma de Gran_Total_Servicio de los ${servicios.length} servicios de la venta`; }
       tarifas = [{ hotel: nombre, acomodacion, valor: valor > 0 ? pesos(valor) : '' }];
-      origenValor = valor > 0 ? `Valor tomado de SERVICIOS (${pesos(valor)}), ${detalle}.` : 'La venta tiene servicios, pero sin valores en Gran_Total_Servicio: escribe el valor.';
+      origenValor = valor > 0 ? `Valor tomado de SERVICIOS (${pesos(valor)}), ${detalle}. Solo va al documento el valor final, nunca costos internos.` : 'La venta tiene servicios, pero sin valores en Gran_Total_Servicio: escribe el valor.';
     } else if (opciones.length) {
       const parte = (neto, markup) => (numero(markup) > 0 ? numero(neto) / numero(markup) : numero(neto));
       const totalOpcion = o => numero(o.Neto_Tkt) + numero(o.TA_Tkt) + parte(o.Neto_Hotel, o.Markup_Hotel) + parte(o.Neto_Terrestre, o.Markup_Terrestre)
         + parte(o.Neto_Asistencia, o.Markup_Asistencia) + parte(o.Neto_Otros, o.Markup_Otros);
       modo = 'persona';
       tarifas = opciones.map(o => { const v = totalOpcion(o); return { hotel: nombrePropio(o.Nombre_Opcion) || `Opción ${o.Numero_Opcion}`, acomodacion, valor: v > 0 ? pesos(v) : '' }; });
-      origenValor = 'Valores por persona tomados de COTIZACION_OPCIONES con la fórmula de «Valor total de la opción» (tiquete + TA + cada neto ÷ su markup), igual que en AppSheet.';
+      origenValor = 'Valores por persona tomados de «Valor total de la opción» (COTIZACION_OPCIONES), calculados igual que en AppSheet.';
     } else if (costeo) {
       for (const [ac, g, tf, aj] of [['Sencilla', 'Gran_Total_Venta_Sencilla', 'Total_Final_COP_Sencilla', 'Ajuste_Venta_Sencilla'], ['Doble', 'Gran_Total_Venta_Doble', 'Total_Final_COP_Doble', 'Ajuste_Venta_Doble'], ['Triple', 'Gran_Total_Venta_Triple', 'Total_Final_COP_Triple', 'Ajuste_Venta_Triple']]) {
         // Como PIPELINE.Total_Cobrado en AppSheet: el precio por persona del paquete es Gran_Total_Venta de la acomodación.
         if (!(numero(costeo[g]) > 0)) continue;
         tarifas.push({ hotel: nombrePropio(costeo.Nombre_Plan), acomodacion: ac, valor: pesos(costeo[g]) });
-        const otros = [['total final COP', costeo[tf]], ['ajuste de venta', costeo[aj]]].filter(([, v]) => numero(v) > 0 && Math.round(numero(v)) !== Math.round(numero(costeo[g])));
-        if (otros.length) referencias.push(`${ac}: ${otros.map(([n, v]) => `${n} ${pesos(v)}`).join(' · ')}`);
       }
       modo = 'persona';
-      origenValor = 'Valores por persona tomados del costeo del paquete (Gran_Total_Venta de cada acomodación), como los usa AppSheet. Si el precio publicado es otro (por ejemplo, el ajuste de venta), cámbialo.';
+      origenValor = 'Valores por persona tomados del costeo del paquete (Gran_Total_Venta de cada acomodación), como los usa AppSheet.';
     }
     if (!tarifas.length) tarifas = [{ hotel: '', acomodacion, valor: '' }];
     // Qué incluye: solo los componentes que la base registra para la venta.
