@@ -707,6 +707,8 @@
     }
     // Todas las tarjetas van en la hoja 1; el reparto pasa a la hoja siguiente lo que no quepa.
     h = rep(rep(h, '{{tarjetas_confirmacion}}', cards.join('\n\n    ')), '\n  {{tarjetas_continuacion}}', '');
+    // La foto del destino va en el encabezado, con la misma protección que la portada de la cotización.
+    if (d.foto_portada) h = h.replace(/<div style="position:relative;height:238px;overflow:hidden;background:#F25061;">[\s\S]*?\n  <\/div>\n/, hero => portadaConFoto(hero, d.foto_portada, 238));
     sinMarcadores(h);
     return h;
   }
@@ -2170,7 +2172,8 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
           T('nombre_viajero', 'Titular', 6, { req: 1 }), T('destino', 'Destino', 6, { req: 1 }),
           D('fecha_salida', 'Fecha de ida', 4, { req: 1 }), D('fecha_regreso', 'Fecha de regreso', 4, { req: 1 }), T('pasajeros', 'Pasajeros', 4),
           { k: 'estado_pago', label: 'Estado de pago', w: 4, tipo: 'opciones', req: 1, opciones: ESTADOS_RESERVA, normalizar: normalEstadoReserva },
-          A('parrafo_confirmacion', 'Mensaje al viajero', 8, { filas: 2, ayuda: 'Va después de «Hola …, confirmamos tu reserva con Caminos.»' })] },
+          A('parrafo_confirmacion', 'Mensaje al viajero', 8, { filas: 2, ayuda: 'Va después de «Hola …, confirmamos tu reserva con Caminos.»' }),
+          { k: 'foto_portada', label: 'Foto del destino (opcional)', w: 12, tipo: 'foto', ayuda: 'Va en el encabezado. Si la dejas vacía, la buscamos en el banco de fotos por el destino.' }] },
         { t: 'Vuelos', sub: 'Un tiquete por bloque; una línea por trayecto.', icono: 'ticket', campos: [
           { tipo: 'bloques', k: 'aereo', req: 1, mas: 'Agregar tiquete', min: 0, titulo: 'Tiquete', campos: [T('aerolinea', 'Aerolínea'), T('tiquete', 'Número de tiquete'), T('record', 'Récord')],
             filas: { k: 'trayectos', mas: 'Agregar trayecto', cols: COLS_TRAYECTO } }] },
@@ -2204,6 +2207,7 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
       preparar: d => ({ ...d, asesor: d.asesor || ASESOR.nombre, asesor_correo: d.asesor_correo || ASESOR.correo,
         asesor_telefono: d.asesor_telefono || (!d.asesor_correo || d.asesor_correo === ASESOR.correo ? ASESOR.telefono : '') }),
       meta: d => `Viaje del ${rango(d.fecha_salida, d.fecha_regreso)}`,
+      fotos: d => (vacio(d.destino) ? [] : [{ clave: claveDestino(d.destino), tipo: 'destino', nombre: d.destino, ciudad: '', get: () => d.foto_portada, set: u => { d.foto_portada = u; } }]),
       ejemploTexto: `Confirmación para enviar a Laura Pineda (reserva CAM-2026-3140), viaje a San Andrés.
 2 adultos: Laura Pineda y Andrés Pineda.
 
