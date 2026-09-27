@@ -927,6 +927,20 @@
     const x = clave && Banco.docs.map(d => d.data()).find(v => v.clave === clave);
     return x && x.asset ? x : null;
   };
+  // Para el destino de un documento: primero la clave exacta; si no hay, la foto de un destino del banco
+  // cuyo nombre (o uno de sus alias) aparece completo dentro del destino escrito. Así «Cartagena de Indias»
+  // usa la foto de Cartagena y «Jerusalén y Belén» la de Tierra Santa. Gana el nombre más largo.
+  const fotoParecida = clave => {
+    const exacta = fotoDelBanco(clave);
+    if (exacta || !clave || !clave.startsWith('destino:')) return exacta;
+    const buscado = '-' + clave.slice(8) + '-';
+    let mejor = null, largo = 0;
+    for (const v of Banco.docs.map(d => d.data())) {
+      if (v.tipo !== 'destino' || !v.asset || !v.clave) continue;
+      for (const n of [v.clave.slice(8), ...(v.alias || [])]) if (n && n.length > largo && buscado.includes('-' + n + '-')) { mejor = v; largo = n.length; }
+    }
+    return mejor;
+  };
   function medidasDe(url) {
     return new Promise(res => { const i = new Image(); i.onload = () => res([i.naturalWidth, i.naturalHeight]); i.onerror = () => res([0, 0]); i.src = url; });
   }
@@ -964,7 +978,7 @@
     const docs = Banco.docs, q = slug($('#b-q').value);
     const nDest = docs.filter(d => d.data().tipo === 'destino').length;
     $('#b-dest').textContent = nDest; $('#b-hot').textContent = docs.length - nDest; $('#b-fot').textContent = docs.length;
-    const vis = docs.filter(d => { const x = d.data(); return (filtroBanco === 'todos' || x.tipo === filtroBanco) && (!q || slug((x.nombre || '') + ' ' + (x.ciudad || '')).includes(q)); });
+    const vis = docs.filter(d => { const x = d.data(); return (filtroBanco === 'todos' || x.tipo === filtroBanco) && (!q || slug((x.nombre || '') + ' ' + (x.ciudad || '') + ' ' + (x.alias || []).join(' ')).includes(q)); });
     if (!docs.length) { $('#b-lista').innerHTML = '<div class="vacio papel" style="margin-top:24px;">El banco está vacío. Las fotos aparecen aquí cuando un asesor ubica una foto en un documento.</div>'; return; }
     if (!vis.length) { $('#b-lista').innerHTML = '<div class="vacio papel" style="margin-top:24px;">No hay fotos que coincidan con la búsqueda.</div>'; return; }
     let h = '';
@@ -2845,7 +2859,7 @@ ${texto}
     const slots = doc().fotos ? doc().fotos(datos).filter(f => f.clave) : [];
     // Antes de generar: las fotos que faltan se buscan en el banco (como exige el motor del plugin).
     let delBancoN = 0;
-    for (const f of slots) if (!f.get()) { const b = fotoDelBanco(f.clave); if (b) { f.set(blobUrl(b.asset)); delBancoN++; } }
+    for (const f of slots) if (!f.get()) { const b = fotoParecida(f.clave); if (b) { f.set(blobUrl(b.asset)); delBancoN++; } }
     if (!(await mostrarDocumento(datos))) return;
     // Después de generar: las fotos nuevas que ubicó el asesor se guardan en el banco.
     let nuevas = 0;
