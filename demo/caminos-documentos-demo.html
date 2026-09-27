@@ -3436,35 +3436,49 @@ ${texto}
     const asesora = (tab.ASESORES || []).find(x => x.Email === venta.Agente);
     const acomodacion = (servicios.find(x => x.Tipo_Acomodacion) || {}).Tipo_Acomodacion || venta.Acomodacion_Religiosa || '';
     const referencias = [];
-    let tarifas = [], origenValor = '';
+    let tarifas = [], origenValor = '', modo = 'persona';
     // Regla de precios (de Caminos): 1) si la venta tiene servicios, el valor es la suma de Gran_Total_Servicio
     // (PIPELINE suma a sus hijos de SERVICIOS por ID_Venta): un solo valor total de la venta. 2) Si no tiene
     // servicios, sale de cada opción de COTIZACION_OPCIONES.
     const proveedor = Object.fromEntries((tab.PROVEEDORES || []).map(x => [x['ID Proveedor'], nombrePropio(x['Nombre Comercial'] || x['Razón Social'])]));
+    // Fórmulas de AppSheet (leídas del editor, solo lectura):
+    //   PIPELINE.Total_Servicios = SUM(SERVICIOS[Gran_Total_Servicio]) de la venta.
+    //   COTIZACION_OPCIONES.Total_Venta_Opcion («Valor total de la opción») = Total_Vuelo + Total_Hotel +
+    //   Total_Terrestre + Total_Asistencia + Total_Otros, con Total_Vuelo = Neto_Tkt + TA_Tkt y cada otro
+    //   total = Neto ÷ Markup (o el Neto si el Markup está vacío o es ≤ 0).
+    // En la cotización, opciones y servicios van por persona (el vuelo de la CA2874 vale Neto_Tkt + TA_Tkt para
+    // 5 pasajeros); en SERVICIOS con una fila por pasajero, la suma de la venta es el total de todos.
     if (servicios.length) {
-      const total = servicios.reduce((a, x) => a + numero(x.Gran_Total_Servicio), 0);
+      const suma = xs => xs.reduce((a, x) => a + numero(x.Gran_Total_Servicio), 0);
+      const pax = [...new Set(servicios.map(x => x.ID_Pasajero).filter(Boolean))];
+      const comunes = suma(servicios.filter(x => !x.ID_Pasajero));
+      const porPax = pax.map(id => suma(servicios.filter(x => x.ID_Pasajero === id)) + comunes);
+      const iguales = porPax.length > 1 && porPax.every(v => Math.round(v) === Math.round(porPax[0]));
       const hoteles = [...new Set(servicios.filter(x => x.Tipo_Servicio === 'Hotel').map(x => proveedor[x.Proveedor]).filter(Boolean))];
       const nombre = hoteles.join(' / ') || (opciones.length === 1 && nombrePropio(opciones[0].Nombre_Opcion)) || (plan?.Nombre_Plan && nombrePropio(plan.Nombre_Plan)) || `Paquete ${venta.Destino || ''}`.trim();
-      tarifas = [{ hotel: nombre, acomodacion, valor: total > 0 ? pesos(total) : '' }];
-      origenValor = total > 0 ? `El valor total (${pesos(total)}) es la suma de Gran_Total_Servicio de los ${servicios.length} servicios de la venta en SERVICIOS, para todos los pasajeros.` : 'La venta tiene servicios, pero sin valores en Gran_Total_Servicio: escribe el valor.';
+      let valor, detalle;
+      if (pax.length > 1 && !iguales) { modo = 'total'; valor = suma(servicios); detalle = `el total del viaje: suma de Gran_Total_Servicio de los ${servicios.length} servicios de los ${pax.length} pasajeros (tienen valores distintos)`; }
+      else if (pax.length > 1) { modo = 'persona'; valor = porPax[0]; detalle = `por persona: cada uno de los ${pax.length} pasajeros suma lo mismo en Gran_Total_Servicio`; }
+      else { modo = 'persona'; valor = suma(servicios); detalle = `por persona: suma de Gran_Total_Servicio de los ${servicios.length} servicios de la venta`; }
+      tarifas = [{ hotel: nombre, acomodacion, valor: valor > 0 ? pesos(valor) : '' }];
+      origenValor = valor > 0 ? `Valor tomado de SERVICIOS (${pesos(valor)}), ${detalle}.` : 'La venta tiene servicios, pero sin valores en Gran_Total_Servicio: escribe el valor.';
     } else if (opciones.length) {
-      // «Valor total de la opción» se calcula en AppSheet (no está en la hoja): aquí se muestra el cálculo
-      // (tiquete + TA + cada neto ÷ su factor) solo como referencia, hasta confirmar la fórmula.
-      tarifas = opciones.map(o => ({ hotel: nombrePropio(o.Nombre_Opcion) || `Opción ${o.Numero_Opcion}`, acomodacion, valor: '' }));
-      opciones.forEach(o => {
-        const div = (v, f) => (numero(v) > 0 ? (numero(f) > 0 ? numero(v) / numero(f) : numero(v)) : 0);
-        const calc = numero(o.Neto_Tkt) + numero(o.TA_Tkt) + div(o.Neto_Hotel, o.Markup_Hotel) + div(o.Neto_Terrestre, o.Markup_Terrestre) + div(o.Neto_Asistencia, o.Markup_Asistencia) + div(o.Neto_Otros, o.Markup_Otros);
-        if (calc > 0) referencias.push(`«${nombrePropio(o.Nombre_Opcion) || 'Opción ' + o.Numero_Opcion}» ≈ ${pesos(calc)}`);
-      });
-      origenValor = 'La venta no tiene servicios: el valor sale de las opciones de COTIZACION_OPCIONES. Mientras confirmamos la fórmula de «Valor total de la opción» (se calcula en AppSheet), escribe el valor de cada opción.';
+      const parte = (neto, markup) => (numero(markup) > 0 ? numero(neto) / numero(markup) : numero(neto));
+      const totalOpcion = o => numero(o.Neto_Tkt) + numero(o.TA_Tkt) + parte(o.Neto_Hotel, o.Markup_Hotel) + parte(o.Neto_Terrestre, o.Markup_Terrestre)
+        + parte(o.Neto_Asistencia, o.Markup_Asistencia) + parte(o.Neto_Otros, o.Markup_Otros);
+      modo = 'persona';
+      tarifas = opciones.map(o => { const v = totalOpcion(o); return { hotel: nombrePropio(o.Nombre_Opcion) || `Opción ${o.Numero_Opcion}`, acomodacion, valor: v > 0 ? pesos(v) : '' }; });
+      origenValor = 'Valores por persona tomados de COTIZACION_OPCIONES con la fórmula de «Valor total de la opción» (tiquete + TA + cada neto ÷ su markup), igual que en AppSheet.';
     } else if (costeo) {
       for (const [ac, g, tf, aj] of [['Sencilla', 'Gran_Total_Venta_Sencilla', 'Total_Final_COP_Sencilla', 'Ajuste_Venta_Sencilla'], ['Doble', 'Gran_Total_Venta_Doble', 'Total_Final_COP_Doble', 'Ajuste_Venta_Doble'], ['Triple', 'Gran_Total_Venta_Triple', 'Total_Final_COP_Triple', 'Ajuste_Venta_Triple']]) {
-        const vals = [['total venta', costeo[g]], ['total final COP', costeo[tf]], ['ajuste de venta', costeo[aj]]].filter(([, v]) => numero(v) > 0);
-        if (!vals.length) continue;
-        tarifas.push({ hotel: nombrePropio(costeo.Nombre_Plan), acomodacion: ac, valor: '' });
-        referencias.push(`${ac}: ${vals.map(([n, v]) => `${n} ${pesos(v)}`).join(' · ')}`);
+        // Como PIPELINE.Total_Cobrado en AppSheet: el precio por persona del paquete es Gran_Total_Venta de la acomodación.
+        if (!(numero(costeo[g]) > 0)) continue;
+        tarifas.push({ hotel: nombrePropio(costeo.Nombre_Plan), acomodacion: ac, valor: pesos(costeo[g]) });
+        const otros = [['total final COP', costeo[tf]], ['ajuste de venta', costeo[aj]]].filter(([, v]) => numero(v) > 0 && Math.round(numero(v)) !== Math.round(numero(costeo[g])));
+        if (otros.length) referencias.push(`${ac}: ${otros.map(([n, v]) => `${n} ${pesos(v)}`).join(' · ')}`);
       }
-      origenValor = 'Paquete del costeo: escribe el valor por persona de cada acomodación.';
+      modo = 'persona';
+      origenValor = 'Valores por persona tomados del costeo del paquete (Gran_Total_Venta de cada acomodación), como los usa AppSheet. Si el precio publicado es otro (por ejemplo, el ajuste de venta), cámbialo.';
     }
     if (!tarifas.length) tarifas = [{ hotel: '', acomodacion, valor: '' }];
     // Qué incluye: solo los componentes que la base registra para la venta.
@@ -3483,7 +3497,7 @@ ${texto}
         titulo_destino: plan?.Nombre_Plan ? nombrePropio(plan.Nombre_Plan) : `${venta.Destino || 'Viaje'}${dias ? `, ${dias < NUMEROS.length ? NUMEROS[dias].replace(/^un$/, 'un') : dias} ${dias === 1 ? 'día' : 'días'}` : ''}`,
         parrafo_intro: '', destino: venta.Destino || '', fecha_llegada: ida, fecha_salida: regreso,
         noches: dias > 1 ? `${dias - 1} ${dias - 1 === 1 ? 'noche' : 'noches'}` : '', pasajeros: n ? `${n} ${n === 1 ? 'persona' : 'personas'}` : '', acomodacion,
-        incluye, no_incluye: [], tarifas, modo_valor: servicios.length || opciones.length ? 'total' : 'persona', itinerario: [], condiciones_pago: '', vigencia: '',
+        incluye, no_incluye: [], tarifas, modo_valor: modo, itinerario: [], condiciones_pago: '', vigencia: '',
         asesor: { nombre: asesora ? nombrePropio(asesora.Nombre) : '', correo: venta.Agente || '', telefono: '' },
       },
       referencias, origenValor,
