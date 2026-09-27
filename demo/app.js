@@ -1415,6 +1415,7 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
   });
 
   // ================= inicio e historial =================
+  const GUIA = 'https://claude.ai/artifact/KkjQw9pAN5qGzSf7KZqfk1';
   function pintarTipos() {
     const tarjetas = Object.entries(DOCS).map(([id, d]) => ({ id, ...d, listo: true }));
     $('#docs').innerHTML = tarjetas.map(t => `
@@ -1424,8 +1425,14 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
         <h3>${esc(t.nombre)}</h3>
         <p>${esc(t.desc)}</p>
         <div class="doc-pie"><span>${esc(t.hojas)}</span><i data-lucide="arrow-right"></i></div>
-      </button>`).join('');
-    $$('#docs .doc').forEach(b => b.addEventListener('click', () => abrirDoc(b.dataset.tipo)));
+      </button>`).join('') + `
+      <a class="papel doc doc-guia" href="${GUIA}" target="_blank" rel="noopener">
+        <div class="doc-head"><span class="tile"><i data-lucide="play"></i></span></div>
+        <h3>Guía de uso</h3>
+        <p>Videos cortos que muestran paso a paso cómo hacer cada documento.</p>
+        <div class="doc-pie"><span>5 videos</span><i data-lucide="external-link"></i></div>
+      </a>`;
+    $$('#docs .doc[data-tipo]').forEach(b => b.addEventListener('click', () => abrirDoc(b.dataset.tipo)));
     iconos();
   }
   function filasTabla(items, agrupar) {
