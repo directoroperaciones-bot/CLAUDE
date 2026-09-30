@@ -465,7 +465,27 @@
     'singapur': ['Singapore', 'SG'], 'seul': ['Seoul', 'KR'], 'nueva delhi': ['New Delhi', 'IN'], 'bombay': ['Mumbai', 'IN'], 'dubai': ['Dubai', 'AE'],
     'caravaca de la cruz': ['Caravaca', 'ES'], 'monserrate': ['Bogotá', 'CO'], 'las lajas': ['Ipiales', 'CO'], 'santuario de las lajas': ['Ipiales', 'CO'],
     'tayrona': ['Santa Marta', 'CO'], 'parque tayrona': ['Santa Marta', 'CO'], 'valle de cocora': ['Salento', 'CO'],
+    'la cocha': ['Pasto', 'CO'], 'laguna de la cocha': ['Pasto', 'CO'], 'el encano': ['Pasto', 'CO'],
   };
+  // País escrito por la asesora («Colombia», «España», «CO») → código ISO. Los nombres salen de Intl en
+  // español y en inglés, para los países que tienen ciudades en la lista.
+  let indicePaises = null;
+  function codigoPais(texto) {
+    const k = normal(texto);
+    if (!k) return '';
+    if (!indicePaises) {
+      indicePaises = new Map();
+      const codigos = new Set(CIUDADES.map(c => c[1]));
+      for (const idioma of ['en', 'es']) {
+        let dn = null;
+        try { dn = new Intl.DisplayNames([idioma], { type: 'region' }); } catch (_) {}
+        for (const cc of codigos) { indicePaises.set(normal(cc), cc); try { const n = dn && dn.of(cc); if (n) indicePaises.set(normal(n), cc); } catch (_) {} }
+      }
+      [['estados unidos', 'US'], ['eeuu', 'US'], ['usa', 'US'], ['inglaterra', 'GB'], ['tierra santa', 'IL'], ['vaticano', 'VA'], ['holanda', 'NL']]
+        .forEach(([n, cc]) => indicePaises.set(n, cc));
+    }
+    return indicePaises.get(k) || '';
+  }
   let indiceCiudades = null;
   // Sin más contexto, un nombre es la ciudad conocida: se descartan homónimas 25 veces más pequeñas
   // (Madrid es la de España). Con "Madrid, Cundinamarca" en el campo lugar se conservan todas.
@@ -489,21 +509,27 @@
   // nombre de ciudad más a la derecha y más largo; al final, el campo "lugar" si lo hay.
   function lugaresDelDia(x) {
     const out = [];
+    // Con el país del día solo valen ciudades de ese país: una homónima de otro país nunca se pinta.
+    const cc = codigoPais(x.pais);
     const agregar = (t, calificado) => {
-      const c = candidatos(t, calificado);
+      let c = candidatos(t, calificado || !!cc);
+      if (cc) c = c.filter(i => CIUDADES[i][1] === cc);
       if (c.length && !(out.length && normal(out.at(-1).texto) === normal(t))) out.push({ texto: t, candidatos: c });
       return c.length > 0;
     };
-    for (const seg of String(x.titulo || '').split(/\s+[—–-]\s+|,|\s+y\s+|\//).map(t => t.trim()).filter(Boolean)) {
+    // En cada tramo, el nombre más a la derecha; entre los que terminan en la misma palabra, el más largo
+    // («Las Lajas» antes que «Lajas», «La Cocha» antes que «Cocha»).
+    const buscar = seg => {
       const pal = seg.split(/\s+/);
-      let hallado = false;
-      for (let i = pal.length - 1; i >= 0 && !hallado; i--)
-        for (let n = Math.min(4, pal.length - i); n >= 1 && !hallado; n--) {
-          const grupo = pal.slice(i, i + n).join(' ').replace(/[.;:]+$/, '');
-          if (/^[A-ZÁÉÍÓÚÑ]/.test(grupo) && normal(grupo).length >= 3 && !NO_LUGAR.has(normal(pal[i]))) hallado = agregar(grupo);
+      for (let fin = pal.length; fin >= 1; fin--)
+        for (let i = Math.max(0, fin - 4); i < fin; i++) {
+          const grupo = pal.slice(i, fin).join(' ').replace(/[.;:]+$/, '');
+          if (/^[A-ZÁÉÍÓÚÑ]/.test(grupo) && normal(grupo).length >= 3 && !NO_LUGAR.has(normal(pal[i])) && agregar(grupo)) return true;
         }
-    }
-    if (!vacio(x.lugar)) { const [nombre, ...resto] = String(x.lugar).split(','); agregar(nombre.trim(), resto.length > 0); }
+      return false;
+    };
+    for (const seg of String(x.titulo || '').split(/\s+[—–-]\s+|,|\s+y\s+|\//).map(t => t.trim()).filter(Boolean)) buscar(seg);
+    if (!vacio(x.lugar)) { const [nombre, ...resto] = String(x.lugar).split(','); if (!agregar(nombre.trim(), resto.length > 0)) buscar(nombre.trim()); }
     return out;
   }
   const kmEntre = (a, b) => {
@@ -618,7 +644,9 @@
 
   async function htmlItinerario(d, { incrustar = false, ligero = false } = {}) {
     // Versión liviana (plan B al publicar): fotos más pequeñas y más comprimidas.
-    const foto = async (u, max) => (u ? (incrustar ? await aDataUrl(u, ligero ? Math.round(max * 0.6) : max, ligero ? 0.7 : 0.85) : u) : '');
+    // ligero: 0 normal, 1 liviana, 2 mínima (para que el archivo quepa al publicar).
+    const [escala, calidad] = [[1, 0.85], [0.6, 0.72], [0.4, 0.6]][+ligero || 0] || [0.4, 0.6];
+    const foto = async (u, max) => (u ? (incrustar ? await aDataUrl(u, Math.round(max * escala), calidad) : u) : '');
     const portada = await foto(d.foto_portada, 1600);
     const titulo = String(d.titulo || '').split('\n').map(e).join('<br>');
     const secciones = [];
@@ -736,7 +764,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F25061">
 <title>${esc(String(d.titulo || 'Itinerario').replace(/\s*\n\s*/g, ' '))} · Caminos</title>
-<style>${FUENTES}${CSS_INTERACTIVO}</style>
+<style>${FUENTES_WEB}${CSS_INTERACTIVO}</style>
 </head>
 <body>
 <header class="hero${portada ? ' con-foto' : ''}"${portada ? ` style="background-image:url('${portada}')"` : ''}>

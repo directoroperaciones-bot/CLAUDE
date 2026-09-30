@@ -8,6 +8,7 @@
   const ICONOS = "__ICONOS__";
   // Poppins Regular, Medium y Bold del plugin (fuentes/), incrustadas para que el documento mida igual que en el motor.
   const FUENTES = "__FUENTES__";
+  const FUENTES_WEB = "__FUENTES_WEB__";
   // Logos, estrella y degradado de protección del itinerario, por su ruta en la plantilla.
   const RECURSOS = "__RECURSOS__";
 
@@ -1150,7 +1151,7 @@ El voucher no es reembolsable ni transferible.`,
       { tipo: 'filas', k: 'vuelos_internos', titulo: 'Vuelos internos', mas: 'Agregar vuelo interno', min: 0, cols: COLS_VUELO }] }] : []),
     { t: 'Día a día', sub: 'Un bloque por día. Un día nunca se parte entre dos hojas.', icono: 'route', campos: [
       { tipo: 'bloques', k: 'dias', req: 1, titulo: 'Día', numerar: true, mas: 'Agregar día', campos: [
-        D('fecha', 'Fecha', 3), T('titulo', 'Título del día', 6), T('lugar', 'Lugar en el mapa', 3, { ph: 'Chiang Mai' }), A('descripcion', 'Qué hacemos', 12, { filas: 3 }),
+        D('fecha', 'Fecha', 3), T('titulo', 'Título del día', 4), T('lugar', 'Lugar en el mapa', 3, { ph: 'Chiang Mai' }), T('pais', 'País', 2, { ph: 'Tailandia' }), A('descripcion', 'Qué hacemos', 12, { filas: 3 }),
         { k: 'comidas', label: 'Comidas incluidas', w: 4, tipo: 'coma', ph: 'Desayuno, Almuerzo' }, { k: 'etiquetas', label: 'Etiquetas', w: 4, tipo: 'coma', ph: 'Noche a bordo' },
         T('hotel', 'Hotel de esa noche', 4), { k: 'foto', label: 'Foto del día (opcional)', w: 12, tipo: 'foto', max: 900 }] }] },
     { t: 'Qué incluye', sub: 'Un renglón por ítem. Empieza un renglón con # para poner un subtítulo de grupo.', icono: 'badge-check', campos: [
@@ -1184,6 +1185,7 @@ El voucher no es reembolsable ni transferible.`,
 - "descripcion" de cada día en dos o tres líneas, en primera persona del plural ("salimos", "visitamos"). Conserva todos los datos: lugares, horas y detalles. No agregues lugares ni actividades.
 - "comidas": solo las incluidas ("Desayuno", "Almuerzo", "Cena"). "hotel": el hotel de esa noche, si lo hay.
 - "lugar" de cada día: la ciudad donde termina el día, en español, tal como la nombra el texto ("Chiang Mai", "Fátima"). Vacío si el día es solo de vuelo.
+- "pais" de cada día: el país de ese lugar, en español ("Tailandia", "Portugal", "Colombia"). Si el texto no lo dice pero el lugar es inequívoco por el contexto del viaje, escríbelo; si hay duda, vacío.
 - "incluye" y "no_incluye": frases cortas; si el texto agrupa ítems, usa {"grupo": "...", "items": [...]}.
 - "recomendaciones": lista de {"tema", "items"}. "nota": un aviso final corto, solo si lo hay.
 - "codigo": solo si el texto trae uno.`,
@@ -1192,7 +1194,7 @@ El voucher no es reembolsable ni transferible.`,
     ...baseItinerario, interactivo: htmlItinerario, nombre: 'Itinerario', titulo: 'Nuevo <span class="c">itinerario</span>', eyebrow: 'Itinerario de viaje', icono: 'route',
     desc: 'El día a día del viaje, con vuelos, hoteles, fotos y recomendaciones.', hojas: 'Hojas según el viaje', boton: 'Generar el itinerario',
     pegar: 'Pega aquí el programa del viaje', grupos: gruposItinerario(true),
-    forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","frase":"","vuelos":[{"vuelo":"","fecha":"","origen":"","destino":"","sale":"","llega":""}],"vuelos_internos":[],"dias":[{"fecha":"","titulo":"","lugar":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"hoteles":[{"nombre":"","ciudad":"","direccion":"","telefono":""}],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
+    forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","frase":"","vuelos":[{"vuelo":"","fecha":"","origen":"","destino":"","sale":"","llega":""}],"vuelos_internos":[],"dias":[{"fecha":"","titulo":"","lugar":"","pais":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"hoteles":[{"nombre":"","ciudad":"","direccion":"","telefono":""}],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
     reglas: baseItinerario.reglasBase + `
 - "frase": una frase destacada del viaje, solo si el texto la trae.
 - "llega" de un vuelo que aterriza otro día: la hora y la fecha, por ejemplo "15:00 05/09".`,
@@ -1217,7 +1219,7 @@ Recomendaciones: llevar pasaporte vigente y copia; zapatos cómodos para caminar
     ...baseItinerario, interactivo: htmlItinerario, nombre: 'Itinerario corto', titulo: 'Nuevo <span class="c">itinerario corto</span>', eyebrow: 'Itinerario corto', icono: 'map',
     desc: 'Para pasadías y viajes de uno a cuatro días, por lo general terrestres.', hojas: '2 hojas', boton: 'Generar el itinerario',
     pegar: 'Pega aquí el plan del viaje', grupos: gruposItinerario(false),
-    forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","dias":[{"fecha":"","titulo":"","lugar":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
+    forma: '{"codigo":"","titulo":"","subtitulo":"","destino":"","fecha_inicio":"","fecha_fin":"","grupo":"","acompanamiento":"","pasajero":"","acomodacion":"","bienvenida":"","dias":[{"fecha":"","titulo":"","lugar":"","pais":"","descripcion":"","comidas":[],"etiquetas":[],"hotel":""}],"incluye":[],"no_incluye":[],"recomendaciones":[{"tema":"","items":[]}],"nota":""}',
     reglas: baseItinerario.reglasBase + `
 - Es un viaje corto (1 a 4 días): no lleva vuelos, hoteles ni frase destacada. Si es pasadía, "fecha_inicio" y "fecha_fin" son iguales.`,
     ejemploTexto: `Pasadía a Monserrate con el grupo de oración de la Parroquia San Pedro Claver, el sábado 20 de marzo de 2027. Código CA5120. Responsable: Carolina Méndez. Acompaña el Pbro. Felipe Rojas.
@@ -2186,22 +2188,25 @@ ${texto}
     let ultimo = null;
     try {
       const lista = await mcp.listTools().catch(() => null);
-      // Plan de intentos: la versión normal y, si la plataforma rechaza el archivo, una versión con fotos
-      // más livianas y como página web. Los tropiezos pasajeros se reintentan una vez.
+      // Plan de intentos. Primero el contenido en el mismo mensaje (base64): es la vía que siempre ha funcionado y
+      // no depende de que la plataforma acepte el tipo de archivo (el 30/09/2026 rechazó text/html y text/plain
+      // con «file upload failed (415)»). El mensaje tiene un tope de ~1 MB, así que si no cabe se prueban fotos
+      // más livianas; como último recurso, el archivo adjunto. Los tropiezos pasajeros se reintentan una vez.
       const planes = [
-        { ligero: false, tipo: 'text/plain', nombre: 'itinerario.txt' },
-        { ligero: false, tipo: 'text/html', nombre: 'itinerario.html' },
-        { ligero: true, tipo: 'text/plain', nombre: 'itinerario.txt' },
+        { ligero: 0, via: 'texto' }, { ligero: 1, via: 'texto' }, { ligero: 2, via: 'texto' },
+        { ligero: 0, via: 'archivo', tipo: 'text/html', nombre: 'itinerario.html' },
+        { ligero: 2, via: 'archivo', tipo: 'text/plain', nombre: 'itinerario.txt' },
       ];
       let hecho = false;
       for (const plan of planes) {
+        if (plan.via === 'archivo' && !lista?.fileArgs) continue;
         // Versión de grupo: el mismo enlace es para todos los pasajeros, sin nombre individual.
         const html = await doc().interactivo({ ...docActual, pasajero: '' }, { incrustar: true, ligero: plan.ligero });
         let contenido;
-        if (lista?.fileArgs) contenido = { $file: { data: new Blob([html], { type: plan.tipo }), name: plan.nombre, type: plan.tipo } };
+        if (plan.via === 'archivo') contenido = { $file: { data: new Blob([html], { type: plan.tipo }), name: plan.nombre, type: plan.tipo } };
         else {
           contenido = await aBase64(html);
-          if (contenido.length > 950000) { if (!plan.ligero) continue; throw { code: 'muy_grande' }; }
+          if (contenido.length > 950000) { intentos.push({ code: 'no_cabe', tam: html.length, ligero: plan.ligero, via: plan.via }); ultimo = { code: 'muy_grande' }; continue; }
         }
         for (let vez = 0; vez < 2 && !hecho; vez++) {
           try {
@@ -2209,7 +2214,7 @@ ${texto}
             hecho = true;
           } catch (err) {
             ultimo = err;
-            intentos.push({ code: err?.code || 'excepcion', message: String(err?.message || err || '').slice(0, 300), tam: html.length, ligero: plan.ligero, tipo: plan.tipo, fileArgs: !!lista?.fileArgs });
+            intentos.push({ code: err?.code || 'excepcion', message: String(err?.message || err || '').slice(0, 300), tam: html.length, ligero: plan.ligero, via: plan.via, tipo: plan.tipo || 'base64', fileArgs: !!lista?.fileArgs });
             const pasajero = ['server_unavailable', 'rate_limited'].includes(err?.code) || (err?.code === 'upstream_error' && err?.retryable);
             if (pasajero && vez === 0) { avisar('La conexión tardó; lo intentamos de nuevo…'); await esperar(err?.retryAfterMs || 3000); continue; }
             break;
@@ -2218,9 +2223,10 @@ ${texto}
         if (hecho) break;
         // Solo vale la pena otra versión del archivo si la plataforma rechazó el archivo mismo.
         if (!['bad_request', 'transform_error', 'capability_disabled', 'capability_removed', 'no_publicado', 'tool_error', 'excepcion'].includes(ultimo?.code || 'excepcion')) break;
-        avisar('Probando con una versión más liviana del itinerario…');
+        avisar('Probando otra forma de enviar el itinerario…');
       }
       if (intentos.length) anotarDiagnostico({ accion: 'publicar', codigo, resultado: hecho ? 'publicado' : 'fallo', intentos });
+      if (!hecho && ultimo?.code === 'muy_grande' && intentos.some(x => x.code !== 'no_cabe')) ultimo = intentos.filter(x => x.code !== 'no_cabe').at(-1);
       if (!hecho) throw ultimo || { code: 'desconocido' };
       const pub = { codigo, ruta, url: SITIO.web + ruta, titulo: doc().tituloDe(docActual) || '', fecha: hoy(),
         cuando: new Date().toISOString(), documento: doc().nombre };

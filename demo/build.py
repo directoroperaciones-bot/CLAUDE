@@ -80,12 +80,19 @@ def main():
         "@font-face{font-family:'Poppins';font-style:normal;font-weight:%d;src:url(data:font/ttf;base64,%s) format('truetype');}"
         % (peso, base64.b64encode(open(os.path.join(PLUGIN, 'fuentes', f'Poppins-{nombre}.ttf'), 'rb').read()).decode())
         for nombre, peso in (('Regular', 400), ('Medium', 500), ('Bold', 700)))
+    # Para el itinerario interactivo (se publica en línea): las mismas Poppins recortadas al alfabeto latino, en
+    # woff2 (fuentes-web/, hechas con pyftsubset). Pesan ~7 KB cada una en lugar de ~160 KB.
+    fuentes_web = ''.join(
+        "@font-face{font-family:'Poppins';font-style:normal;font-weight:%d;src:url(data:font/woff2;base64,%s) format('woff2');}"
+        % (peso, base64.b64encode(open(os.path.join(DEMO, 'fuentes-web', f'Poppins-{nombre}.woff2'), 'rb').read()).decode())
+        for nombre, peso in (('Regular', 400), ('Medium', 500), ('Bold', 700)))
 
     app = leer(os.path.join(DEMO, 'app.html')).replace('/*__APP_JS__*/', leer(os.path.join(DEMO, 'app.js')))
     app = app.replace('/*__INTERACTIVO__*/', leer(os.path.join(DEMO, 'interactivo.js')))
     reemplazos = {
         '"__ICONOS__"': json.dumps(iconos),
         '"__FUENTES__"': json.dumps(fuentes),
+        '"__FUENTES_WEB__"': json.dumps(fuentes_web),
         '"__RECURSOS__"': json.dumps(recursos),
         '"__CIUDADES__"': leer(os.path.join(DEMO, 'geo', 'ciudades.json')),
         '"__PAISES__"': leer(os.path.join(DEMO, 'geo', 'paises.json')),

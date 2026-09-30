@@ -152,7 +152,7 @@
   .grupo-head { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
   .grupo-head p { margin: 2px 0 0; font-size: 14px; color: var(--pizarra); }
   .rejilla { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px 24px; }
-  .s12 { grid-column: span 12; } .s8 { grid-column: span 8; } .s6 { grid-column: span 6; } .s4 { grid-column: span 4; } .s3 { grid-column: span 3; }
+  .s12 { grid-column: span 12; } .s8 { grid-column: span 8; } .s6 { grid-column: span 6; } .s4 { grid-column: span 4; } .s3 { grid-column: span 3; } .s2 { grid-column: span 2; }
   .ayudita { font-size: 12px; color: var(--pizarra); margin-top: 6px; }
   .falta .campo { border-color: var(--coral); background: var(--coral-5); }
   .filas { display: grid; gap: 12px; }
@@ -225,7 +225,7 @@
 
   @media (max-width: 900px) {
     .cols { grid-template-columns: 1fr; }
-    .s8, .s6, .s4, .s3 { grid-column: span 12; }
+    .s8, .s6, .s4, .s3, .s2 { grid-column: span 12; }
     .asesor-txt { display: none; }
   }
   @media (max-width: 640px) {
