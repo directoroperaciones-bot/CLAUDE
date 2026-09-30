@@ -1404,8 +1404,10 @@
     return POL_IT.slice(i, f).trim();
   })();
   // Las fotos del banco se sirven solo dentro de esta página: para el archivo descargado se incrustan.
-  function aDataUrl(url, max = 1600) {
-    if (!url || url.startsWith('data:')) return Promise.resolve(url || '');
+  // Toda foto se reduce al ancho indicado y se guarda en JPEG, también las que ya vienen incrustadas
+  // (una foto de celular pegada tal cual puede pesar varios MB y hacer el archivo imposible de publicar).
+  function aDataUrl(url, max = 1600, calidad = 0.85) {
+    if (!url) return Promise.resolve('');
     return new Promise(res => {
       const img = new Image();
       img.onload = () => {
@@ -1413,10 +1415,11 @@
           const k = Math.min(1, max / img.naturalWidth), cv = document.createElement('canvas');
           cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
           cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-          res(cv.toDataURL('image/jpeg', 0.85));
-        } catch (_) { res(''); }
+          const nueva = cv.toDataURL('image/jpeg', calidad);
+          res(url.startsWith('data:') && url.length <= nueva.length ? url : nueva);
+        } catch (_) { res(url.startsWith('data:') ? url : ''); }
       };
-      img.onerror = () => res('');
+      img.onerror = () => res(url.startsWith('data:') ? url : '');
       img.src = url;
     });
   }
@@ -2005,8 +2008,9 @@
     return { svg: `<svg viewBox="0 0 ${W} ${H}" data-w="${W}" data-h="${H}" data-pts="${esc(JSON.stringify(pts))}" data-km="${esc(JSON.stringify(paradas.slice(1).map((p, i) => Math.round(kmEntre([0, 0, 0, paradas[i].lat, paradas[i].lon], [0, 0, 0, p.lat, p.lon])))))}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Mapa de la ruta del viaje"><rect class="mar" width="${W}" height="${H}"/>${paths.join('')}${tramos.join('')}${marcas.join('')}${avion}</svg>`, visitados: [...visitados] };
   }
 
-  async function htmlItinerario(d, { incrustar = false } = {}) {
-    const foto = async (u, max) => (u ? (incrustar ? await aDataUrl(u, max) : u) : '');
+  async function htmlItinerario(d, { incrustar = false, ligero = false } = {}) {
+    // Versión liviana (plan B al publicar): fotos más pequeñas y más comprimidas.
+    const foto = async (u, max) => (u ? (incrustar ? await aDataUrl(u, ligero ? Math.round(max * 0.6) : max, ligero ? 0.7 : 0.85) : u) : '');
     const portada = await foto(d.foto_portada, 1600);
     const titulo = String(d.titulo || '').split('\n').map(e).join('<br>');
     const secciones = [];
@@ -3392,6 +3396,30 @@ ${texto}
     blocked_by_policy: 'La organización no permite usar Composio desde esta página.',
     approval_required: 'La organización exige aprobar cada uso de Composio; desde esta página todavía no se puede.',
   };
+  // Registro de diagnóstico: solo el código y el tamaño del intento (sin datos de clientes), para poder
+  // revisar desde fuera qué respondió la plataforma cuando algo falla.
+  async function anotarDiagnostico(info) {
+    try {
+      const db = await window.claude.use('db');
+      await db.doc('diagnostico/' + Date.now()).set({ cuando: new Date().toISOString(), ...info });
+    } catch (_) {}
+  }
+  const esperar = ms => new Promise(r => setTimeout(r, ms));
+  // Un intento de subir el archivo a GitHub por Composio. Devuelve la respuesta o lanza {code, message}.
+  async function subirAGithub(ruta, contenido, mensaje) {
+    const r = await mcp.callTool(COMPOSIO, 'COMPOSIO_MULTI_EXECUTE_TOOL', {
+      tools: [{ tool_slug: 'GITHUB_CREATE_OR_UPDATE_FILE_CONTENTS', arguments: {
+        owner: SITIO.dueno, repo: SITIO.repo, path: ruta, content: contenido, message: mensaje } }],
+      sync_response_to_workbench: false,
+      thought: 'Publicar el itinerario interactivo del grupo en GitHub Pages.',
+      current_step: 'PUBLICAR_ITINERARIO',
+    });
+    let p = r?.payload;
+    if (typeof p === 'string') { try { p = JSON.parse(p); } catch (_) {} }
+    const res = p?.data?.results?.[0]?.response;
+    if (!res?.successful) throw { code: 'no_publicado', message: res?.error || p?.error || '' };
+    return res;
+  }
   $('#btn-publicar').addEventListener('click', async () => {
     const out = $('#estado-3'), btn = $('#btn-publicar');
     if (!mcp) { out.className = 'estado error'; out.textContent = 'Publicar funciona al abrir la app desde claude.ai con el conector Composio.'; return; }
@@ -3399,32 +3427,50 @@ ${texto}
     const previa = publicados[codigo];
     // La ruta lleva unas letras al azar para que el enlace no se pueda adivinar; se conserva entre publicaciones.
     const ruta = previa?.ruta || `${codigo}-${Array.from(crypto.getRandomValues(new Uint8Array(6)), n => 'abcdefghijkmnpqrstuvwxyz23456789'[n % 32]).join('')}.html`;
+    const mensaje = `${previa ? 'Actualizar' : 'Publicar'} itinerario ${codigo}`;
     btn.disabled = true;
-    out.className = 'estado girando';
-    out.innerHTML = `<i data-lucide="loader-circle"></i><span>${previa ? 'Actualizando' : 'Publicando'} el itinerario del grupo…</span>`;
-    iconos(out);
+    const avisar = t => { out.className = 'estado girando'; out.innerHTML = `<i data-lucide="loader-circle"></i><span>${t}</span>`; iconos(out); };
+    avisar(`${previa ? 'Actualizando' : 'Publicando'} el itinerario del grupo…`);
+    const intentos = [];
+    let ultimo = null;
     try {
-      // Versión de grupo: el mismo enlace es para todos los pasajeros, sin nombre individual.
-      const html = await doc().interactivo({ ...docActual, pasajero: '' }, { incrustar: true });
       const lista = await mcp.listTools().catch(() => null);
-      let contenido;
-      if (lista?.fileArgs) contenido = { $file: { data: new Blob([html], { type: 'text/plain' }), name: 'itinerario.txt', type: 'text/plain' } };
-      else {
-        contenido = await aBase64(html);
-        if (contenido.length > 950000) throw { code: 'muy_grande' };
+      // Plan de intentos: la versión normal y, si la plataforma rechaza el archivo, una versión con fotos
+      // más livianas y como página web. Los tropiezos pasajeros se reintentan una vez.
+      const planes = [
+        { ligero: false, tipo: 'text/plain', nombre: 'itinerario.txt' },
+        { ligero: false, tipo: 'text/html', nombre: 'itinerario.html' },
+        { ligero: true, tipo: 'text/plain', nombre: 'itinerario.txt' },
+      ];
+      let hecho = false;
+      for (const plan of planes) {
+        // Versión de grupo: el mismo enlace es para todos los pasajeros, sin nombre individual.
+        const html = await doc().interactivo({ ...docActual, pasajero: '' }, { incrustar: true, ligero: plan.ligero });
+        let contenido;
+        if (lista?.fileArgs) contenido = { $file: { data: new Blob([html], { type: plan.tipo }), name: plan.nombre, type: plan.tipo } };
+        else {
+          contenido = await aBase64(html);
+          if (contenido.length > 950000) { if (!plan.ligero) continue; throw { code: 'muy_grande' }; }
+        }
+        for (let vez = 0; vez < 2 && !hecho; vez++) {
+          try {
+            await subirAGithub(ruta, contenido, mensaje);
+            hecho = true;
+          } catch (err) {
+            ultimo = err;
+            intentos.push({ code: err?.code || 'excepcion', message: String(err?.message || err || '').slice(0, 300), tam: html.length, ligero: plan.ligero, tipo: plan.tipo, fileArgs: !!lista?.fileArgs });
+            const pasajero = ['server_unavailable', 'rate_limited'].includes(err?.code) || (err?.code === 'upstream_error' && err?.retryable);
+            if (pasajero && vez === 0) { avisar('La conexión tardó; lo intentamos de nuevo…'); await esperar(err?.retryAfterMs || 3000); continue; }
+            break;
+          }
+        }
+        if (hecho) break;
+        // Solo vale la pena otra versión del archivo si la plataforma rechazó el archivo mismo.
+        if (!['bad_request', 'transform_error', 'capability_disabled', 'capability_removed', 'no_publicado', 'tool_error', 'excepcion'].includes(ultimo?.code || 'excepcion')) break;
+        avisar('Probando con una versión más liviana del itinerario…');
       }
-      const r = await mcp.callTool(COMPOSIO, 'COMPOSIO_MULTI_EXECUTE_TOOL', {
-        tools: [{ tool_slug: 'GITHUB_CREATE_OR_UPDATE_FILE_CONTENTS', arguments: {
-          owner: SITIO.dueno, repo: SITIO.repo, path: ruta, content: contenido,
-          message: `${previa ? 'Actualizar' : 'Publicar'} itinerario ${codigo}` } }],
-        sync_response_to_workbench: false,
-        thought: 'Publicar el itinerario interactivo del grupo en GitHub Pages.',
-        current_step: 'PUBLICAR_ITINERARIO',
-      });
-      let p = r?.payload;
-      if (typeof p === 'string') { try { p = JSON.parse(p); } catch (_) {} }
-      const res = p?.data?.results?.[0]?.response;
-      if (!res?.successful) throw { code: 'no_publicado', message: res?.error || p?.error || '' };
+      if (intentos.length) anotarDiagnostico({ accion: 'publicar', codigo, resultado: hecho ? 'publicado' : 'fallo', intentos });
+      if (!hecho) throw ultimo || { code: 'desconocido' };
       const pub = { codigo, ruta, url: SITIO.web + ruta, titulo: doc().tituloDe(docActual) || '', fecha: hoy(),
         cuando: new Date().toISOString(), documento: doc().nombre };
       publicados[codigo] = pub;
@@ -3436,6 +3482,7 @@ ${texto}
         ? 'Listo: actualizamos el itinerario. En más o menos un minuto los pasajeros ven los cambios con el mismo enlace.'
         : 'Listo: el itinerario queda en línea en más o menos un minuto. Copia el enlace y ánclalo en el grupo de WhatsApp.';
     } catch (err) {
+      if (!intentos.length) anotarDiagnostico({ accion: 'publicar', codigo, resultado: 'fallo', intentos: [{ code: err?.code || 'excepcion', message: String(err?.message || err || '').slice(0, 300) }] });
       out.className = 'estado error';
       const c = err?.code;
       out.textContent = MENSAJES_MCP[c]
@@ -3444,7 +3491,10 @@ ${texto}
         : c === 'tool_error' ? 'Composio respondió con un error: ' + String(err.message || '').slice(0, 160)
         : c === 'server_unavailable' || c === 'upstream_error'
           ? 'No tuvimos respuesta a tiempo. Puede que sí se haya publicado: espera un minuto y abre el enlace; si no cambió, vuelve a publicar.'
-          : 'No se pudo publicar. Inténtalo de nuevo.');
+        : c === 'not_granted' || c === 'capability_disabled' || c === 'capability_removed'
+          ? 'Esta vista no permite publicar. Abre la app desde claude.ai (no desde una vista previa) y vuelve a intentarlo.'
+        : c === 'cancelled' ? 'La publicación se canceló. Vuelve a intentarlo.'
+          : `No se pudo publicar (código: ${c || 'sin código'}${err?.message ? ' · ' + String(err.message).slice(0, 120) : ''}). Quedó anotado para revisarlo; inténtalo de nuevo en un momento.`);
     } finally { btn.disabled = false; }
   });
 

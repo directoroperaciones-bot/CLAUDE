@@ -12,8 +12,10 @@
     return POL_IT.slice(i, f).trim();
   })();
   // Las fotos del banco se sirven solo dentro de esta página: para el archivo descargado se incrustan.
-  function aDataUrl(url, max = 1600) {
-    if (!url || url.startsWith('data:')) return Promise.resolve(url || '');
+  // Toda foto se reduce al ancho indicado y se guarda en JPEG, también las que ya vienen incrustadas
+  // (una foto de celular pegada tal cual puede pesar varios MB y hacer el archivo imposible de publicar).
+  function aDataUrl(url, max = 1600, calidad = 0.85) {
+    if (!url) return Promise.resolve('');
     return new Promise(res => {
       const img = new Image();
       img.onload = () => {
@@ -21,10 +23,11 @@
           const k = Math.min(1, max / img.naturalWidth), cv = document.createElement('canvas');
           cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
           cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-          res(cv.toDataURL('image/jpeg', 0.85));
-        } catch (_) { res(''); }
+          const nueva = cv.toDataURL('image/jpeg', calidad);
+          res(url.startsWith('data:') && url.length <= nueva.length ? url : nueva);
+        } catch (_) { res(url.startsWith('data:') ? url : ''); }
       };
-      img.onerror = () => res('');
+      img.onerror = () => res(url.startsWith('data:') ? url : '');
       img.src = url;
     });
   }
@@ -613,8 +616,9 @@
     return { svg: `<svg viewBox="0 0 ${W} ${H}" data-w="${W}" data-h="${H}" data-pts="${esc(JSON.stringify(pts))}" data-km="${esc(JSON.stringify(paradas.slice(1).map((p, i) => Math.round(kmEntre([0, 0, 0, paradas[i].lat, paradas[i].lon], [0, 0, 0, p.lat, p.lon])))))}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Mapa de la ruta del viaje"><rect class="mar" width="${W}" height="${H}"/>${paths.join('')}${tramos.join('')}${marcas.join('')}${avion}</svg>`, visitados: [...visitados] };
   }
 
-  async function htmlItinerario(d, { incrustar = false } = {}) {
-    const foto = async (u, max) => (u ? (incrustar ? await aDataUrl(u, max) : u) : '');
+  async function htmlItinerario(d, { incrustar = false, ligero = false } = {}) {
+    // Versión liviana (plan B al publicar): fotos más pequeñas y más comprimidas.
+    const foto = async (u, max) => (u ? (incrustar ? await aDataUrl(u, ligero ? Math.round(max * 0.6) : max, ligero ? 0.7 : 0.85) : u) : '');
     const portada = await foto(d.foto_portada, 1600);
     const titulo = String(d.titulo || '').split('\n').map(e).join('<br>');
     const secciones = [];
