@@ -138,9 +138,11 @@
     }
     return { texto: t.trim(), comidas, hotel };
   }
-  function diasCotizacion(items, llegada) {
-    const inicio = diaUTC(llegada);
+  function diasCotizacion(items, ...fechasViaje) {
     const porFecha = items.map(s => diaUTC(s.fecha));
+    // El día 1 es la fecha más temprana del viaje (aunque llegada y salida vengan invertidas).
+    const conocidas = [...fechasViaje.map(diaUTC), ...porFecha].filter(Boolean);
+    const inicio = conocidas.length ? new Date(Math.min(...conocidas)) : null;
     // Cada día es un bloque suelto del flujo: el reparto puede pasar días enteros a la hoja siguiente.
     return items.map((s, i) => {
       const f = porFecha[i];
@@ -179,7 +181,7 @@
     if (iti.length) {
       h = h.replace('</style>', () => CSS_DIAS_COT + '\n</style>');
       h = h.replace(/(<h2 class="sec"[^>]*>)Itinerario <span([^>]*)>de servicios<\/span>/, (_, a, b) => `${a}Itinerario <span${b}>día a día</span>`);
-      h = h.replace(itiTabla, () => diasCotizacion(iti, d0.fecha_llegada));
+      h = h.replace(itiTabla, () => diasCotizacion(iti, d0.fecha_llegada, d0.fecha_salida));
     } else h = h.replace(new RegExp('\\s*<h2 class="sec"[^>]*>Itinerario <span[^>]*>de servicios<\\/span><\\/h2>\\s*<span class="dash"[^>]*><\\/span>\\s*' + itiTabla.source), () => '');
     const parrafos = String(d.condiciones_pago).trim().split(/\n\s*\n/).filter(p => p.trim());
     h = rep(h, '{{condiciones_pago}}', parrafos.length === 1 ? e(parrafos[0]) : parrafos.map(p => `<p style="margin:0 0 10px;">${e(p)}</p>`).join(''));
@@ -347,6 +349,9 @@
     };
     const fondo = (el, p) => el.getBoundingClientRect().bottom - p.getBoundingClientRect().top;
     const dentro = el => el.querySelector('tbody') ? [...el.querySelector('tbody').rows] : el.matches('div') && getComputedStyle(el).flexWrap === 'wrap' ? [...el.children] : [];
+    // Fondo real de un bloque: en listas y tablas, donde termina su último ítem. El margen que sobra debajo
+    // del último renglón no es contenido: si solo eso se pasa del límite, el bloque cabe y no se mueve.
+    const fondoB = (el, p) => { const it = dentro(el); return it.length ? Math.max(...it.map(x => fondo(x, p))) : fondo(el, p); };
     // Parte un elemento divisible (tabla, tarjeta con tabla, lista a dos columnas) en el primer ítem
     // que no cabe. Devuelve la copia con lo que pasa a la hoja siguiente, o null si no se puede.
     function partir(el, p) {
@@ -391,15 +396,15 @@
       if (els[0].dataset.mt !== undefined) { els[0].style.marginTop = els[0].dataset.mt; delete els[0].dataset.mt; }
     }
     const contenido = () => paginas().filter(p => !esPol(p));
-    const cabe = p => bloques(p).every(b => fondo(b.at(-1), p) <= limite);
+    const cabe = p => bloques(p).every(b => fondoB(b.at(-1), p) <= limite);
     function repartir() {
     for (let vuelta = 0; vuelta < 60; vuelta++) {
       const todas = paginas();
-      const idx = todas.findIndex(p => !esPol(p) && bloques(p).some(b => fondo(b.at(-1), p) > limite));
+      const idx = todas.findIndex(p => !esPol(p) && bloques(p).some(b => fondoB(b.at(-1), p) > limite));
       if (idx === -1) break;
       const p = todas[idx];
       const bs = bloques(p);
-      const k = bs.findIndex(b => fondo(b.at(-1), p) > limite);
+      const k = bs.findIndex(b => fondoB(b.at(-1), p) > limite);
       const mover = [];
       const ultimo = bs[k].at(-1);
       const copia = partir(ultimo, p);
