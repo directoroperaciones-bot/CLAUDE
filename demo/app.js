@@ -436,8 +436,41 @@
         alFinal(a, primero);
         if (cabe(a)) continue;
         aHoja(b, primero);
+        if (rellenar(a, b, primero)) continue;
         k++;
       }
+    }
+    // Relleno: si la hoja anterior queda con mucho espacio libre y la sección siguiente no cabe entera,
+    // se aprovecha el hueco sin partir mal nada. Primero se prueba subir la sección sin su nota final
+    // (la nota queda al inicio de la hoja siguiente); si no alcanza, se parte la tabla o la lista,
+    // con al menos 2 renglones en cada hoja y el encabezado repetido.
+    const HUECO = 300;
+    function libre(p) { const f = flujoDe(p); return f.length ? limite - Math.max(...f.map(x => fondoB(x, p))) : limite; }
+    function rellenar(a, b, bloque) {
+      if (libre(a) < HUECO) return false;
+      const iDiv = bloque.findIndex(x => dentro(x).length >= 2);
+      if (iDiv < 0) return false;
+      const div = bloque[iDiv], cola = bloque.slice(iDiv + 1);
+      // 1) La sección completa, sin lo que va después de la tabla o lista.
+      if (cola.length) {
+        alFinal(a, bloque.slice(0, iDiv + 1));
+        if (cabe(a)) return true;
+        aHoja(b, bloque.slice(0, iDiv + 1));
+      }
+      // 2) Partir la tabla o la lista.
+      if (dentro(div).length < 4) return false;
+      alFinal(a, bloque);
+      const copia = partir(div, a);
+      const quedan = dentro(div).length, pasan = copia ? dentro(copia).length : 0;
+      if (!copia || quedan < 2 || pasan < 2 || !cabe(a)) {
+        // Se deshace: los renglones que pasaron vuelven a su tabla o lista, y todo baja a la hoja siguiente.
+        if (copia) { const dest = div.querySelector('tbody') || div; dentro(copia).forEach(x => dest.append(x)); }
+        aHoja(b, bloque);
+        return false;
+      }
+      copia.dataset.cont = '1';
+      aHoja(b, [copia, ...cola]);
+      return true;
     }
     const juntarYRepartir = () => {
       const cont = contenido();
