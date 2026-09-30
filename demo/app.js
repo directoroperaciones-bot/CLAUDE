@@ -1165,7 +1165,7 @@ El voucher no es reembolsable ni transferible.`,
   ];
   const baseItinerario = {
     archivo: 'Itinerario', codigo: d => d.codigo, tituloDe: d => String(d.titulo || '').replace(/\s*\n\s*/g, ' '), clienteDe: d => d.grupo || d.pasajero,
-    armar: armarItinerario, flujo: null,
+    armar: armarItinerario, flujo: null, desdeBase: true,
     validar(d) {
       const f = [];
       [['codigo', 'Código del itinerario'], ['titulo', 'Título del viaje'], ['fecha_inicio', 'Fecha de inicio'], ['fecha_fin', 'Fecha de fin'], ['pasajero', 'Pasajero o grupo']]
@@ -1949,7 +1949,8 @@ ${texto}
     }, `el voucher ${v.codigo_voucher}`);
   }
 
-  function confAItinerario(c, desde) {
+  function confAItinerario(c, desde, { doc: forzar, texto } = {}) {
+    c = { ...c, hoteles: (c.hoteles || []).filter(h => !vacio(h.hotel)) }; // un hotel sin nombre no se menciona en el día a día
     const trayectos = (c.aereo || []).flatMap(a => a.trayectos || []).filter(t => !vacio(t.ruta) || !vacio(t.vuelo))
       .sort((a, b) => `${a.fecha} ${a.sale}`.localeCompare(`${b.fecha} ${b.sale}`));
     const siguiente = f => { const d = diaUTC(f); if (!d) return ''; d.setUTCDate(d.getUTCDate() + 1); return isoUTC(d); };
@@ -1996,7 +1997,7 @@ ${texto}
       const cot = guardados.find(r => r.doc === 'cotizacion' && expedienteDe(r.datos.codigo_cotizacion) === exp);
       if (cot) { incluye = plano(cot.datos.incluye); noIncluye = plano(cot.datos.no_incluye); }
     }
-    const largo = vuelos.length > 0 || dias.length > 4;
+    const largo = forzar ? forzar === 'itinerario' : vuelos.length > 0 || dias.length > 4;
     const datos = {
       codigo: expedienteDe(c.codigo_reserva), titulo: c.titulo_viaje || '', subtitulo: '', destino: c.destino || '',
       fecha_inicio: c.fecha_salida || '', fecha_fin: c.fecha_regreso || '', grupo: '', acompanamiento: '', pasajero: c.nombre_viajero || '',
@@ -2006,7 +2007,7 @@ ${texto}
     };
     abrirConvertido(largo ? 'itinerario' : 'itinerario_corto', datos, {
       desde: desde || `la confirmación ${c.codigo_reserva}`, pegar: 'Pegar el programa del viaje',
-      texto: 'Pasamos las fechas, los vuelos, los hoteles y lo que incluye, y armamos un borrador del día a día con los vuelos, traslados y hoteles de cada fecha. Completa las actividades de cada día, o pega el programa del proveedor y Claude lo completa sin perder lo que ya está.',
+      texto: texto || 'Pasamos las fechas, los vuelos, los hoteles y lo que incluye, y armamos un borrador del día a día con los vuelos, traslados y hoteles de cada fecha. Completa las actividades de cada día, o pega el programa del proveedor y Claude lo completa sin perder lo que ya está.',
     });
   }
 
@@ -2514,6 +2515,15 @@ ${texto}
       }
       const datos = confirmacionDesdeBase(tab, cons);
       if (!datos) { pinta(`No encontramos la venta ${cons.toUpperCase()} en la base. Revisa el consecutivo.`, 'error'); return; }
+      // Itinerario: se arma como desde una confirmación, con lo que la base registra (fechas, pasajeros,
+      // tiquetes, hoteles y servicios). La base no tiene actividades por día: el día a día queda para completar.
+      if (docId === 'itinerario' || docId === 'itinerario_corto') {
+        const faltan = ['las actividades de cada día (pega el programa del proveedor y Claude lo completa)'];
+        if (docId === 'itinerario' && datos.aereo.some(a => a.trayectos.some(t => !t.vuelo))) faltan.push('número de vuelo, fecha y horas de cada trayecto');
+        if (docId === 'itinerario') faltan.push(datos.hoteles.some(h => !vacio(h.hotel)) ? 'la ciudad y las fechas exactas de cada hotel' : 'hoteles, si los hay (la base no trae su nombre)');
+        return confAItinerario(datos, nombreVenta, { doc: docId,
+          texto: `Trajimos de la base el destino, las fechas, los pasajeros, los tiquetes, los hoteles y lo que incluye, y armamos un borrador de cada día. Revisa y completa lo que la base no tiene: ${faltan.join('; ')}.` });
+      }
       const faltan = [];
       if (datos.aereo.some(a => a.trayectos.some(t => !t.vuelo))) faltan.push('número de vuelo, fecha y horas de cada trayecto');
       if (!datos.estado_pago) faltan.push('el estado de pago (la base no dice si ya se pagó todo: elige «Abono recibido» o «Pagado en su totalidad»)');
