@@ -110,6 +110,50 @@
   }
 
   // ================= motor: cotización (skills/caminos-cotizacion/scripts/generar.py) =================
+  // Recuadros de día del itinerario de la cotización (mismo lenguaje visual que el documento de itinerario).
+  const CSS_DIAS_COT = `
+  .dash + .dia-cot { margin-top:20px; }
+  .rule + .dia-cot { margin-top:26px; }
+  .dia-cot { border:1px solid #E2E0DD; border-radius:18px; background:#FFFFFF; padding:20px 26px 18px; margin-bottom:14px; }
+  .dia-cot-head { display:flex; align-items:center; margin-bottom:10px; }
+  .dia-cot-pill { display:inline-flex; align-items:center; background:#F25061; color:#FFFFFF; border-radius:999px; padding:7px 16px; margin-right:14px;
+    font:700 13px/1 'Poppins',sans-serif; letter-spacing:0.14em; text-transform:uppercase; }
+  .dia-cot-fecha { font:600 13.5px/1.2 'Poppins',sans-serif; letter-spacing:0.14em; text-transform:uppercase; color:#7E859A; }
+  .dia-cot-titulo { margin:0 0 6px; font:700 21px/1.3 'Poppins',sans-serif; letter-spacing:-0.01em; color:#1F2024; }
+  .dia-cot-texto { margin:0; font:400 15.5px/1.6 'Poppins',sans-serif; color:#3A3C42; }
+  .dia-cot-tags { margin-top:12px; display:flex; flex-wrap:wrap; }
+  .dia-cot-tag { display:inline-flex; align-items:center; background:#FDE9EB; color:#1F2024; border-radius:999px; padding:6px 15px; margin:0 9px 6px 0;
+    font:600 13px/1 'Poppins',sans-serif; }
+  .dia-cot-tag.hotel { background:#F8F5F2; border:1px solid #E2E0DD; color:#3A3C42; }`;
+  // Del detalle salen las etiquetas: las comidas del inicio ("Desayuno.") y el alojamiento ("Alojamiento: Petén.").
+  function partesDia(detalle) {
+    let t = String(detalle || '').trim();
+    let hotel = '';
+    t = t.replace(/\s*(?:Alojamiento|Hospedaje|Noche en|Hotel)\s*:\s*([^.]+)\.?\s*$/i, (_, x) => { hotel = x.trim(); return ''; }).trim();
+    const comidas = [];
+    let m;
+    while ((m = /^(Desayuno|Almuerzo|Cena)(?:\s+(?:y|e)\s+(desayuno|almuerzo|cena))?(?:\s+incluid[oa]s?)?\s*[.,]\s*/i.exec(t))) {
+      comidas.push(oracion(m[1])); if (m[2]) comidas.push(oracion(m[2]));
+      t = t.slice(m[0].length);
+    }
+    return { texto: t.trim(), comidas, hotel };
+  }
+  function diasCotizacion(items, llegada) {
+    const inicio = diaUTC(llegada);
+    const porFecha = items.map(s => diaUTC(s.fecha));
+    // Cada día es un bloque suelto del flujo: el reparto puede pasar días enteros a la hoja siguiente.
+    return items.map((s, i) => {
+      const f = porFecha[i];
+      const n = inicio && f && f >= inicio ? Math.round((f - inicio) / 864e5) + 1 : i + 1;
+      const fechaTxt = f ? String(fecha(s.fecha, 'dia')).replace(/,?\s*\d{4}$/, '') : '';
+      const { texto, comidas, hotel } = partesDia(s.detalle);
+      const tags = [...comidas.map(c => `<span class="dia-cot-tag">${e(c)}</span>`), ...(hotel ? [`<span class="dia-cot-tag hotel">Alojamiento: ${e(hotel)}</span>`] : [])].join('');
+      return `<div class="dia-cot"><div class="dia-cot-head"><span class="dia-cot-pill">Día ${d2(n)}</span>${fechaTxt ? `<span class="dia-cot-fecha">${e(fechaTxt)}</span>` : ''}</div>`
+        + (vacio(s.servicio) ? '' : `<h3 class="dia-cot-titulo">${e(s.servicio)}</h3>`)
+        + (texto ? `<p class="dia-cot-texto">${e(texto)}</p>` : '')
+        + (tags ? `<div class="dia-cot-tags">${tags}</div>` : '') + '</div>';
+    }).join('\n  ');
+  }
   function armarCotizacion(d0) {
     const d = clonar(d0);
     d.fecha_llegada = fecha(d.fecha_llegada, 'coma');
@@ -129,13 +173,17 @@
     else h = h.replace(/\s*<h2 class="sec"[^>]*>El precio <span[^>]*>no incluye<\/span><\/h2>\s*<span class="dash"[^>]*><\/span>\s*<div[^>]*>\s*\{\{items_no_incluye\}\}\s*<\/div>/, () => '');
     h = rep(h, '{{filas_tarifas}}', d.tarifas.filter(t => !vacio(t.valor)).map(t =>
       rep(rep(rep(pTar, 'HOTEL', e(t.hotel || '')), 'ACOMODACIÓN', e(t.acomodacion || '')), '$VALOR', e(t.valor))).join('\n      '));
-    const iti = (d.itinerario || []).filter(s => ['servicio', 'fecha', 'detalle'].some(k => !vacio(s[k])));
-    if (iti.length) h = rep(h, '{{filas_itinerario}}', iti.map(s =>
-      rep(rep(rep(pIti, 'SERVICIO', e(s.servicio || '')), 'FECHA', e(s.fecha || '')), 'DETALLE', e(s.detalle || ''))).join('\n      '));
-    else h = h.replace(/\s*<h2 class="sec"[^>]*>Itinerario <span[^>]*>de servicios<\/span><\/h2>\s*<span class="dash"[^>]*><\/span>\s*<table[^>]*>[\s\S]*?\{\{filas_itinerario\}\}[\s\S]*?<\/table>/, () => '');
+    // Itinerario: un recuadro por día, como en el documento de itinerario (en vez de la tabla de la plantilla).
+    const itiTabla = /<table[^>]*>\s*<thead><tr><th>Servicio<\/th>[\s\S]*?\{\{filas_itinerario\}\}[\s\S]*?<\/table>/;
+    const iti = (d0.itinerario || []).filter(s => ['servicio', 'fecha', 'detalle'].some(k => !vacio(s[k])));
+    if (iti.length) {
+      h = h.replace('</style>', () => CSS_DIAS_COT + '\n</style>');
+      h = h.replace(/(<h2 class="sec"[^>]*>)Itinerario <span([^>]*)>de servicios<\/span>/, (_, a, b) => `${a}Itinerario <span${b}>día a día</span>`);
+      h = h.replace(itiTabla, () => diasCotizacion(iti, d0.fecha_llegada));
+    } else h = h.replace(new RegExp('\\s*<h2 class="sec"[^>]*>Itinerario <span[^>]*>de servicios<\\/span><\\/h2>\\s*<span class="dash"[^>]*><\\/span>\\s*' + itiTabla.source), () => '');
     const parrafos = String(d.condiciones_pago).trim().split(/\n\s*\n/).filter(p => p.trim());
     h = rep(h, '{{condiciones_pago}}', parrafos.length === 1 ? e(parrafos[0]) : parrafos.map(p => `<p style="margin:0 0 10px;">${e(p)}</p>`).join(''));
-    if (String(d.asesor.correo || '').trim().length > 28) {
+    if (String(d.asesor.correo || '').trim().length > 24) {
       h = h.replace('<div style="width:25%;padding-right:14px;"><span class="meta-label">Vigencia', () => '<div style="width:24%;padding-right:14px;"><span class="meta-label">Vigencia');
       h = h.replace('<div style="width:22%;padding-right:14px;"><span class="meta-label">Tu asesor', () => '<div style="width:18%;padding-right:14px;"><span class="meta-label">Tu asesor');
       h = h.replace('<div style="width:33%;padding-right:14px;"><span class="meta-label">Correo', () => '<div style="width:38%;padding-right:14px;"><span class="meta-label">Correo');
@@ -866,8 +914,8 @@
         { t: 'Tarifas', sub: 'Una fila por hotel u opción.', icono: 'building-2', campos: [
           { k: 'modo_valor', label: 'Los valores son', w: 4, tipo: 'opciones', opciones: [['persona', 'Por persona'], ['total', 'Total del viaje (todos los pasajeros)']] },
           { tipo: 'filas', k: 'tarifas', req: 1, mas: 'Agregar tarifa', cols: [T('hotel', 'Hotel', 2), T('acomodacion', 'Acomodación', 1.2), T('valor', 'Valor', 1, { ph: '$0' }), { k: 'foto', label: 'Foto', w: 1.6, tipo: 'foto', max: 900 }] }] },
-        { t: 'Itinerario de servicios', sub: 'Opcional. Si lo dejas vacío, la sección no aparece.', icono: 'route', campos: [
-          { tipo: 'filas', k: 'itinerario', mas: 'Agregar servicio', min: 0, cols: [T('servicio', 'Servicio', 2), D('fecha', 'Fecha', 1.1), T('detalle', 'Detalle', 1.2)] }] },
+        { t: 'Itinerario día a día', sub: 'Opcional. Un renglón por día; sale en recuadros como el itinerario. Si lo dejas vacío, la sección no aparece.', icono: 'route', campos: [
+          { tipo: 'filas', k: 'itinerario', mas: 'Agregar día', min: 0, cols: [T('servicio', 'Título del día', 1.6), D('fecha', 'Fecha', 1.1), T('detalle', 'Qué se hace (termina con «Alojamiento: ciudad»)', 2.4)] }] },
         { t: 'Condiciones y asesor', sub: 'Lo que el cliente debe saber antes de confirmar.', icono: 'file-text', campos: [
           A('condiciones_pago', 'Condiciones de pago', 8, { req: 1, filas: 4 }), D('vigencia', 'Vigencia de la cotización', 4, { req: 1 }),
           T('asesor.nombre', 'Tu nombre', 4, { req: 1 }), T('asesor.correo', 'Tu correo', 4, { req: 1 }), T('asesor.telefono', 'Tu teléfono', 4, { req: 1 })] },
@@ -911,7 +959,7 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
 - "parrafo_intro": una o dos frases para el cliente, en primera persona del plural ("Preparamos esta cotización para..."). Puedes resaltar con **negrita** el grupo de viajeros.
 - "noches" y "pasajeros" en texto corto: "4 noches", "4 personas (2 adultos, 2 niños)".
 - "incluye" y "no_incluye": un servicio por elemento, frases cortas que empiecen en mayúscula.
-- "itinerario": solo servicios con fecha u hora dados en el texto.
+- "itinerario": el programa día a día, solo con lo que dice el texto: un elemento por día, "servicio" = título corto del día ("Parque Nacional Tikal"), "detalle" = lo que se hace, empezando con las comidas incluidas si las dice ("Desayuno. Visita guiada…") y terminando con "Alojamiento: <ciudad>." si la dice.
 - "condiciones_pago": redacta en un párrafo lo que el texto dice sobre abonos, saldos y cancelaciones.
 - "codigo_cotizacion": solo si el texto trae uno.`,
     },
