@@ -73,6 +73,8 @@
   .btn svg { width: 18px; height: 18px; }
   .enlace { background: none; border: 0; padding: 0; color: var(--coral); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
   .enlace:hover { opacity: .78; }
+  .enlace.eliminar { color: var(--pizarra); margin-left: 16px; }
+  .enlace.eliminar:hover { color: #C0392B; opacity: 1; }
 
   /* ---------- tarjetas ---------- */
   .papel { background: var(--blanco); border: 1px solid var(--hairline); border-radius: 20px; box-shadow: var(--sombra-reposo); }
@@ -321,7 +323,8 @@
   <section id="v-documentos" hidden>
     <span class="eyebrow">Historial</span>
     <h1 class="display">Mis <span class="c">documentos</span></h1>
-    <p class="lead">Todo lo que ha generado el equipo, agrupado por viaje. Abre cualquiera para verlo de nuevo o descargarlo.</p>
+    <p class="lead">Todo lo que ha generado el equipo, agrupado por viaje. Abre cualquiera para verlo de nuevo o descargarlo, o elimínalo si ya no sirve.</p>
+    <p class="estado" id="docs-msg" role="status" aria-live="polite"></p>
     <div class="tabla-wrap" style="margin-top:28px;"><table class="lista" id="tabla-todos"></table></div>
   </section>
 

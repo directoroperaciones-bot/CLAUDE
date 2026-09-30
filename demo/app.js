@@ -1418,25 +1418,56 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
   let dbDocs = null;
   const idDoc = (doc, datos) => doc + '__' + (slug(DOCS[doc]?.codigo(datos)) || 'sin-codigo');
   const momento = r => String(r.cuando || r.fecha || '');
+  // Documentos eliminados: la colección «borrados» guarda solo el identificador y el momento en que se
+  // eliminó (sin datos del cliente). Así la copia local de otro navegador no lo vuelve a subir ni a mostrar.
+  // Si el documento se vuelve a generar después, la versión nueva es más reciente y vuelve a aparecer.
+  let borrados = new Map();
+  const estaBorrado = r => { const b = borrados.get(idDoc(r.doc, r.datos)); return !!b && momento(r) <= b; };
   async function subirDoc(r) {
     if (!dbDocs) return;
-    try { await dbDocs.doc('documentos/' + idDoc(r.doc, r.datos)).set({ doc: r.doc, fecha: r.fecha, cuando: r.cuando || new Date().toISOString(), datos: sinFotos(r.datos) }); } catch (_) {}
+    const id = idDoc(r.doc, r.datos);
+    try { await dbDocs.doc('documentos/' + id).set({ doc: r.doc, fecha: r.fecha, cuando: r.cuando || new Date().toISOString(), datos: sinFotos(r.datos) }); } catch (_) {}
+    if (borrados.has(id)) { borrados.delete(id); try { await dbDocs.doc('borrados/' + id).delete(); } catch (_) {} }
+  }
+  async function eliminarDoc(r) {
+    const id = idDoc(r.doc, r.datos), ahora = new Date().toISOString();
+    borrados.set(id, ahora);
+    guardados = guardados.filter(g => idDoc(g.doc, g.datos) !== id);
+    guardar();
+    pintarListas();
+    if (!dbDocs) return true;
+    try {
+      await dbDocs.doc('borrados/' + id).set({ cuando: ahora });
+      await dbDocs.doc('documentos/' + id).delete();
+      return true;
+    } catch (_) { return false; }
   }
   (async () => {
     dbDocs = window.claude?.use ? await window.claude.use('db').catch(() => null) : null;
     if (!dbDocs) return;
+    // Primero se conocen los eliminados, para que la primera sincronización no suba ninguno de nuevo.
+    await new Promise(listo => {
+      dbDocs.collection('borrados').onSnapshot(snap => {
+        borrados = new Map(snap.docs.filter(d => d.exists).map(d => [d.id, String(d.data().cuando || '')]));
+        const antes = guardados.length;
+        guardados = guardados.filter(g => !estaBorrado(g));
+        if (guardados.length !== antes) { guardar(); if (!$('#v-inicio').hidden || !$('#v-documentos').hidden) pintarListas(); }
+        listo();
+      }, () => listo());
+    });
     let primera = true;
     dbDocs.collection('documentos').onSnapshot(snap => {
       const vivos = snap.docs.filter(d => d.exists);
       // La primera vez, lo que este navegador tenía guardado y aún no está en la lista compartida se sube.
-      if (primera) { primera = false; const ids = new Set(vivos.map(d => d.id)); guardados.filter(g => DOCS[g.doc] && !ids.has(idDoc(g.doc, g.datos))).forEach(subirDoc); }
+      if (primera) { primera = false; const ids = new Set(vivos.map(d => d.id)); guardados.filter(g => DOCS[g.doc] && !ids.has(idDoc(g.doc, g.datos)) && !estaBorrado(g)).forEach(subirDoc); }
       const mapa = new Map();
       for (const r of [...vivos.map(d => d.data()), ...guardados]) {
-        if (!r || !DOCS[r.doc] || !r.datos) continue;
+        if (!r || !DOCS[r.doc] || !r.datos || estaBorrado(r)) continue;
         const k = idDoc(r.doc, r.datos);
         if (!mapa.has(k) || momento(r) > momento(mapa.get(k))) mapa.set(k, r);
       }
       guardados = [...mapa.values()].sort((a, b) => momento(b).localeCompare(momento(a)));
+      guardar();
       if (!$('#v-inicio').hidden || !$('#v-documentos').hidden) pintarListas();
     }, () => {});
   })();
@@ -1521,19 +1552,19 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
         const nombres = idx.map(i => DOCS[items[i].doc].nombre);
         const cuenta = [...new Set(nombres)].map(n => { const k = nombres.filter(x => x === n).length; return k > 1 ? `${n} (${k})` : n; }).join(' · ');
         return `<tbody><tr class="exp-fila"><td colspan="5"><span class="exp-cod">${esc(exp)}</span><span class="exp-docs">${esc(cuenta)}</span></td></tr>` +
-          idx.map(i => filaDoc(items[i], i)).join('') + '</tbody>';
+          idx.map(i => filaDoc(items[i], i, true)).join('') + '</tbody>';
       }).join('');
     }
     return cab + '<tbody>' + items.map((r, i) => filaDoc(r, i)).join('') + '</tbody>';
   }
-  function filaDoc(r, i) {
+  function filaDoc(r, i, conEliminar = false) {
         const d = DOCS[r.doc];
         return `<tr>
         <td class="cod">${esc(d.codigo(r.datos))}</td>
         <td><b>${esc(d.nombre)}</b></td>
         <td>${esc(d.tituloDe(r.datos))}${d.clienteDe(r.datos) ? `<br><span style="color:var(--pizarra);font-size:13px;">${esc(d.clienteDe(r.datos))}</span>` : ''}</td>
         <td>${esc(fecha(r.fecha, 'de'))}</td>
-        <td style="text-align:right;white-space:nowrap;">${r.ejemplo ? '<span class="tag tag-pronto">Ejemplo</span> ' : ''}<button type="button" class="enlace" data-abrir="${i}">Abrir</button></td>
+        <td style="text-align:right;white-space:nowrap;">${r.ejemplo ? '<span class="tag tag-pronto">Ejemplo</span> ' : ''}<button type="button" class="enlace" data-abrir="${i}">Abrir</button>${conEliminar ? `<button type="button" class="enlace eliminar" data-eliminar="${i}">Eliminar</button>` : ''}</td>
       </tr>`;
   }
   function pintarListas() {
@@ -1541,6 +1572,21 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
     $('#tabla-recientes').innerHTML = filasTabla(todos.slice(0, 4));
     $('#tabla-todos').innerHTML = filasTabla(todos, true);
     $$('[data-abrir]').forEach(b => b.addEventListener('click', () => { const r = todos[+b.dataset.abrir]; abrirDoc(r.doc, DOCS[r.doc].preparar(clonar(r.datos))); }));
+    // Eliminar se confirma tocando dos veces, sin diálogos (el visor de claude.ai no los muestra).
+    let armado = null;
+    $$('[data-eliminar]').forEach(b => b.addEventListener('click', async () => {
+      const r = todos[+b.dataset.eliminar], d = DOCS[r.doc];
+      if (armado !== b) {
+        if (armado) armado.textContent = 'Eliminar';
+        armado = b; b.textContent = '¿Eliminar? Toca otra vez';
+        setTimeout(() => { if (armado === b) { b.textContent = 'Eliminar'; armado = null; } }, 3500);
+        return;
+      }
+      armado = null;
+      const ok = await eliminarDoc(r);
+      const m = $('#docs-msg');
+      if (m) { m.className = ok ? 'estado' : 'estado error'; m.textContent = ok ? `Eliminaste ${d.nombre.toLowerCase()} ${d.codigo(r.datos)}. Ya no aparece para nadie del equipo.` : 'Se quitó de esta lista, pero no se pudo borrar de la base. Revisa la conexión e inténtalo de nuevo.'; }
+    }));
   }
 
   // ================= pasos =================
