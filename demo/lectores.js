@@ -344,13 +344,13 @@ function crearLectores({ ciudadIata = c => c } = {}) {
   function diasDe(v) {
     const ev = [];
     for (const a of v.vuelos) for (const t of a.trayectos) if (t.fecha) ev.push({ fecha: t.fecha, orden: minutos(t.fecha, t.sale), titulo: `Vuelo a ${ciudadIata(t.destino)}`,
-      texto: `Vuelo ${t.vuelo || ''} de ${lugarIata(t.origen)} a ${lugarIata(t.destino)}${t.sale ? `, sale a las ${t.sale}` : ''}${t.llega ? `${/\+1/.test(t.llega) ? ' y llega al día siguiente a las ' + t.llega.replace(/\s*\+1/, '') : ', llega a las ' + t.llega}` : ''}.`.replace('Vuelo  de', 'Vuelo de') });
+      texto: `${[t.sale, t.llega ? t.llega.replace(/\s*\+1/, ' (+1)') : ''].filter(Boolean).join(' – ')}${t.sale ? ' · ' : ''}Vuelo ${t.vuelo ? t.vuelo + ' ' : ''}de ${lugarIata(t.origen)} a ${lugarIata(t.destino)}` });
     for (const h of v.hoteles) {
-      if (h.entrada) ev.push({ fecha: h.entrada, orden: minutos(h.entrada, '15:00'), titulo: `Llegada a ${h.ciudad || h.hotel}`, texto: `Registro en el ${h.hotel}${h.regimen ? `, plan ${h.regimen.toLowerCase()}` : ''}.`, ciudad: h.ciudad });
-      if (h.salida) ev.push({ fecha: h.salida, orden: minutos(h.salida, '12:00'), titulo: 'Salida del hotel', texto: `Salida del ${h.hotel}.` });
+      if (h.entrada) ev.push({ fecha: h.entrada, orden: minutos(h.entrada, '15:00'), titulo: `Llegada a ${h.ciudad || h.hotel}`, texto: `Registro en el ${h.hotel}${h.regimen ? `, plan ${h.regimen.toLowerCase()}` : ''}`, ciudad: h.ciudad });
+      if (h.salida) ev.push({ fecha: h.salida, orden: minutos(h.salida, '12:00'), titulo: 'Salida del hotel', texto: `Salida del ${h.hotel}` });
     }
     for (const x of v.traslados) if (x.fecha) ev.push({ fecha: x.fecha, orden: minutos(x.fecha, x.hora), titulo: /^tren/i.test(x.trayecto || '') ? 'Viaje en tren' : v.servicio?.tipo === 'excursion' ? v.servicio.nombre : 'Traslado',
-      texto: `${x.trayecto}${x.hora ? `, a las ${x.hora}` : ''}.` });
+      texto: `${x.hora ? x.hora + ' · ' : ''}${x.trayecto}` });
     const porDia = new Map();
     for (const e of ev.sort((a, b) => a.orden - b.orden)) { if (!porDia.has(e.fecha)) porDia.set(e.fecha, []); porDia.get(e.fecha).push(e); }
     return [...porDia].map(([fecha, es]) => {
@@ -358,7 +358,7 @@ function crearLectores({ ciudadIata = c => c } = {}) {
       const vuelosDia = v.vuelos.flatMap(a => a.trayectos).filter(t => t.fecha === fecha).sort((a, b) => minutos(fecha, a.sale) - minutos(fecha, b.sale));
       const ruta = vuelosDia.length > 1 ? [vuelosDia[0].origen, ...vuelosDia.map(t => t.destino)].map(ciudadIata).join(' – ') : '';
       const titulo = ruta ? `Vuelos ${ruta}` : (es.find(e => e.ciudad) || es[es.length - 1]).titulo;
-      return { servicio: titulo, fecha, detalle: es.map(e => e.texto).join(' ') + (hotel?.ciudad ? ` Alojamiento: ${hotel.ciudad}` : '') };
+      return { servicio: titulo, fecha, detalle: es.map(e => e.texto).join(' • ') + (hotel?.ciudad ? ` • Alojamiento: ${hotel.ciudad}` : '') };
     });
   }
   function aDocumento(v, doc) {
@@ -410,7 +410,7 @@ function crearLectores({ ciudadIata = c => c } = {}) {
         incluye: p ? p.incluye : serviciosDe(v), no_incluye: p ? p.no_incluye : [],
         tarifas: p?.tarifas?.length ? p.tarifas.map(x => ({ ...x, hotel: x.hotel || p.titulo })) : tarifasServicio,
         modo_valor: 'persona',
-        itinerario: p ? p.dias.map(d => ({ servicio: d.titulo, fecha: '', detalle: d.detalle.replace(/\n/g, ' ') })) : diasDe(v),
+        itinerario: p ? p.dias.map(d => ({ servicio: d.titulo, fecha: '', detalle: d.detalle.replace(/\n/g, ' • ') })) : diasDe(v),
         vigencia: p?.vigencia || '',
       };
     }
@@ -419,7 +419,7 @@ function crearLectores({ ciudadIata = c => c } = {}) {
       if (!p) return null; // sin programa, el itinerario se arma como desde una confirmación (ver app.js)
       return {
         codigo: v.referencia || '', titulo: p.titulo, destino: v.destino || '',
-        dias: p.dias.map(d => ({ fecha: '', titulo: d.titulo, lugar: '', pais: '', descripcion: d.detalle.replace(/\n/g, ' '), comidas: d.comidas, etiquetas: [], hotel: '' })),
+        dias: p.dias.map(d => ({ fecha: '', titulo: d.titulo, lugar: '', pais: '', descripcion: d.detalle.replace(/\n/g, ' • '), comidas: d.comidas, etiquetas: [], hotel: '' })),
         incluye: p.incluye, no_incluye: p.no_incluye,
         recomendaciones: p.notas?.length ? [{ tema: 'Ten en cuenta', items: p.notas }] : [],
       };

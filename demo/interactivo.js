@@ -108,6 +108,10 @@
   .dia-cuerpo { padding:0 22px 22px; display:grid; gap:16px; }
   .dia-cuerpo.con-foto { grid-template-columns:minmax(0,1fr) 280px; align-items:start; }
   .dia-texto { margin:0; line-height:1.65; }
+  .dia-texto .act { display:flex; align-items:baseline; padding:7px 0; border-top:1px solid var(--hairline, #E2E0DD); }
+  .dia-texto .act:first-child { border-top:0; padding-top:0; }
+  .dia-texto .act-hora { flex:0 0 112px; padding-right:10px; font-weight:600; color:var(--coral); }
+  .dia-texto .act-txt { flex:1; min-width:0; }
   .tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
   .tag { display:inline-flex; align-items:center; gap:6px; background:var(--coral-suave); color:var(--carbon); border-radius:999px; padding:6px 12px; font:500 13px/1.2 var(--f); }
   .tag .ic { width:14px; height:14px; color:var(--coral); }
@@ -700,7 +704,7 @@
         <summary><span class="dia-num">Día ${/^\d+$/.test(String(num)) ? d2(+num) : e(num)}</span>
           <span class="dia-cab"><span class="dia-fecha">${isoDia ? esc(String(fecha(isoDia, 'dia')).replace(/, \d{4}$/, '')) : ''}</span><span class="hoy">Hoy</span><span class="dia-titulo" style="display:block;">${e(x.titulo || '')}</span></span>
           ${icono('chevron-down', 'flecha')}</summary>
-        <div class="dia-cuerpo${f ? ' con-foto' : ''}"><div><p class="dia-texto">${e(x.descripcion || '')}</p>${tags ? `<div class="tags">${tags}</div>` : ''}${enMapa}</div>
+        <div class="dia-cuerpo${f ? ' con-foto' : ''}"><div><p class="dia-texto">${filasActividades(x.descripcion)}</p>${tags ? `<div class="tags">${tags}</div>` : ''}${enMapa}</div>
           ${f ? `<div class="foto" style="background-image:url('${f}')" role="img" aria-label="${esc(x.titulo || '')}"></div>` : ''}</div>
       </details>`);
     }

@@ -353,7 +353,12 @@ navegador en vez de estimar.
   último renglón **no** cuenta como desborde (este error vaciaba la portada del CA2920).
 - `rellenar()`: si una hoja queda con hueco ≥ **300 px** (`HUECO`), intenta subir la sección sin su nota
   final, o partir una tabla/lista (≥ 4 ítems, ≥ 2 por lado); si no se puede, deshace.
-- Un día del itinerario **nunca** se parte entre dos hojas.
+- Un día del itinerario **nunca** se parte entre dos hojas, salvo en la cotización cuando sus actividades van en
+  filas (4 o más): se parte por filas, con 2 como mínimo en cada hoja y el título «(continuación)».
+- **Actividades en filas** (`filasActividades`): si el detalle de un día trae actividades separadas con « • »,
+  cada una sale en su fila con la hora en una columna aparte («06:00 – 07:30 · Vuelo…», «02:00 PM - …»). Lo usan
+  la cotización, el itinerario en PDF y la versión interactiva; los lectores de PDF y el borrador desde una
+  confirmación escriben así los días. Un texto sin « • » sigue siendo un párrafo (los guardados no cambian).
 - **Antes de publicar cualquier cambio de diseño, corre la auditoría** (`pruebas/auditar.js`) sobre todos
   los documentos guardados; se le prometió a la usuaria.
 

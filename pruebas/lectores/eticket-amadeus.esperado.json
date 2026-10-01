@@ -133,12 +133,12 @@
         {
           "servicio": "Vuelos Santa Marta – Bogotá – Cali – Bogotá",
           "fecha": "2026-10-27",
-          "detalle": "Vuelo AV 9385 de Santa Marta (SMR) a Bogotá (BOG), sale a las 06:00, llega a las 07:30. Vuelo AV 8465 de Bogotá (BOG) a Cali (CLO), sale a las 08:30, llega a las 09:45. Vuelo AV 9844 de Cali (CLO) a Bogotá (BOG), sale a las 19:25, llega a las 20:25."
+          "detalle": "06:00 – 07:30 · Vuelo AV 9385 de Santa Marta (SMR) a Bogotá (BOG) • 08:30 – 09:45 · Vuelo AV 8465 de Bogotá (BOG) a Cali (CLO) • 19:25 – 20:25 · Vuelo AV 9844 de Cali (CLO) a Bogotá (BOG)"
         },
         {
           "servicio": "Vuelo a Santa Marta",
           "fecha": "2026-10-28",
-          "detalle": "Vuelo AV 4862 de Bogotá (BOG) a Santa Marta (SMR), sale a las 19:50, llega a las 21:20."
+          "detalle": "19:50 – 21:20 · Vuelo AV 4862 de Bogotá (BOG) a Santa Marta (SMR)"
         }
       ],
       "vigencia": ""

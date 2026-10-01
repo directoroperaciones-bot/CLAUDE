@@ -122,15 +122,33 @@
   .dia-cot-fecha { font:600 13.5px/1.2 'Poppins',sans-serif; letter-spacing:0.14em; text-transform:uppercase; color:#7E859A; }
   .dia-cot-titulo { margin:0 0 6px; font:700 21px/1.3 'Poppins',sans-serif; letter-spacing:-0.01em; color:#1F2024; }
   .dia-cot-texto { margin:0; font:400 15.5px/1.6 'Poppins',sans-serif; color:#3A3C42; }
+  .dia-cot-texto .act { padding:6px 0; }
   .dia-cot-tags { margin-top:12px; display:flex; flex-wrap:wrap; }
   .dia-cot-tag { display:inline-flex; align-items:center; background:#FDE9EB; color:#1F2024; border-radius:999px; padding:6px 15px; margin:0 9px 6px 0;
     font:600 13px/1 'Poppins',sans-serif; }
   .dia-cot-tag.hotel { background:#F8F5F2; border:1px solid #E2E0DD; color:#3A3C42; }`;
   // Del detalle salen las etiquetas: las comidas del inicio ("Desayuno.") y el alojamiento ("Alojamiento: Petén.").
+  // Actividades de un día separadas con « • »: una fila por actividad, en orden, con la hora
+  // en su propia columna («06:00 – 07:30 · Vuelo…», «02:00 PM - City tour…»). Un texto corrido sigue siendo un párrafo.
+  const RE_HORA_ACT = /^((?:\d{1,2}:\d{2})\s*(?:[ap]\.?\s?m\.?)?(?:\s*[–-]\s*\d{1,2}:\d{2}\s*(?:[ap]\.?\s?m\.?)?)?(?:\s*\(\+1\))?)\s*[-–:·]\s*/i;
+  function filasActividades(texto) {
+    const partes = String(texto || '').split(/\s+•\s+/).map(x => x.trim().replace(/^•\s*/, '')).filter(Boolean);
+    // Una sola actividad es fila solo si viene con su hora en el formato de la app («19:50 – 21:20 · Vuelo…»).
+    if (partes.length < 2 && !/^\d{1,2}:\d{2}[^·]{0,30}·/.test(partes[0] || '')) return e(partes[0] || '');
+    const filas = partes.map(x => { const m = RE_HORA_ACT.exec(x); return m ? [m[1].replace(/\s*-\s*/, ' – '), x.slice(m[0].length)] : ['', x]; });
+    const conHora = filas.some(([h]) => h);
+    return filas.map(([h, t]) => `<span class="act">${conHora ? `<b class="act-hora">${e(h)}</b>` : ''}<span class="act-txt">${e(t.charAt(0).toUpperCase() + t.slice(1))}</span></span>`).join('');
+  }
+  const CSS_ACT = `
+  .act { display:flex; align-items:baseline; padding:7px 0; border-top:1px solid #F0EEEB; }
+  .act:first-child { border-top:0; padding-top:2px; }
+  .act-hora { flex:0 0 150px; padding-right:14px; font-weight:600; color:#F25061; white-space:nowrap; }
+  .act-txt { flex:1; min-width:0; }`;
   function partesDia(detalle) {
     let t = String(detalle || '').trim();
     let hotel = '';
     t = t.replace(/\s*(?:Alojamiento|Hospedaje|Noche en|Hotel)\s*:\s*([^.]+)\.?\s*$/i, (_, x) => { hotel = x.trim(); return ''; }).trim();
+    t = t.replace(/\s*•\s*$/, '');
     const comidas = [];
     let m;
     while ((m = /^(Desayuno|Almuerzo|Cena)(?:\s+(?:y|e)\s+(desayuno|almuerzo|cena))?(?:\s+incluid[oa]s?)?\s*[.,]\s*/i.exec(t))) {
@@ -153,7 +171,7 @@
       const tags = [...comidas.map(c => `<span class="dia-cot-tag">${e(c)}</span>`), ...(hotel ? [`<span class="dia-cot-tag hotel">Alojamiento: ${e(hotel)}</span>`] : [])].join('');
       return `<div class="dia-cot"><div class="dia-cot-head"><span class="dia-cot-pill">Día ${d2(n)}</span>${fechaTxt ? `<span class="dia-cot-fecha">${e(fechaTxt)}</span>` : ''}</div>`
         + (vacio(s.servicio) ? '' : `<h3 class="dia-cot-titulo">${e(s.servicio)}</h3>`)
-        + (texto ? `<p class="dia-cot-texto">${e(texto)}</p>` : '')
+        + (texto ? `<p class="dia-cot-texto">${filasActividades(texto)}</p>` : '')
         + (tags ? `<div class="dia-cot-tags">${tags}</div>` : '') + '</div>';
     }).join('\n  ');
   }
@@ -180,7 +198,7 @@
     const itiTabla = /<table[^>]*>\s*<thead><tr><th>Servicio<\/th>[\s\S]*?\{\{filas_itinerario\}\}[\s\S]*?<\/table>/;
     const iti = (d0.itinerario || []).filter(s => ['servicio', 'fecha', 'detalle'].some(k => !vacio(s[k])));
     if (iti.length) {
-      h = h.replace('</style>', () => CSS_DIAS_COT + '\n</style>');
+      h = h.replace('</style>', () => CSS_DIAS_COT + CSS_ACT + '\n</style>');
       h = h.replace(/(<h2 class="sec"[^>]*>)Itinerario <span([^>]*)>de servicios<\/span>/, (_, a, b) => `${a}Itinerario <span${b}>día a día</span>`);
       h = h.replace(itiTabla, () => diasCotizacion(iti, d0.fecha_llegada, d0.fecha_salida));
     } else h = h.replace(new RegExp('\\s*<h2 class="sec"[^>]*>Itinerario <span[^>]*>de servicios<\\/span><\\/h2>\\s*<span class="dash"[^>]*><\\/span>\\s*' + itiTabla.source), () => '');
@@ -453,7 +471,10 @@
       return out;
     };
     const fondo = (el, p) => el.getBoundingClientRect().bottom - p.getBoundingClientRect().top;
-    const dentro = el => el.querySelector('tbody') ? [...el.querySelector('tbody').rows] : el.matches('div') && getComputedStyle(el).flexWrap === 'wrap' ? [...el.children] : [];
+    // Un día de la cotización con actividades en filas también se parte por filas (4 o más, 2 por hoja como mínimo).
+    const filasDia = el => (el.matches('.dia-cot') ? [...el.querySelectorAll('.dia-cot-texto > .act')] : []);
+    const dentro = el => el.querySelector('tbody') ? [...el.querySelector('tbody').rows] : filasDia(el).length >= 2 ? filasDia(el)
+      : el.matches('div') && getComputedStyle(el).flexWrap === 'wrap' ? [...el.children] : [];
     // Fondo real de un bloque: en listas y tablas, donde termina su último ítem. El margen que sobra debajo
     // del último renglón no es contenido: si solo eso se pasa del límite, el bloque cabe y no se mueve.
     const fondoB = (el, p) => { const it = dentro(el); return it.length ? Math.max(...it.map(x => fondo(x, p))) : fondo(el, p); };
@@ -467,8 +488,17 @@
         const porFila = items.filter(x => Math.abs(x.getBoundingClientRect().top - items[0].getBoundingClientRect().top) < 2).length;
         j -= j % porFila; // una fila de la lista (dos columnas, o tres tarjetas de foto) nunca se parte
       }
+      if (el.matches('.dia-cot')) {
+        if (j > 0 && items.length - j < 2) j = items.length - 2; // si solo sobra una, pasan las dos últimas
+        if (j < 2) return null; // al menos 2 actividades en cada hoja
+      }
       if (j <= 0) return null;
       const copia = el.cloneNode(true);
+      if (el.matches('.dia-cot')) {
+        // La continuación repite el día y el título, sin las etiquetas de comidas (quedan con el final del día).
+        const t = copia.querySelector('.dia-cot-titulo'); if (t) t.textContent += ' (continuación)';
+        el.querySelector('.dia-cot-tags')?.remove();
+      }
       const itemsCopia = dentro(copia);
       itemsCopia.slice(0, j).forEach(x => x.remove());
       items.slice(j).forEach(x => x.remove());
@@ -569,7 +599,11 @@
       const quedan = dentro(div).length, pasan = copia ? dentro(copia).length : 0;
       if (!copia || quedan < 2 || pasan < 2 || !cabe(a)) {
         // Se deshace: los renglones que pasaron vuelven a su tabla o lista, y todo baja a la hoja siguiente.
-        if (copia) { const dest = div.querySelector('tbody') || div; dentro(copia).forEach(x => dest.append(x)); }
+        if (copia) {
+          const dest = div.querySelector('tbody') || div.querySelector('.dia-cot-texto') || div;
+          dentro(copia).forEach(x => dest.append(x));
+          const tags = copia.querySelector('.dia-cot-tags'); if (tags) div.append(tags);
+        }
         aHoja(b, bloque);
         return false;
       }
@@ -777,7 +811,7 @@
   const TPL_IT = PLANTILLAS.itinerario;
   const PIE_IT = /<!-- PIE_Y_FRANJA[^\n]*\n([\s\S]*?)\n-->/.exec(TPL_IT)[1];
   const POL_IT = (() => { const i = TPL_IT.indexOf('<!-- ========== PÁGINA — INFORMACIÓN ADICIONAL'); return TPL_IT.slice(i, TPL_IT.indexOf('</section>', i) + 10); })();
-  const CSS_IT = TPL_IT.slice(TPL_IT.indexOf('<style>'), TPL_IT.indexOf('</style>') + 8);
+  const CSS_IT = TPL_IT.slice(TPL_IT.indexOf('<style>'), TPL_IT.indexOf('</style>')) + CSS_ACT + '\n</style>';
   const CHECK_IT = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   // El motor mide dónde termina la tinta en el PDF y exige que no pase de 1178 px (el pie
   // empieza en 1184). Aquí se mide la caja de cada bloque, que siempre queda unos píxeles por
@@ -876,7 +910,7 @@
       const tags = [...(x.comidas || []), ...(x.etiquetas || [])].filter(t => !vacio(t)).map(t => [e(t), false]);
       if (!vacio(x.hotel)) tags.push([e(x.hotel), true]);
       const num = x.dia || i + 1;
-      out.push(bIt.dia(/^\d+$/.test(String(num)) ? d2(+num) : e(num), fechaDia(x.fecha), e(x.titulo || ''), e(x.descripcion || ''), tags.length ? tags : null, x.foto));
+      out.push(bIt.dia(/^\d+$/.test(String(num)) ? d2(+num) : e(num), fechaDia(x.fecha), e(x.titulo || ''), filasActividades(x.descripcion), tags.length ? tags : null, x.foto));
     });
     const lista = items => items.flatMap(it => (it && typeof it === 'object' && !vacio(it.grupo)) ? [['g', e(it.grupo)], ...(it.items || []).filter(z => !vacio(z)).map(e)] : typeof it === 'string' && !vacio(it) ? [e(it)] : []);
     const inc = lista(d.incluye || []), noinc = lista(d.no_incluye || []);
@@ -2374,12 +2408,13 @@ ${texto.slice(0, 40000)}
       if (llegaManana) { llegaHoy = llegaManana; hechos.push(`Llegada a ${llegaHoy}`); titulo = `Llegada a ${llegaHoy}`; llegaManana = ''; }
       const delDia = vuelos.filter(v => v.fecha === f);
       for (const v of delDia) {
-        hechos.push(`Vuelo ${v.vuelo} de ${v.origen} a ${v.destino}, sale a las ${v.sale}${v._mas ? ' y llega al día siguiente' : v.llega ? `, llega a las ${v.llega}` : ''}`);
+        const horas = [v.sale, v._mas ? `${String(v.llega || '').replace(/\s*\d{2}\/\d{2}$/, '')} (+1)` : v.llega].filter(Boolean).join(' – ');
+        hechos.push(`${horas ? horas + ' · ' : ''}Vuelo ${v.vuelo} de ${v.origen} a ${v.destino}${v._mas ? ' (llega al día siguiente)' : ''}`);
         if (v._mas) { aBordo = true; llegaManana = v.destino; } else llegaHoy = v.destino;
       }
       // Trenes, buses y excursiones se escriben tal cual; los traslados comunes, en minúscula tras «Traslado».
-      (c.traslados || []).filter(x => x.fecha === f).forEach(x => hechos.push(/^(tren|bus|ferry|crucero|excursi|tour)/i.test(x.trayecto || '')
-        ? `${x.trayecto}${x.hora ? `, sale a las ${x.hora}` : ''}` : `Traslado ${String(x.trayecto || '').toLowerCase()}${x.hora ? ` a las ${x.hora}` : ''}`));
+      (c.traslados || []).filter(x => x.fecha === f).forEach(x => hechos.push(`${x.hora ? x.hora + ' · ' : ''}${/^(tren|bus|ferry|crucero|excursi|tour)/i.test(x.trayecto || '')
+        ? x.trayecto : `Traslado ${String(x.trayecto || '').toLowerCase()}`}`));
       (c.hoteles || []).filter(h => h.salida === f).forEach(h => hechos.push(`Salida del ${h.hotel}`));
       (c.hoteles || []).filter(h => h.entrada === f).forEach(h => { hechos.push(`Registro en el ${h.hotel}`); if (llegaHoy && !aBordo) ciudadHotel[h.hotel] = llegaHoy; });
       const hotel = (c.hoteles || []).find(h => h.entrada <= f && f < h.salida);
@@ -2391,7 +2426,7 @@ ${texto.slice(0, 40000)}
         else if (delDia.length) titulo = `${aBordo ? 'Vuelo' : 'Llegada'} a ${delDia[delDia.length - 1].destino}`;
         else titulo = lugar;
       }
-      dias.push({ fecha: f, titulo, lugar, descripcion: hechos.length ? hechos.join('. ') + '.' : '',
+      dias.push({ fecha: f, titulo, lugar, descripcion: hechos.join(' • '),
         comidas: [], etiquetas: aBordo && !hotel ? ['Noche a bordo'] : [], hotel: hotel?.hotel || '' });
     }
     const hoteles = [...new Map((c.hoteles || []).filter(h => !vacio(h.hotel)).map(h => [h.hotel, { nombre: h.hotel, ciudad: ciudadHotel[h.hotel] || '', direccion: '', telefono: '' }])).values()];
