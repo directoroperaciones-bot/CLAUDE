@@ -186,6 +186,8 @@
     } else h = h.replace(new RegExp('\\s*<h2 class="sec"[^>]*>Itinerario <span[^>]*>de servicios<\\/span><\\/h2>\\s*<span class="dash"[^>]*><\\/span>\\s*' + itiTabla.source), () => '');
     const parrafos = String(d.condiciones_pago).trim().split(/\n\s*\n/).filter(p => p.trim());
     h = rep(h, '{{condiciones_pago}}', parrafos.length === 1 ? e(parrafos[0]) : parrafos.map(p => `<p style="margin:0 0 10px;">${e(p)}</p>`).join(''));
+    // La vigencia es opcional: sin fecha, su recuadro no sale en el documento.
+    if (vacio(d.vigencia)) h = h.replace(/\s*<div style="width:25%;padding-right:14px;"><span class="meta-label">Vigencia<\/span><span[^>]*>\{\{vigencia\}\}<\/span><\/div>/, () => '');
     if (String(d.asesor.correo || '').trim().length > 24) {
       h = h.replace('<div style="width:25%;padding-right:14px;"><span class="meta-label">Vigencia', () => '<div style="width:24%;padding-right:14px;"><span class="meta-label">Vigencia');
       h = h.replace('<div style="width:22%;padding-right:14px;"><span class="meta-label">Tu asesor', () => '<div style="width:18%;padding-right:14px;"><span class="meta-label">Tu asesor');
@@ -956,20 +958,20 @@
         { t: 'Itinerario día a día', sub: 'Opcional. Un renglón por día; sale en recuadros como el itinerario. Si lo dejas vacío, la sección no aparece.', icono: 'route', campos: [
           { tipo: 'filas', k: 'itinerario', mas: 'Agregar día', min: 0, cols: [T('servicio', 'Título del día', 1.6), D('fecha', 'Fecha', 1.1), T('detalle', 'Qué se hace (termina con «Alojamiento: ciudad»)', 2.4)] }] },
         { t: 'Condiciones y asesor', sub: 'Lo que el cliente debe saber antes de confirmar.', icono: 'file-text', campos: [
-          A('condiciones_pago', 'Condiciones de pago', 8, { req: 1, filas: 4 }), D('vigencia', 'Vigencia de la cotización', 4, { req: 1 }),
+          A('condiciones_pago', 'Condiciones de pago', 8, { req: 1, filas: 4 }), D('vigencia', 'Vigencia de la cotización (opcional)', 4),
           T('asesor.nombre', 'Tu nombre', 4, { req: 1 }), T('asesor.correo', 'Tu correo', 4, { req: 1 }), T('asesor.telefono', 'Tu teléfono', 4, { req: 1 })] },
       ],
       validar(d) {
         const f = [];
         [['codigo_cotizacion', 'Código de cotización'], ['titulo_destino', 'Título del viaje'], ['fecha_llegada', 'Fecha de llegada'], ['fecha_salida', 'Fecha de salida'],
-          ['vigencia', 'Vigencia'], ['condiciones_pago', 'Condiciones de pago'], ['incluye', 'Qué incluye el precio'],
+          ['condiciones_pago', 'Condiciones de pago'], ['incluye', 'Qué incluye el precio'],
           ['asesor.nombre', 'Tu nombre'], ['asesor.correo', 'Tu correo'], ['asesor.telefono', 'Tu teléfono']].forEach(([k, n]) => { if (vacio(getPath(d, k))) f.push([k, n]); });
         if (!(d.tarifas || []).some(t => !vacio(t.valor))) f.push(['tarifas', 'Al menos una tarifa con su valor']);
         return f;
       },
       preparar: d => ({ ...d, codigo_cotizacion: vacio(d.codigo_cotizacion) ? 'CA' + Math.floor(1000 + Math.random() * 9000) : d.codigo_cotizacion, asesor: { nombre: getPath(d, 'asesor.nombre') || ASESOR.nombre, correo: getPath(d, 'asesor.correo') || ASESOR.correo,
         telefono: getPath(d, 'asesor.telefono') || (!getPath(d, 'asesor.correo') || getPath(d, 'asesor.correo') === ASESOR.correo ? ASESOR.telefono : '') } }),
-      meta: d => `Vigente hasta el ${fecha(d.vigencia, 'de')}`,
+      meta: d => (vacio(d.vigencia) ? 'Sin fecha de vigencia' : `Vigente hasta el ${fecha(d.vigencia, 'de')}`),
       // Fotos que se buscan en el banco y se guardan en él (mismas claves que el motor del plugin).
       fotos(d) {
         const destino = d.destino || String(d.titulo_destino || '').split(',')[0];
@@ -2811,7 +2813,7 @@ ${texto.slice(0, 40000)}
       if (esCot) {
         const { datos, referencias, origenValor } = cotizacionDesdeBase(tab, cons);
         const conValor = datos.tarifas.some(t => !vacio(t.valor));
-        const falta = [...(conValor ? [] : ['el valor de cada opción']), 'las condiciones de pago', 'la vigencia', 'tu teléfono', 'lo que no incluye y el itinerario, si aplican'];
+        const falta = [...(conValor ? [] : ['el valor de cada opción']), 'las condiciones de pago', 'tu teléfono', 'lo que no incluye y el itinerario, si aplican'];
         return abrirConvertido('cotizacion', datos, {
           desde: nombreVenta, pegar: 'Pegar la información para completar',
           texto: `Trajimos el destino, las fechas, los pasajeros, las opciones y lo que incluye. ${origenValor}${referencias.length ? ' Referencia de la base: ' + referencias.join(' | ') + '.' : ''} Falta: ${falta.join(', ')}.`,
