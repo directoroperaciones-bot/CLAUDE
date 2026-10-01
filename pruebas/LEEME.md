@@ -11,6 +11,8 @@ y se maneja con Playwright (Chromium ya viene instalado en las sesiones en la nu
 | `mockpub.js` | `mcp` para «Publicar para el grupo»: registra cada llamada en `window.__llamadas`, guarda lo enviado en `window.__ultimo` y falla a propósito con lo que se ponga en `window.__fallos` (por ejemplo `[{code:'bad_request', message:'file upload failed (415)'}]`). |
 | `mockmcp.js` | `mcp` mínimo que acepta todo (contenido en base64 o como archivo). |
 | `mocksample.js` | `sample` (Claude): devuelve un JSON fijo y guarda el prompt en `window.__prompt`. |
+| `mocksample-pdf.js` | `sample` con `limits()` (imágenes incluidas, salvo `window.__sinImagenes = true`): guarda cada llamada en `window.__llamadas` (prompt, nivel, imágenes) y responde `window.__respuesta`. |
+| `probar-pdf.js` | Prueba del lector de PDF: PDF de proveedor, e-ticket (datos personales ocultos), escaneado, archivo dañado, varios a la vez, cdnjs caído, sin lector, texto muy largo. Los PDF de prueba no van en el repositorio (ver el encabezado del archivo). |
 | `auditar.js` | Auditoría de saltos de hoja: abre cada documento guardado y mide dónde termina el contenido de cada hoja. |
 
 No se incluye la simulación de la base de operación (Google Sheets), porque se armó con filas reales de la

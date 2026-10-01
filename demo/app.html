@@ -133,7 +133,7 @@
   #pegado { min-height: 300px; font-size: 14px; }
   .acciones { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
   .estado { font-size: 14px; color: var(--pizarra); display: flex; align-items: center; gap: 8px; }
-  .estado svg { width: 16px; height: 16px; }
+  .estado svg { width: 16px; height: 16px; flex: 0 0 auto; }
   .estado.error { color: var(--coral-hover); }
   .girando svg { animation: gira 1.2s linear infinite; }
   @keyframes gira { to { transform: rotate(360deg); } }
@@ -273,6 +273,13 @@
   .base-fila { display: flex; gap: 10px; flex-wrap: wrap; }
   .base-fila .campo { flex: 1 1 200px; }
   .base-nota { margin: 6px 0 0; font-size: 13px; color: var(--pizarra); }
+  .zona-pdf { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 18px 20px; border: 1.5px dashed #D9D5D0; border-radius: 14px; background: var(--hueso); transition: border-color .16s var(--ease), background .16s var(--ease); }
+  .zona-pdf.encima { border-color: var(--coral); background: var(--coral-5); }
+  .zona-txt { flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+  .zona-txt b { color: var(--carbon); font-weight: 600; }
+  .zona-txt span { color: var(--pizarra); }
+  #estado-pdf:empty { display: none; }
+  #estado-pdf { margin-top: 10px; }
   .base-o { display: flex; align-items: center; gap: 12px; margin: 18px 0 4px; color: var(--pizarra); font-size: 13px; }
   .base-o::before, .base-o::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
   .releer { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; margin-bottom:20px; padding:14px 20px; }
@@ -384,8 +391,16 @@
             </div>
             <p class="estado" id="estado-base" aria-live="polite"></p>
             <p class="base-nota">Solo lectura: la app consulta la base, nunca la modifica.</p>
-            <div class="base-o"><span>o pega la información</span></div>
+            <div class="base-o"><span>o sube un PDF o pega la información</span></div>
           </div>
+          <div class="zona-pdf" id="zona-pdf">
+            <input type="file" id="pdf-archivo" accept="application/pdf,.pdf" multiple hidden>
+            <span class="tile"><i data-lucide="file-up"></i></span>
+            <div class="zona-txt"><b>¿Tienes el PDF del proveedor?</b><span id="pdf-ayuda">Súbelo o arrástralo aquí: lo leemos y llenamos el formulario por ti.</span></div>
+            <button type="button" class="btn btn-sec" id="btn-subir-pdf"><i data-lucide="file-up"></i>Subir PDF</button>
+          </div>
+          <p class="estado" id="estado-pdf" aria-live="polite"></p>
+          <div class="base-o"><span>o pega el texto</span></div>
           <label class="lbl" for="pegado" id="pegado-lbl">Pega aquí la información</label>
           <textarea class="campo" id="pegado" spellcheck="false"></textarea>
           <div class="acciones">

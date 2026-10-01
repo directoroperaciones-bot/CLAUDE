@@ -1542,6 +1542,8 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
     estado1('');
     $('#desde-base').hidden = !d.desdeBase;
     $('#estado-base').textContent = '';
+    estadoPdf('');
+    $('#pdf-ayuda').textContent = `Súbelo o arrástralo aquí: lo leemos y llenamos ${/^(Voucher|Itinerario)/.test(d.nombre) ? 'el' : 'la'} ${d.nombre.toLowerCase()} por ti.`;
     paso(1);
   }
   document.addEventListener('click', ev => {
@@ -1652,8 +1654,11 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
 Reglas:
 - No inventes nada: cifras, fechas, códigos, hoteles, servicios y condiciones salen solo del texto. Si algo no está, déjalo como "" (o [] en las listas).
 - Fechas en formato AAAA-MM-DD. Hoy es ${hoy()}; si el texto no da el año, usa el próximo que tenga sentido.
-- Valores en pesos como en el texto, con punto de miles y signo: "$1.640.000".
+- Valores en pesos como en el texto, con punto de miles y signo: "$1.640.000". Si vienen en otra moneda, conserva la moneda y no conviertas: "USD 949", "EUR 1.250".
 - Español de Colombia, trato de "tú", sin emojis. Títulos en sentence case.
+- El documento lo recibe el cliente de Caminos. Si la información viene de un proveedor (mayorista, operador, consolidador o aerolínea), no copies su nombre comercial, logo, teléfonos, correos, cuentas bancarias, formas de pago, comisiones, netos ni frases dirigidas a la agencia ("su agente", "comisión"). Los hoteles, las aerolíneas de los vuelos y los operadores de traslados sí se nombran.
+- De los pasajeros copia solo el nombre: nunca números de documento de identidad, fechas de nacimiento, teléfonos ni correos.
+- Si el texto viene de un PDF, las tablas pueden llegar en renglones separados: une cada dato con su columna.
 ${d.reglas}${base ? `
 
 Ya tenemos estos datos, que vienen ${/^el /.test(conversion?.desde || '') ? 'del ' + conversion.desde.slice(3) : 'de ' + (conversion?.desde || 'un documento anterior')}. Consérvalos y complétalos con la información nueva; si la información nueva contradice un dato, manda la nueva. En "dias", conserva cada fecha y súmale lo que diga el texto:
@@ -1674,7 +1679,9 @@ ${texto}
   // Para gastar menos del plan, se lee con el nivel rápido de Claude. Si esa lectura falla se reintenta una vez
   // con el nivel normal, y la asesora puede pedir «Leer de nuevo con más precisión» si algo quedó incompleto.
   let ultimaLectura = null; // { texto, base } de la última lectura rápida
-  async function ordenar(texto, base, nivel) {
+  // El texto se recorta si el mensaje pasa el máximo que acepta Claude en una llamada (65.536 bytes).
+  const bytesDe = t => new TextEncoder().encode(t).length;
+  async function ordenar(texto, base, nivel, imagenes = null) {
     const d = doc();
     const sample = await obtenerSample();
     if (!sample) {
@@ -1690,19 +1697,25 @@ ${texto}
     $('#estado-releer').textContent = nivel === 'quick' ? '' : 'Leyendo con más precisión…';
     ctl = new AbortController();
     try {
+      const maximo = ((await sample.limits?.().catch(() => null))?.maxPromptBytes || 65536) - 512;
+      let leido = texto, recortado = false;
+      while (leido && bytesDe(instruccion(d, leido, base)) > maximo) {
+        leido = leido.slice(0, Math.floor(leido.length * 0.9)); recortado = true;
+      }
+      const opciones = () => ({ signal: ctl.signal, modelTier: nivel, ...(imagenes?.length ? { images: imagenes } : {}) });
       let datos;
-      try { datos = await sample.json(instruccion(d, texto, base), { signal: ctl.signal, modelTier: nivel }); }
+      try { datos = await sample.json(instruccion(d, leido, base), opciones()); }
       catch (err) {
         if (nivel !== 'quick' || ['cancelled', 'not_granted', 'rate_limited'].includes(err?.code)) throw err;
         nivel = 'default';
-        datos = await sample.json(instruccion(d, texto, base), { signal: ctl.signal, modelTier: nivel });
+        datos = await sample.json(instruccion(d, leido, base), opciones());
       }
       if (base) { datos = fusionar(base, datos || {}); conversion.base = datos; }
       dibujarFormulario(d, d.preparar(datos || {}));
       estado1('');
-      ultimaLectura = nivel === 'quick' ? { texto, base } : null;
-      $('#releer').hidden = !ultimaLectura;
-      $('#estado-releer').textContent = '';
+      ultimaLectura = nivel === 'quick' ? { texto, base, imagenes } : null;
+      $('#releer').hidden = !ultimaLectura && !recortado;
+      $('#estado-releer').textContent = recortado ? 'El texto era muy largo y leímos solo la primera parte: revisa que no falte nada.' : '';
       marcarFaltantes();
       paso(2);
     } catch (err) {
@@ -1721,7 +1734,7 @@ ${texto}
   $('#btn-releer').addEventListener('click', () => {
     if (!ultimaLectura) return;
     if (conversion && ultimaLectura.base) conversion.base = ultimaLectura.base; // se parte de los datos previos, no de la lectura rápida
-    ordenar(ultimaLectura.texto, ultimaLectura.base, 'default');
+    ordenar(ultimaLectura.texto, ultimaLectura.base, 'default', ultimaLectura.imagenes);
   });
   $('#btn-detener').addEventListener('click', () => ctl?.abort());
   $('#btn-mano').addEventListener('click', () => {
@@ -1731,6 +1744,168 @@ ${texto}
     paso(2);
   });
   $('#btn-volver-1').addEventListener('click', () => paso(1));
+
+  // ================= lector de PDF (el PDF del proveedor se lee en el navegador y su texto pasa a Claude) =================
+  // pdf.js 3.11.174 se carga solo la primera vez que se sube un PDF (cdnjs; si falla, jsDelivr). El «worker» se
+  // carga como script normal: así pdf.js trabaja en la misma página, sin crear workers de otro origen.
+  // isEvalSupported: false cierra la vía de ejecutar código desde las fuentes de un PDF malicioso.
+  const PDFJS = [
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/',
+    'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/',
+  ];
+  const cargarScript = src => new Promise((ok, mal) => {
+    const sc = document.createElement('script');
+    sc.src = src; sc.onload = ok; sc.onerror = () => { sc.remove(); mal(new Error('no cargó ' + src)); };
+    document.head.appendChild(sc);
+  });
+  let pdfjsPromesa = null;
+  function cargarPdfjs() {
+    return (pdfjsPromesa ??= (async () => {
+      for (const base of PDFJS) {
+        try {
+          if (!window.pdfjsWorker) await cargarScript(base + 'pdf.worker.min.js');
+          if (!window.pdfjsLib) await cargarScript(base + 'pdf.min.js');
+          if (window.pdfjsLib && window.pdfjsWorker) { window.pdfjsLib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.min.js'; return window.pdfjsLib; }
+        } catch (_) { /* se prueba la siguiente fuente */ }
+      }
+      pdfjsPromesa = null;
+      throw { code: 'sin_lector' };
+    })());
+  }
+  // Texto de una hoja en el orden en que el PDF lo escribe (así cada celda de una tabla queda junta, aunque
+  // ocupe varios renglones). Se salta de renglón donde el PDF lo marca o donde el texto cambia de altura.
+  function renglonesDe(items) {
+    const lineas = [];
+    let linea = '', previo = null;
+    for (const it of items) {
+      const str = it.str || '';
+      const [, , , d, x, y] = it.transform || [0, 0, 0, 0, 0, 0];
+      const alto = Math.abs(d) || it.height || 10;
+      if (previo && str.trim()) {
+        const otroRenglon = Math.abs(y - previo.y) > Math.min(alto, previo.alto) * 0.5;
+        if (otroRenglon || previo.eol) { lineas.push(linea); linea = ''; }
+        else if (x - previo.fin > alto * 2) linea += ' | ';
+        else if (x - previo.fin > alto * 0.12 && !/\s$/.test(linea)) linea += ' ';
+      } else if (previo?.eol && linea) { lineas.push(linea); linea = ''; }
+      if (str.trim() || it.hasEOL) {
+        linea += str;
+        previo = str.trim() ? { y, alto, fin: x + (it.width || 0), eol: !!it.hasEOL } : { ...previo, eol: true };
+      }
+    }
+    lineas.push(linea);
+    return lineas.map(l => l.replace(/[ \t]+/g, ' ').trim()).filter(Boolean);
+  }
+  // Lee un PDF: devuelve el texto de cada hoja; si casi no tiene texto (escaneado), también las hojas como imágenes.
+  async function leerPdf(archivo, avance, maxImagenes) {
+    const pdfjs = await cargarPdfjs();
+    let pdf;
+    try { pdf = await pdfjs.getDocument({ data: new Uint8Array(await archivo.arrayBuffer()), isEvalSupported: false }).promise; }
+    catch (err) { throw { code: err?.name === 'PasswordException' ? 'con_clave' : 'pdf_danado' }; }
+    try {
+      const hojas = [];
+      for (let n = 1; n <= pdf.numPages; n++) {
+        avance(`Leyendo «${archivo.name}»: hoja ${n} de ${pdf.numPages}…`);
+        const pag = await pdf.getPage(n);
+        hojas.push(renglonesDe((await pag.getTextContent()).items).join('\n'));
+      }
+      const letras = hojas.join('').replace(/\s/g, '').length;
+      const imagenes = [];
+      if (letras < 80 * Math.min(pdf.numPages, 3) && maxImagenes > 0) {
+        // Escaneado: cada hoja se dibuja como imagen (unos 1,5 megapíxeles) para que Claude la lea.
+        for (let n = 1; n <= Math.min(pdf.numPages, maxImagenes); n++) {
+          avance(`«${archivo.name}» es una imagen escaneada: preparando la hoja ${n}…`);
+          const pag = await pdf.getPage(n);
+          const v1 = pag.getViewport({ scale: 1 });
+          const vp = pag.getViewport({ scale: Math.min(3, Math.sqrt(1.5e6 / (v1.width * v1.height))) });
+          const lienzo = document.createElement('canvas');
+          lienzo.width = Math.round(vp.width); lienzo.height = Math.round(vp.height);
+          const ctx = lienzo.getContext('2d');
+          ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+          await pag.render({ canvasContext: ctx, viewport: vp }).promise;
+          const blob = await new Promise(ok => lienzo.toBlob(ok, 'image/jpeg', 0.85));
+          if (blob) imagenes.push(blob);
+        }
+      }
+      return { nombre: archivo.name, paginas: pdf.numPages, hojas, letras, imagenes };
+    } finally { pdf.destroy(); }
+  }
+  // Datos personales que un documento al cliente nunca lleva: se ocultan antes de mandarle el texto a Claude.
+  const MESES_RE = 'enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre';
+  function ocultarPersonales(t) {
+    let n = 0;
+    const tapar = (re, f) => { t = t.replace(re, (...m) => { n++; return f(...m); }); };
+    // Fechas de años pasados (las del viaje son de este año o del próximo): en estos documentos son de nacimiento.
+    const antes = new Date().getFullYear() - 1;
+    tapar(new RegExp(`\\b\\d{1,2}(?:[/.-]\\d{1,2}[/.-]|[/ -](?:de )?(?:${MESES_RE})[/ -](?:de )?)((?:19|20)\\d{2})\\b`, 'gi'),
+      (m, anio) => (+anio < antes ? '[fecha oculta]' : (n--, m)));
+    tapar(/\b(c[ée]dula(?: de ciudadan[íi]a| de extranjer[íi]a)?|pasaporte|tarjeta de identidad|C\.? ?C\.?|C\.? ?E\.?|T\.? ?I\.?|DNI|documento)(\s*(?:\||:|No\.?|N[º°o]\.?|#)?\s*)[A-Z]{0,2}\d[\d.\- ]{4,}\d/gi, (m, tipo, sep) => `${tipo}${sep}[oculto]`);
+    tapar(/(?<![\d‐-])(?:\+?57\s?)?3\d{2}[\s.-]?\d{3}[\s.-]?\d{4}(?![\d‐-])/g, () => '[teléfono oculto]');
+    return { texto: t, n };
+  }
+  const MENSAJES_PDF = {
+    sin_lector: 'No pudimos cargar el lector de PDF. Revisa la conexión y vuelve a intentarlo, o copia y pega el texto del PDF.',
+    con_clave: 'Ese PDF tiene contraseña. Ábrelo, guárdalo sin contraseña y súbelo de nuevo.',
+    pdf_danado: 'No pudimos abrir ese archivo como PDF. Revisa que sea un PDF y vuelve a intentarlo.',
+    no_pdf: 'Solo se pueden subir archivos PDF.',
+    escaneado: 'Ese PDF es una imagen escaneada y en esta vista no podemos leer imágenes. Copia y pega el texto, o llena a mano.',
+  };
+  function estadoPdf(txt, tipo) {
+    const el = $('#estado-pdf');
+    el.className = 'estado' + (tipo === 'error' ? ' error' : tipo === 'cargando' ? ' girando' : '');
+    el.innerHTML = txt ? (tipo === 'cargando' ? '<i data-lucide="loader-circle"></i>' : tipo === 'error' ? '<i data-lucide="circle-alert"></i>' : '<i data-lucide="check"></i>') + `<span>${esc(txt)}</span>` : '';
+    iconos(el);
+  }
+  let leyendoPdf = false;
+  async function subirPdfs(archivos) {
+    archivos = [...archivos];
+    if (!archivos.length || leyendoPdf) return;
+    if (archivos.some(a => a.type !== 'application/pdf' && !/\.pdf$/i.test(a.name))) { estadoPdf(MENSAJES_PDF.no_pdf, 'error'); return; }
+    leyendoPdf = true;
+    $('#btn-subir-pdf').disabled = true;
+    estado1('');
+    try {
+      const sample = await obtenerSample();
+      const caps = sample ? await sample.limits?.().catch(() => null) : null;
+      let cupo = caps?.images?.maxCount || 0;
+      const leidos = [];
+      for (const a of archivos) {
+        const r = await leerPdf(a, t => estadoPdf(t, 'cargando'), cupo);
+        cupo -= r.imagenes.length;
+        leidos.push(r);
+      }
+      const sinTexto = leidos.filter(r => !r.imagenes.length && r.letras < 80);
+      if (sinTexto.length === leidos.length) { estadoPdf(MENSAJES_PDF.escaneado, 'error'); return; }
+      const imagenes = leidos.flatMap(r => r.imagenes);
+      const texto = leidos.map(r => r.imagenes.length
+        ? `[PDF «${r.nombre}»: es una imagen escaneada; sus hojas van como imágenes adjuntas, en orden. Lee su contenido.]`
+        : `[PDF «${r.nombre}», ${r.paginas} ${r.paginas === 1 ? 'hoja' : 'hojas'}]\n` + r.hojas.map((h, i) => (r.paginas > 1 ? `--- Hoja ${i + 1} ---\n` : '') + h).filter(h => h.trim()).join('\n')).join('\n\n');
+      const limpio = ocultarPersonales(texto);
+      $('#pegado').value = limpio.texto;
+      const nombres = leidos.map(r => `«${r.nombre}»`).join(', ');
+      estadoPdf(`Leímos ${nombres}.${limpio.n ? ' Ocultamos documentos de identidad, fechas de nacimiento y teléfonos de los pasajeros.' : ''} El texto quedó abajo por si quieres revisarlo.`);
+      $('#releer').hidden = true;
+      await ordenar(limpio.texto, conversion?.base, 'quick', imagenes.length ? imagenes : null);
+    } catch (err) {
+      estadoPdf(MENSAJES_PDF[err?.code] || 'No pudimos leer el PDF. Intenta de nuevo o copia y pega su texto.', 'error');
+    } finally {
+      leyendoPdf = false;
+      $('#btn-subir-pdf').disabled = false;
+      $('#pdf-archivo').value = '';
+    }
+  }
+  $('#btn-subir-pdf').addEventListener('click', () => $('#pdf-archivo').click());
+  $('#pdf-archivo').addEventListener('change', ev => subirPdfs(ev.target.files));
+  // Arrastrar y soltar: sobre la zona del PDF o sobre el cuadro de texto.
+  for (const el of [$('#zona-pdf'), $('#pegado')]) {
+    el.addEventListener('dragover', ev => { if ([...(ev.dataTransfer?.types || [])].includes('Files')) { ev.preventDefault(); $('#zona-pdf').classList.add('encima'); } });
+    el.addEventListener('dragleave', () => $('#zona-pdf').classList.remove('encima'));
+    el.addEventListener('drop', ev => {
+      $('#zona-pdf').classList.remove('encima');
+      if (!ev.dataTransfer?.files?.length) return;
+      ev.preventDefault();
+      subirPdfs(ev.dataTransfer.files);
+    });
+  }
 
   // ================= validación =================
   function marcarFaltantes() {

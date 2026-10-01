@@ -309,6 +309,24 @@ recortadas, para el interactivo), `"__RECURSOS__"`, `"__CIUDADES__"`, `"__PAISES
 previos si viene de una conversión (se conservan y se completan; la información nueva manda) + la forma
 JSON exacta (`d.forma`). Después `fusionar()` combina con lo que ya había, para no perder lo editado.
 
+**Lector de PDF (paso 1, todos los documentos).** «Subir PDF» o arrastrar el archivo (se pueden varios a la
+vez, por ejemplo e-ticket + confirmación del hotel). Sección `lector de PDF` de `app.js`:
+- pdf.js **3.11.174** se carga solo al primer uso (cdnjs; si falla, jsDelivr). El worker se carga como script
+  normal (`window.pdfjsWorker`) y pdf.js trabaja en la misma página. `isEvalSupported: false` siempre.
+- `renglonesDe()` saca el texto en el orden del PDF (así cada celda de una tabla queda junta; en el e-ticket
+  de Avianca cada vuelo sale en bloque) y marca con « | » los saltos grandes entre columnas.
+- `ocultarPersonales()` tapa **antes de mandar a Claude** números de documento (cédula, pasaporte, C.C., T.I.),
+  fechas de años pasados (nacimientos) y celulares colombianos. Las fechas del viaje (este año o el próximo)
+  no se tocan.
+- Si el PDF casi no tiene texto (escaneado), sus hojas van a Claude como imágenes (`sample` con `images`,
+  hasta `limits().images.maxCount`); si la vista no admite imágenes, se avisa.
+- El texto leído queda en el cuadro de texto para revisarlo y se ordena de inmediato con `ordenar()`.
+  `ordenar()` recorta el texto si el mensaje pasa `limits().maxPromptBytes` (65.536) y lo avisa.
+- Reglas nuevas en `instruccion()`: monedas extranjeras se conservan («USD 949»); no se copian datos del
+  proveedor (nombre comercial, contactos, cuentas, formas de pago, comisiones, «su agente»), salvo hoteles,
+  aerolíneas de los vuelos y operadores de traslados; de los pasajeros solo el nombre.
+- Prueba: `pruebas/probar-pdf.js` (ver `pruebas/LEEME.md`).
+
 ### 6.3 Reparto entre hojas (`fluir()`)
 
 Es la parte más delicada visualmente. Puerto de `motor/flujo.py`, pero **midiendo** cada bloque en el
