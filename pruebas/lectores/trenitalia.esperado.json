@@ -44,6 +44,8 @@
       "servicios_confirmados": [
         "Tren Roma Termini — Pietrasanta y Tren Pietrasanta — Roma Termini"
       ],
+      "incluye": [],
+      "no_incluye": [],
       "nota_importante": "Presenta el tiquete (impreso o en el celular) al personal del tren cuando lo pidan."
     },
     "voucher": {

@@ -372,6 +372,7 @@ function crearLectores({ ciudadIata = c => c } = {}) {
       hoteles: v.hoteles.map(h => ({ hotel: h.hotel || '', entrada: h.entrada || '', salida: h.salida || '', acomodacion: [h.acomodacion, h.regimen].filter(Boolean).join(' · '), confirmacion: h.confirmacion || '' })),
       traslados: v.traslados.map(x => ({ operador: x.operador || '', trayecto: x.trayecto || '', fecha: x.fecha || '', hora: x.hora || '', confirmacion: x.confirmacion || '' })),
       servicios_confirmados: serviciosDe(v),
+      incluye: v.programa?.incluye || [], no_incluye: v.programa?.no_incluye || [],
       nota_importante: [...(v.instrucciones || []), ...(v.condiciones || [])].join(' '),
     };
     if (doc === 'voucher') {

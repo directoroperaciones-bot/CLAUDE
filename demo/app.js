@@ -269,6 +269,13 @@
     const tpl = PLANTILLAS.confirmacion;
     const pServ = patron(tpl, 'items_servicios_confirmados'), pPago = patron(tpl, 'filas_pago');
     let h = tpl.replace(/\s*<!-- PATRÓN por (?:servicio|ítem|fila)[\s\S]*?-->/g, '').replace(/\s*<!-- Las tarjetas de confirmación que no quepan[\s\S]*?-->/g, '');
+    // «Tu reserva incluye / no incluye»: después de los servicios confirmados y antes de la información de pago,
+    // con las mismas viñetas de la cotización (chulo coral para lo incluido, punto gris para lo que no).
+    const tplCot = PLANTILLAS.cotizacion, pIncC = patron(tplCot, 'items_incluye'), pNoC = patron(tplCot, 'items_no_incluye');
+    const lista = (titulo, items, pat) => items.length ? `\n\n  <h2 class="sec" style="margin-top:26px;">Tu reserva <span style="color:#F25061;">${titulo}</span></h2>\n  <span class="dash" style="margin-top:16px;"></span>\n  <div style="display:flex;flex-wrap:wrap;margin-top:22px;">\n    ${items.map(x => rep(pat, 'TEXTO', e(x))).join('\n    ')}\n  </div>` : '';
+    const incC = plano(d.incluye).filter(x => !vacio(x)), noIncC = plano(d.no_incluye).filter(x => !vacio(x));
+    const bloqueInc = lista('incluye', incC, pIncC) + lista('no incluye', noIncC, pNoC);
+    if (bloqueInc) h = h.replace(/\n\s*<h3 class="sub">Información <span[^>]*>de pago<\/span><\/h3>/, m => bloqueInc + m);
     for (const k of ['destino', 'pasajeros', 'estado_pago']) if (vacio(d[k])) h = quitarCampo(h, k);
     if (vacio(d.parrafo_confirmacion)) h = rep(h, ' {{parrafo_confirmacion}}', '');
     const serv = (d.servicios_confirmados || []).filter(x => !vacio(x));
@@ -474,7 +481,9 @@
     // Un día de la cotización con actividades en filas también se parte por filas (4 o más, 2 por hoja como mínimo).
     const filasDia = el => (el.matches('.dia-cot') ? [...el.querySelectorAll('.dia-cot-texto > .act')] : []);
     const dentro = el => el.querySelector('tbody') ? [...el.querySelector('tbody').rows] : filasDia(el).length >= 2 ? filasDia(el)
-      : el.matches('div') && getComputedStyle(el).flexWrap === 'wrap' ? [...el.children] : [];
+      // Se mira también el estilo escrito en el elemento: la copia de una lista partida aún no está en la hoja
+      // y el navegador no le calcula estilos; sin esto, al deshacer un relleno sus ítems se perdían.
+      : el.matches('div') && (el.style.flexWrap === 'wrap' || getComputedStyle(el).flexWrap === 'wrap') ? [...el.children] : [];
     // Fondo real de un bloque: en listas y tablas, donde termina su último ítem. El margen que sobra debajo
     // del último renglón no es contenido: si solo eso se pasa del límite, el bloque cabe y no se mueve.
     const fondoB = (el, p) => { const it = dentro(el); return it.length ? Math.max(...it.map(x => fondo(x, p))) : fondo(el, p); };
@@ -1164,6 +1173,7 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
           { tipo: 'filas', k: 'traslados', mas: 'Agregar traslado', min: 0, cols: [T('operador', 'Operador', 1.3), ...COLS_TRASLADO] }] },
         { t: 'Servicios y pagos', sub: 'Lo que quedó confirmado y cómo va el pago.', icono: 'file-text', campos: [
           L('servicios_confirmados', 'Servicios confirmados', 12),
+          L('incluye', 'Tu reserva incluye (uno por renglón)', 6, { filas: 5 }), L('no_incluye', 'Tu reserva no incluye (uno por renglón)', 6, { filas: 5 }),
           { tipo: 'filas', k: 'pagos', req: 1, mas: 'Agregar pago', min: 0, cols: [T('concepto', 'Concepto', 2), T('valor', 'Valor', 1.2, { ph: '$0' }),
             { k: 'estado', label: 'Estado', w: 1.2, tipo: 'opciones', opciones: ESTADOS_PAGO, normalizar: normalEstadoPago }] },
           A('nota_importante', 'Nota importante', 12, { filas: 2 })] },
@@ -1203,9 +1213,10 @@ TRASLADOS SAN ANDRÉS TOURS: AEROPUERTO-HOTEL 12OCT 09:00 CONF SAT-5521 / HOTEL-
 Incluye: tiquetes con equipaje de bodega, 5 noches todo incluido, traslados, tarjeta de turista, asistencia médica.
 Pagos: abono $3.200.000 (pagado el 2 de septiembre), saldo $2.950.000 pagado el 20 de septiembre. Queda pagado en su totalidad.
 Recordarle llevar la cédula original y pagar la tarjeta de turista si no la compró en línea.`,
-      forma: '{"codigo_reserva":"","titulo_viaje":"","nombre_viajero":"","parrafo_confirmacion":"","destino":"","pasajeros":"","estado_pago":"","fecha_salida":"","fecha_regreso":"","aereo":[{"aerolinea":"","tiquete":"","record":"","trayectos":[{"vuelo":"","fecha":"","ruta":"","sale":"","llega":""}]}],"hoteles":[{"hotel":"","entrada":"","salida":"","acomodacion":"","confirmacion":""}],"traslados":[{"operador":"","trayecto":"","fecha":"","hora":"","confirmacion":""}],"servicios_confirmados":[],"pagos":[{"concepto":"","valor":"","estado":""}],"nota_importante":""}',
+      forma: '{"codigo_reserva":"","titulo_viaje":"","nombre_viajero":"","parrafo_confirmacion":"","destino":"","pasajeros":"","estado_pago":"","fecha_salida":"","fecha_regreso":"","aereo":[{"aerolinea":"","tiquete":"","record":"","trayectos":[{"vuelo":"","fecha":"","ruta":"","sale":"","llega":""}]}],"hoteles":[{"hotel":"","entrada":"","salida":"","acomodacion":"","confirmacion":""}],"traslados":[{"operador":"","trayecto":"","fecha":"","hora":"","confirmacion":""}],"servicios_confirmados":[],"incluye":[],"no_incluye":[],"pagos":[{"concepto":"","valor":"","estado":""}],"nota_importante":""}',
       reglas: `- Copia los códigos (tiquete, récord, confirmaciones) exactamente como vienen.
 - "titulo_viaje": corto, por ejemplo "San Andrés, cinco noches".
+- "incluye" y "no_incluye": lo que el texto diga que el plan incluye o no incluye, un ítem por elemento, sin repetir los servicios confirmados.
 - "ruta" con guion largo y espacios: "BOG — ADZ". "sale" y "llega" en formato 24 horas "06:15"; si llega al día siguiente, "09:10 +1".
 - "trayecto" de traslados con guion largo: "Aeropuerto — Hotel". "acomodacion" en palabras: "Doble", "Sencilla".
 - "estado_pago": exactamente uno de "Pagado en su totalidad", "Abono recibido" o "Pendiente de pago".
@@ -2315,13 +2326,14 @@ ${texto.slice(0, 40000)}
       destino: c.destino || '', pasajeros: c.pasajeros || '', estado_pago: '', fecha_salida: c.fecha_llegada || '', fecha_regreso: c.fecha_salida || '',
       aereo: [], traslados: [], nota_importante: '',
       hoteles: t && !vacio(t.hotel) ? [{ hotel: t.hotel, entrada: c.fecha_llegada || '', salida: c.fecha_salida || '', acomodacion: t.acomodacion || c.acomodacion || '', confirmacion: '' }] : [],
-      servicios_confirmados: [], // repetiría el «incluye» que el cliente ya vio en la cotización
+      servicios_confirmados: [], // lo que incluye pasa a «Tu reserva incluye»
+      incluye: plano(c.incluye), no_incluye: plano(c.no_incluye),
       pagos: t && !vacio(t.valor) ? [{ concepto: `${c.modo_valor === 'total' ? 'Valor total' : 'Valor por persona'}${t.hotel ? ' — ' + t.hotel : ''}`, valor: t.valor, estado: '' }] : [],
       asesor: c.asesor?.nombre || '', asesor_correo: c.asesor?.correo || '', asesor_telefono: c.asesor?.telefono || '',
     };
     abrirConvertido('confirmacion', datos, {
       desde: `la cotización ${c.codigo_cotizacion}`, pegar: 'Pegar la reserva del sistema',
-      texto: 'Pasamos el destino, las fechas, los pasajeros, el hotel elegido, el valor y tus datos. «Servicios confirmados» queda vacío porque el cliente ya vio lo que incluye en la cotización (puedes escribirlo si quieres). Completa lo marcado —el titular, los vuelos y los números de confirmación— o pega la reserva del sistema y Claude llena el resto.',
+      texto: 'Pasamos el destino, las fechas, los pasajeros, el hotel elegido, el valor y tus datos. Lo que incluye y no incluye la cotización pasa a «Tu reserva incluye» y «Tu reserva no incluye»; revísalo por si algo cambió al reservar. Completa lo marcado —el titular, los vuelos y los números de confirmación— o pega la reserva del sistema y Claude llena el resto.',
     });
   }
 
@@ -2430,7 +2442,7 @@ ${texto.slice(0, 40000)}
         comidas: [], etiquetas: aBordo && !hotel ? ['Noche a bordo'] : [], hotel: hotel?.hotel || '' });
     }
     const hoteles = [...new Map((c.hoteles || []).filter(h => !vacio(h.hotel)).map(h => [h.hotel, { nombre: h.hotel, ciudad: ciudadHotel[h.hotel] || '', direccion: '', telefono: '' }])).values()];
-    let incluye = plano(c.servicios_confirmados), noIncluye = [];
+    let incluye = plano(c.incluye).length ? plano(c.incluye) : plano(c.servicios_confirmados), noIncluye = plano(c.no_incluye);
     if (!incluye.length) {
       const exp = expedienteDe(c.codigo_reserva);
       const cot = guardados.find(r => r.doc === 'cotizacion' && expedienteDe(r.datos.codigo_cotizacion) === exp);

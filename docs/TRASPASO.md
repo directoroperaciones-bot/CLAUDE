@@ -288,7 +288,9 @@ recortadas, para el interactivo), `"__RECURSOS__"`, `"__CIUDADES__"`, `"__PAISES
   `foto_portada`) · Vuelos (`aereo[]` {`aerolinea`, `tiquete`, `record`, `trayectos[]` {`vuelo`, `fecha`,
   `ruta`, `sale`, `llega`}}) · Hoteles · Traslados · Servicios y pagos (`servicios_confirmados`,
   `pagos[]` {`concepto`, `valor`, `estado`: Pagado/Pendiente/Anulado}, `nota_importante`) · Tu contacto.
-  Modo compacto solo si ahorra una hoja; no repite el «incluye» de la cotización.
+  Modo compacto solo si ahorra una hoja. **Tu reserva incluye / no incluye** (`incluye`, `no_incluye`): van en la
+  hoja 2, después de «Servicios confirmados» y antes de «Información de pago», con las viñetas de la cotización;
+  al convertir una cotización pasan solas, y los lectores de PDF las llenan desde un programa de tour.
 - **Voucher** (límite 1178, `sinPoliticas`, 1 hoja): `tipo` (hotel / aereo / traslado), `codigo_voucher`
   (`CAM-VCH-####-01`), `codigo_reserva`, `nombre_servicio`, `proveedor`, `ubicacion`, viajeros
   (`nombre_viajero`, `acompanantes`), datos del servicio según tipo, `incluye`, `instrucciones`,
@@ -571,6 +573,7 @@ se activa en contexto seguro (https o localhost).
 | «Pegar la reserva» borraba lo editado | No se fusionaba con el formulario | `fusionar` con `leerFormulario()` |
 | Fotos con personas en repo público (~2 min) | Error de proceso | Regla 5 de §3 |
 | Push a `main` bloqueado | Requiere revisión | Pedir autorización / PR |
+| Ítems de una lista perdidos o repetidos al repartir hojas (confirmación con incluye largo; CA2922 repetía 2 ítems de «no incluye») | Al deshacer un relleno, la copia de la lista aún no estaba en la hoja y el navegador no le calculaba `flex-wrap` | `dentro()` mira también el estilo escrito en el elemento |
 
 ---
 
