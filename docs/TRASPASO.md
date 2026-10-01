@@ -118,6 +118,11 @@ cualquier mejora.
      ella desde la sesión de Claude Code (ni con Composio ni con otra herramienta).
    - Si usas un navegador (Claude in Chrome) para mirar AppSheet: «REGLA ABSOLUTA: SOLO LECTURA. NO
      MODIFIQUES NADA.»
+   - **Envío a OMNIAXIS (01/10/2026):** la app escribe **solo** en otra hoja, «BANDEJA - Caminos Documentos»
+     (`OMNIAXIS.bandeja` en `app.js`), y un bot de AppSheet crea o actualiza la venta. `escribirBandeja()` se niega si
+     el destino fuera la base. Guía completa: `docs/OMNIAXIS-BANDEJA.md`.
+   - Los códigos que la app inventa cuando un documento llega sin código son **CA9xxxx** (90000+), para que nunca
+     coincidan con un consecutivo real.
 2. **Nunca mostrar valores internos en un documento para el cliente.** «ojo, no pueden mostrarse valores
    internos en un documento de estos, solo valores totales». Nada de netos, markups, costos de proveedor,
    comisiones ni nombres de mayoristas, consolidadores u operadores. Solo el **valor final** de venta. Los

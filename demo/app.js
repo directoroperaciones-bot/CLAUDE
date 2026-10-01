@@ -22,6 +22,9 @@
   };
 
   // ================= utilidades =================
+  // Código para un documento que llega sin código: CA9xxxx (90000 en adelante), lejos de los consecutivos reales de
+  // OMNIAXIS, para que nunca se confunda con una venta que existe.
+  const codigoProvisional = () => 'CA' + (90000 + Math.floor(Math.random() * 10000));
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const iconos = (r = document) => $$('i[data-lucide]', r).forEach(el => { const svg = ICONOS[el.dataset.lucide]; if (svg) el.outerHTML = svg; });
@@ -1114,7 +1117,7 @@
         if (!(d.tarifas || []).some(t => !vacio(t.valor))) f.push(['tarifas', 'Al menos una tarifa con su valor']);
         return f;
       },
-      preparar: d => ({ ...d, codigo_cotizacion: vacio(d.codigo_cotizacion) ? 'CA' + Math.floor(1000 + Math.random() * 9000) : d.codigo_cotizacion, asesor: { nombre: getPath(d, 'asesor.nombre') || ASESOR.nombre, correo: getPath(d, 'asesor.correo') || ASESOR.correo,
+      preparar: d => ({ ...d, codigo_cotizacion: vacio(d.codigo_cotizacion) ? codigoProvisional() : d.codigo_cotizacion, asesor: { nombre: getPath(d, 'asesor.nombre') || ASESOR.nombre, correo: getPath(d, 'asesor.correo') || ASESOR.correo,
         telefono: getPath(d, 'asesor.telefono') || (!getPath(d, 'asesor.correo') || getPath(d, 'asesor.correo') === ASESOR.correo ? ASESOR.telefono : '') } }),
       meta: d => (vacio(d.vigencia) ? 'Sin fecha de vigencia' : `Vigente hasta el ${fecha(d.vigencia, 'de')}`),
       // Fotos que se buscan en el banco y se guardan en él (mismas claves que el motor del plugin).
@@ -1323,7 +1326,7 @@ El voucher no es reembolsable ni transferible.`,
       if (!(d.dias || []).some(x => !vacio(x.titulo) || !vacio(x.descripcion))) f.push(['dias', 'Al menos un día del recorrido']);
       return f;
     },
-    preparar: d => ({ ...d, codigo: vacio(d.codigo) ? 'CA' + Math.floor(1000 + Math.random() * 9000) : d.codigo }),
+    preparar: d => ({ ...d, codigo: vacio(d.codigo) ? codigoProvisional() : d.codigo }),
     meta: d => `Del ${rangoHero(d.fecha_inicio, d.fecha_fin)}`,
     fotos: d => [
       ...(vacio(d.destino) ? [] : [{ clave: claveDestino(d.destino), tipo: 'destino', nombre: d.destino, ciudad: '', get: () => d.foto_portada, set: u => { d.foto_portada = u; } }]),
@@ -2489,6 +2492,7 @@ ${texto.slice(0, 40000)}
     $('#vistas').hidden = !d.interactivo;
     $('#btn-html').hidden = !d.interactivo;
     $('#btn-publicar').hidden = !d.interactivo;
+    $('#btn-omniaxis').hidden = !OMNIAXIS.docs.includes(docId);
     pintarSiguiente(datos);
     mostrarPublicado(d.interactivo ? publicacionDe(datos) : null);
     const fuentes = `<style>${FUENTES}</style>`;
@@ -3002,6 +3006,122 @@ ${texto.slice(0, 40000)}
     } finally { btn.disabled = false; }
   });
 
+  // ================= enviar a OMNIAXIS (por la BANDEJA; la base sigue siendo de SOLO LECTURA) =================
+  // La cotización o la confirmación se mandan como una fila a la hoja «BANDEJA - Caminos Documentos» (otro archivo,
+  // fuera de la base). Un bot de AppSheet (OMNIAXIS) lee la bandeja, crea o actualiza la venta en PIPELINE con su
+  // consecutivo y anota en la bandeja el que asignó. La app NUNCA escribe en la base: escribirBandeja() se niega
+  // si el destino fuera la hoja de la base. Guía del bot: docs/OMNIAXIS-BANDEJA.md.
+  const OMNIAXIS = {
+    bandeja: '12x_xmEeK4neZZfgRq3ISDsMkLDH4GQCFbVUI-wGMm2M', hoja: 'BANDEJA', columnas: 'A:AC',
+    docs: ['cotizacion', 'confirmacion'],
+    tiposVenta: ['Vacacional', 'Religioso', 'Mayorista', 'Receptivo', 'Referido', 'Propio'],
+  };
+  async function escribirBandeja(fila) {
+    if (!mcp) throw { code: 'sin_mcp' };
+    if (OMNIAXIS.bandeja === BASE.hoja) throw { code: 'destino_prohibido' }; // jamás se escribe en la base
+    const r = await mcp.callTool(COMPOSIO, 'COMPOSIO_MULTI_EXECUTE_TOOL', {
+      tools: [{ tool_slug: 'GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND', arguments: {
+        spreadsheetId: OMNIAXIS.bandeja, range: `${OMNIAXIS.hoja}!${OMNIAXIS.columnas}`, valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS', values: [fila] } }],
+      sync_response_to_workbench: false, thought: 'Enviar el documento a la bandeja de OMNIAXIS (no es la base).', current_step: 'ENVIAR_BANDEJA',
+    });
+    let p = r?.payload;
+    if (typeof p === 'string') { try { p = JSON.parse(p); } catch (_) {} }
+    const res = p?.data?.results?.[0]?.response;
+    if (!res?.successful) throw { code: 'no_enviado', message: res?.error || p?.error || '' };
+    return res.data?.updates?.updatedRange || '';
+  }
+  const ddmmaaaa = f => { const m = RE_ISO.exec(String(f || '')); return m ? `${dosDig(m[3])}/${dosDig(m[2])}/${m[1]}` : ''; };
+  const ahoraTexto = () => { const d = new Date(); return `${dosDig(d.getDate())}/${dosDig(d.getMonth() + 1)}/${d.getFullYear()} ${dosDig(d.getHours())}:${dosDig(d.getMinutes())}`; };
+  // Lugares de Colombia para sugerir NACIONAL o INTERNACIONAL (la asesora lo puede cambiar en OMNIAXIS).
+  const RE_NACIONAL = /colombia|bogot|medell|cali\b|cartagena|san andr|santa marta|barranquilla|pereira|armenia|manizales|eje cafetero|bucaramanga|c[uú]cuta|pasto|ipiales|las lajas|leticia|amazonas|villa de leyva|guatap|riohacha|guajira|buga|popay[aá]n|tunja|chiquinquir|monserrate|neiva|villavicencio|monter[ií]a|valledupar|yopal|ibagu|sincelejo|tolu|cove[ñn]as|providencia|capurgan|nuqu[ií]|bah[ií]a solano|salento|filandia|jard[ií]n|zipaquir|girardot|melgar|san gil|barichara/i;
+  const numeroDe = v => { const n = Number(String(v || '').replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.')); return Number.isFinite(n) && n > 0 ? n : ''; };
+  // Una fila de la bandeja con lo que el documento sabe. Nada de costos internos: solo el valor final para el cliente.
+  function filaBandeja(d, tipoVenta, consecutivo) {
+    const esCot = docId === 'cotizacion';
+    const dd = doc();
+    const codigo = dd.codigo(d) || '';
+    const ida = esCot ? d.fecha_llegada : d.fecha_salida, regreso = esCot ? d.fecha_salida : d.fecha_regreso;
+    const n = (/(\d+)\s*(?:personas?|adultos?|pasajeros?)/i.exec(d.pasajeros || '') || [])[1] || '';
+    const tarifas = (d.tarifas || []).filter(t => !vacio(t.valor));
+    const pagos = (d.pagos || []).filter(x => !vacio(x.valor));
+    const valores = esCot ? tarifas.map(t => `${[t.hotel, t.acomodacion].filter(Boolean).join(' · ')}: ${t.valor} ${d.modo_valor === 'total' ? 'en total' : 'por persona'}`)
+      : pagos.map(x => `${x.concepto || 'Pago'}: ${x.valor}${x.estado ? ` (${x.estado})` : ''}`);
+    const moneda = /USD|US\$/i.test(valores.join(' ')) ? 'USD' : /EUR|€/i.test(valores.join(' ')) ? 'EUR' : 'COP';
+    const servicios = esCot ? [] : [
+      ...(d.aereo || []).flatMap(a => (a.trayectos || []).map(t => `Vuelo ${t.vuelo || ''} ${t.ruta || ''} ${ddmmaaaa(t.fecha)} ${t.sale || ''}`.replace(/\s+/g, ' ').trim() + (a.record ? ` (récord ${a.record})` : ''))),
+      ...(d.hoteles || []).filter(h => !vacio(h.hotel)).map(h => `Hotel ${h.hotel} ${ddmmaaaa(h.entrada)}–${ddmmaaaa(h.salida)}${h.confirmacion ? ` (conf. ${h.confirmacion})` : ''}`),
+      ...(d.traslados || []).filter(x => !vacio(x.trayecto)).map(x => `${x.trayecto} ${ddmmaaaa(x.fecha)} ${x.hora || ''}`.trim()),
+    ];
+    const destino = d.destino || (esCot ? d.titulo_destino : d.titulo_viaje) || '';
+    const corta = (t, max = 45000) => String(t || '').slice(0, max);
+    return [
+      Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(16).padStart(2, '0')).join(''), // como las claves de AppSheet
+      ahoraTexto(), dd.nombre, `${docId}__${slugCodigo(codigo).toLowerCase()}`, codigo, consecutivo || '',
+      esCot ? d.asesor?.correo || '' : d.asesor_correo || '', esCot ? d.asesor?.nombre || '' : d.asesor || '',
+      esCot ? '' : d.nombre_viajero || '', destino, ddmmaaaa(ida), ddmmaaaa(regreso), n ? +n : '', d.pasajeros || '',
+      tipoVenta || '', RE_NACIONAL.test(`${destino} ${esCot ? d.titulo_destino : d.titulo_viaje}`) ? 'NACIONAL' : 'INTERNACIONAL',
+      esCot ? 'Cotizado' : 'Confirmada', esCot && tarifas.length === 1 ? numeroDe(tarifas[0].valor) : '', moneda,
+      corta(valores.join('\n')), corta(plano(d.incluye).join('\n')), corta(plano(d.no_incluye).join('\n')), corta(servicios.join('\n')),
+      'Tipo de viaje sugerido por el destino: revísalo en OMNIAXIS.', 'Pendiente', '', '', '', '',
+    ];
+  }
+  // ¿El código del documento es un consecutivo que existe en la base? (lectura; un CA inventado no cuenta)
+  async function consecutivoEnBase(codigo) {
+    const num = numeroViaje(codigo);
+    if (!num) return null;
+    try {
+      const [col, destinos] = await lecturaBase(['PIPELINE!AG2:AG5000', 'PIPELINE!I2:J5000']);
+      const i = col.findIndex(f => String((f || [])[0] ?? '').trim() === num);
+      if (i < 0) return null;
+      const [destino = '', ida = ''] = (destinos[i] || []).map(x => String(x || '').trim());
+      return { num, destino, ida };
+    } catch (_) { return null; }
+  }
+  let enviandoOmniaxis = false;
+  async function ofrecerOmniaxis(trasDescargar = false) {
+    const out = $('#estado-3');
+    if (!mcp) { out.className = 'estado error'; out.textContent = 'Enviar a OMNIAXIS funciona al abrir la app desde claude.ai con el conector Composio.'; return; }
+    if (enviandoOmniaxis || !docActual) return;
+    enviandoOmniaxis = true;
+    try {
+      const d = docActual, codigo = doc().codigo(d);
+      const venta = await consecutivoEnBase(codigo), consecutivo = venta?.num || '';
+      const previo = enviosOmniaxis[`${docId}__${slugCodigo(codigo).toLowerCase()}`];
+      const yaEnviado = previo ? ` Ya lo enviaste el ${previo.fecha}; si lo envías otra vez, OMNIAXIS lo toma como una actualización.` : '';
+      let tipoVenta = '';
+      if (consecutivo) {
+        const datosVenta = [venta.destino, venta.ida].filter(Boolean).join(', ');
+        const i = await elegir('¿Enviar a OMNIAXIS?', `La venta CA${consecutivo}${datosVenta ? ` (${datosVenta})` : ''} ya existe en OMNIAXIS: revisa que sea la misma de este documento. Se actualiza con ${docId === 'cotizacion' ? 'esta cotización' : 'esta confirmación'}.${yaEnviado}`,
+          [{ t: `Sí, actualizar la venta CA${consecutivo}`, d: `Queda como «${docId === 'cotizacion' ? 'Cotizado' : 'Confirmada'}»` }, { t: 'No por ahora' }]);
+        if (i !== 0) return;
+      } else {
+        const ops = OMNIAXIS.tiposVenta.map(t => ({ t: `Sí, venta ${t}`, d: 'OMNIAXIS la crea con su consecutivo' }));
+        const i = await elegir('¿Enviar a OMNIAXIS?', `Es una venta nueva: elige el tipo de venta y OMNIAXIS la crea con su consecutivo.${yaEnviado}`, [...ops, { t: 'No por ahora' }]);
+        if (i === null || i >= OMNIAXIS.tiposVenta.length) return;
+        tipoVenta = OMNIAXIS.tiposVenta[i];
+      }
+      out.className = 'estado girando';
+      out.innerHTML = '<i data-lucide="loader-circle"></i><span>Enviando a OMNIAXIS…</span>';
+      iconos(out);
+      const fila = filaBandeja(d, tipoVenta, consecutivo);
+      await escribirBandeja(fila);
+      const clave = fila[3];
+      try { await dbOmniaxis?.doc('envios_omniaxis/' + clave).set({ id: fila[0], fecha: fila[1], codigo, consecutivo: consecutivo || '' }); } catch (_) {}
+      out.className = 'estado';
+      out.textContent = consecutivo ? `Listo: OMNIAXIS actualizará la venta CA${consecutivo}.` : 'Listo: OMNIAXIS creará la venta con su consecutivo. La verás en la app en unos minutos.';
+    } catch (err) {
+      out.className = 'estado error';
+      out.textContent = MENSAJES_MCP[err?.code] || (err?.code === 'no_enviado' ? 'No pudimos escribir en la bandeja de OMNIAXIS. Revisa que la cuenta de Google en Composio tenga acceso a la hoja «BANDEJA - Caminos Documentos».' : 'No se pudo enviar a OMNIAXIS. Inténtalo de nuevo.');
+      try { await dbOmniaxis?.doc('diagnostico/' + Date.now()).set({ cuando: new Date().toISOString(), accion: 'omniaxis', code: err?.code || '', message: String(err?.message || '').slice(0, 300) }); } catch (_) {}
+    } finally { enviandoOmniaxis = false; }
+  }
+  let enviosOmniaxis = {}, dbOmniaxis = null;
+  (async () => {
+    dbOmniaxis = window.claude?.use ? await window.claude.use('db').catch(() => null) : null;
+    dbOmniaxis?.collection('envios_omniaxis').onSnapshot(snap => { enviosOmniaxis = Object.fromEntries(snap.docs.filter(x => x.exists).map(x => [x.id, x.data()])); }, () => {});
+  })();
+  $('#btn-omniaxis').addEventListener('click', () => ofrecerOmniaxis(false));
+
   // ================= PDF (se rasteriza en el navegador; en la versión completa lo hace el motor) =================
   let downloads = null;
   (async () => {
@@ -3031,6 +3151,7 @@ ${texto.slice(0, 40000)}
       const nombre = `${doc().archivo}-${doc().codigo(docActual)}.pdf`;
       await downloads.save({ filename: nombre, data: pdf.output('blob') });
       out.className = 'estado'; out.textContent = `Guardaste ${nombre}.`;
+      if (OMNIAXIS.docs.includes(docId) && mcp) ofrecerOmniaxis(true);
     } catch (err) {
       out.className = 'estado error';
       out.textContent = err?.code === 'declined' ? 'Cancelaste la descarga.' : 'No se pudo generar el PDF. Inténtalo de nuevo.';
