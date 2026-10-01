@@ -359,6 +359,16 @@ navegador en vez de estimar.
 
 ---
 
+### 6.4 Políticas fijas de Agencia Caminos
+
+Cotización y confirmación llevan siempre, antes de la hoja de «Información adicional», las hojas
+«Políticas de Agencia Caminos» (9 secciones: pago, menores de edad, información de interés, documentos de
+viaje, datos de reserva, condiciones generales, cancelación, políticas generales y comportamiento en los
+destinos). El texto lo entregó la usuaria y va **tal cual** en `POLITICAS_CAMINOS` (`app.js`, sección de reparto
+entre hojas); para cambiarlo se edita ahí. `agregarPoliticasCaminos()` copia la hoja de «Información adicional»
+como molde y reparte las viñetas midiendo (hoy ocupan 2 hojas). Se activa con `flujo.politicasCaminos`; el
+voucher y el itinerario no las llevan.
+
 ## 7. Conversiones y expedientes
 
 - **Barra «Siguiente paso»** al ver un documento:

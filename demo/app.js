@@ -324,7 +324,109 @@
   // Los límites del motor (1178 px, y 1156 en la cotización) se miden sobre la tinta del PDF;
   // aquí se mide la caja, que queda unos píxeles más abajo, así que se usan 6 px más.
   const HOLGURA_CAJA = 6;
-  function fluir(doc, { limite: limiteMotor = 1178, etiqueta = null, pegarNota = false, juntar = false, compacto = false, sinPoliticas = false } = {}) {
+  // Políticas fijas de Agencia Caminos (texto entregado por la dirección de operaciones, tal cual): van en todas las
+  // cotizaciones y confirmaciones, en hojas propias antes de la hoja de «Información adicional».
+  const POLITICAS_CAMINOS = [
+    { t: 'POLÍTICAS DE PAGO', items: [
+      'El programa se podrá reservar con el 40% del valor total del plan.',
+      'El valor de los tiquetes debe ser pago en su totalidad al momento de reservar.',
+      'El pago total del programa deberá ser recibido máximo 45 días antes de la fecha de viaje.',
+      'Una vez realizado el abono por parte del cliente, se da por aceptado el plan informado junto con las políticas de cancelación.',
+      'Para garantizar su reserva y tarifa, debe realizar el pago en los plazos establecidos y enviar el soporte de la transacción al asesor correspondiente.',
+    ] },
+    { t: 'POLITICA INGRESO DE MENORES DE EDAD CON PADRES', items: [
+      'Si viene con menores de edad (hijos) no olvide presentar al momento del Check In el documento de identidad Registro Civil, Tarjeta de Identidad y/ o Pasaporte del Menor.',
+      'Si viene con menores de edad diferente a sus hijos no olvide diligenciar el formato Autorización Registro Menores de Edad con Terceros (RES-FOR-0003) y presentarlo al momento del Check In.',
+      'Todo acompañante debe ser registrado sin excepción. (Ley 300 de 1996 capitulo 2 artículo 81). Si el acompañante no tiene reserva anticipada se le cobra la tarifa vigente para Walk In.',
+    ] },
+    { t: 'INFORMACIÓN DE INTERÉS', items: [
+      'Para realizar cambios del servicio ya programado y confirmado, favor hacerlo con mínimo 30 días de anticipación (Se podrá realizar de acuerdo con políticas del hotel y/o aerolínea).',
+      'Tarifas cotizadas sujetas a cambio sin previo aviso al momento de reservar.',
+      'Precios Cotizados con tarifa base del día de hoy.',
+      'Por desastres naturales, disturbios, condiciones climáticas o inconvenientes de fuerza mayor, nos abstenemos de realizar cambios en la programación establecida del servicio, sin derecho a reembolso alguno.',
+    ] },
+    { t: 'DOCUMENTOS DE VIAJE', items: [
+      'Agencia de viajes Caminos, enviara los documentos de Viaje una vez recibido el pago total (100%) del valor de los servicios contratados (Tiquetes, Hotel, Receptivos etc.).',
+      'La compra de cualquier producto sólo será efectiva en el momento en que se valide el pago realizado con la tarjeta de crédito, débito o la forma de pago acordada, y esta haya sido verificada por el área de Tesorería.',
+      'Agencia de viajes Caminos, podrá solicitar información adicional al cliente con el fin de verificar cualquier pago.',
+    ] },
+    { t: 'DATOS DE RESERVA', items: [
+      'Es responsabilidad del Cliente verificar que la información relacionada en la confirmación es correcta y por ende autoriza a AGENCIA CAMINOS, a realizar las respectivas emisiones y reconfirmaciones con estos datos. (Nombres, Documentos de identidad, servicios confirmados etc.). Cualquier diferencia o error en la información suministrada previamente, y que causare cobro por modificaciones o cambios será asumido en su totalidad por el cliente.',
+      'Es obligación del Cliente verificar la documentación requerida y la vigencia de estos para su viaje como: visas, permisos, pasaportes, documentos de identificación, vacunas exigidas, etc.',
+    ] },
+    { t: 'CONDICIONES GENERALES', items: [
+      'En caso de adicionar o disminuir el número de pasajeros, la tarifa será recotizada para así determinar el valor final del servicio.',
+      'Si se desea realizar Chek in y Chek out, antes y después de la hora establecida por el hotel, puede estar sujeta a cobro adicional. (Asumida por el pasajero).',
+      'La información detallada anteriormente es solo COTIZACIÓN, no implica disponibilidad en los hoteles, por lo tanto, estos están sujetos a disponibilidad al momento de confirmar los servicios.',
+      'Las tarifas de la cotización no son válidas en temporadas de Eventos, Feriados, Congresos o en caso de presentarse algún evento importante en el destino cotizado.',
+      'El operador declina toda responsabilidad por retrasos, adelantos o anulaciones que se produzcan por parte de las compañías aéreas o las empresas transportistas, los cargos que se originen por este concepto estarán a cargo de los pasajeros.',
+      'Si los servicios (Tours, receptivos, Excursiones, etc..) no llegan a cumplir un mínimo de viajeros previstos o por cualquier otra causa justificada, nuestro operador se verá en la obligación de suspender y reprogramar el servicio el cual estará informando a la agencia y al pasajero de dicha decisión.',
+    ] },
+    { t: 'CONDICIONES EN CASO DE CANCELACIÓN DE SU RESERVA', items: [
+      'En caso de cancelaciones de los servicios ya programados, deben ser enviados por escrito y adicionar toda la información necesaria, de modo que puedan ser atendidos inmediatamente, si es el caso se procederá al respectivo reembolso.',
+      'No se efectuará ningún reembolso si la cancelación se recibiera 30 días o menos antes de la fecha de viaje, se reprogramará el plan turístico, dependiendo de la disponibilidad aérea y hotelera.',
+      'En caso de reprogramar el plan, La Agencia Caminos, no se hace responsable de sobre costos, como penalidades cargos administrativos y fee bancarios, en aerolíneas hoteles, tures y demás servicios',
+      'Se debe tener en cuenta condiciones y restricciones del establecimiento.',
+      'La cancelación de los servicios se acepta siempre y cuando el operador y/o proveedor confirme y dé el visto bueno, adicional el pasajero, debe contar con los documentos que soporten dicho reembolso, valor del programa será reembolsado, menos los gastos administrativos y penalidades que contenga el plan turístico',
+    ] },
+    { t: 'POLÍTICAS GENERALES AGENCIA CAMINOS', items: [
+      'Cualquier anulación está sujeta a penalidad de acuerdo con las políticas informadas al momento de confirmar los servicios.',
+      'Los Servicios presentados en esta cotización no son reembolsables, ni transferibles.',
+      'En caso de cancelación por parte del pasajero independiente de los gastos mencionados arriba, se cobrará un 20% de gastos administrativos, gastos de comunicación y gestión que conlleve la cancelación.',
+    ] },
+    { t: 'COMPORTAMIENTOS CON LOS DESTINOS', items: [
+      'No mover de su habitad a especies de flora y fauna, ya que esto se considera como un delito ambiental.',
+      'No dar alimentos a especies silvestres, debido a que la alimentación de estos debe ser controlada por personas expertas en el manejo de fauna.',
+      'Controlar el exceso de ruido, ya que esto puede alterar el ecosistema de donde se encuentre realizando sus servicios turísticos.',
+      'Evitar hacer fogatas, debido a que los gases producidos por la quema pueden ser tóxicos y en ocasiones afectan el ecosistema, o en algunas circunstancias, se generan incendios forestales.',
+      'Arrojar en bolsas de basura lo que son: envolturas, botellas, desechos, ya que, si estos se arrojan directamente al ecosistema, causara daños y perjuicios a la flora y fauna del lugar.',
+    ] },
+  ];
+  // Arma las hojas de políticas copiando la hoja de «Información adicional» (mismo encabezado, pie y columnas)
+  // y reparte las secciones midiendo: si una viñeta no cabe, pasa a la otra columna o a una hoja nueva.
+  function agregarPoliticasCaminos(doc) {
+    const molde = [...doc.querySelectorAll('section.page')].find(p => p.querySelector('.pol-cols'));
+    if (!molde || doc.querySelector('.pol-caminos')) return;
+    if (!doc.getElementById('estilo-pol-caminos')) {
+      const st = doc.createElement('style');
+      st.id = 'estilo-pol-caminos';
+      st.textContent = '.pol-caminos .pol-h{margin:0 0 6px}.pol-caminos ul{margin:0 0 16px;padding-left:16px}'
+        + ".pol-caminos li{font:400 12.5px/1.5 'Poppins',sans-serif;color:#3A3C42;margin:0 0 4px;text-align:justify}.pol-caminos li::marker{color:#F25061}";
+      doc.head.appendChild(st);
+    }
+    const nueva = () => {
+      const h = molde.cloneNode(true);
+      h.querySelector('h2.sec').innerHTML = 'Políticas de <span style="color:#F25061;">Agencia Caminos</span>';
+      const intro = h.querySelector('.dash')?.nextElementSibling;
+      if (intro && intro.tagName === 'P') intro.textContent = 'Condiciones que aplican a todas nuestras cotizaciones y confirmaciones.';
+      h.querySelectorAll('.pol-col').forEach(c => { c.innerHTML = ''; c.classList.add('pol-caminos'); });
+      molde.parentNode.insertBefore(h, molde);
+      return h;
+    };
+    let hoja = nueva(), cols = [...hoja.querySelectorAll('.pol-col')], ci = 0;
+    const limite = () => hoja.querySelector('.footer').getBoundingClientRect().top - hoja.getBoundingClientRect().top - 24;
+    const fondo = el => el.getBoundingClientRect().bottom - hoja.getBoundingClientRect().top;
+    const siguiente = () => { if (++ci > 1) { hoja = nueva(); cols = [...hoja.querySelectorAll('.pol-col')]; ci = 0; } };
+    const titulo = t => { const x = doc.createElement('p'); x.className = 'pol-h'; x.textContent = t; return x; };
+    for (const s of POLITICAS_CAMINOS) {
+      let h = titulo(s.t), ul = doc.createElement('ul');
+      cols[ci].append(h, ul);
+      for (const texto of s.items) {
+        const li = doc.createElement('li');
+        li.textContent = texto;
+        ul.appendChild(li);
+        if (fondo(li) <= limite()) continue;
+        li.remove();
+        const continua = ul.children.length > 0;
+        if (!continua) { h.remove(); ul.remove(); }
+        siguiente();
+        h = titulo(continua ? s.t + ' (cont.)' : s.t); ul = doc.createElement('ul');
+        cols[ci].append(h, ul); ul.appendChild(li);
+      }
+    }
+  }
+  function fluir(doc, { limite: limiteMotor = 1178, etiqueta = null, pegarNota = false, juntar = false, compacto = false, sinPoliticas = false, politicasCaminos = false } = {}) {
+    if (politicasCaminos && !sinPoliticas) agregarPoliticasCaminos(doc);
     const limite = limiteMotor + HOLGURA_CAJA;
     const esPol = p => !!p.querySelector('.pol-cols');
     const paginas = () => [...doc.querySelectorAll('section.page')];
@@ -941,7 +1043,7 @@
       nombre: 'Cotización', titulo: 'Nueva <span class="c">cotización</span>', eyebrow: 'Cotización de viaje', icono: 'file-text',
       desc: 'Propuesta con tarifas por hotel, qué incluye e itinerario de servicios.', hojas: '3 hojas',
       boton: 'Generar la cotización', archivo: 'Cotizacion', codigo: d => d.codigo_cotizacion, tituloDe: d => d.titulo_destino, clienteDe: d => d.pasajeros,
-      armar: armarCotizacion, flujo: { limite: 1156, pegarNota: true }, desdeBase: true,
+      armar: armarCotizacion, flujo: { limite: 1156, pegarNota: true, politicasCaminos: true }, desdeBase: true,
       pegar: 'Pega aquí la información del viaje',
       ayuda: ['Notas del cliente: destino, fechas, cuántas personas', 'Tarifas por hotel, copiadas del proveedor', 'Servicios del itinerario y condiciones de pago'],
       grupos: [
@@ -1009,7 +1111,7 @@ Para reservar piden el 50% de abono y el saldo 20 días antes del viaje. La coti
       nombre: 'Confirmación', titulo: 'Nueva <span class="c">confirmación</span>', eyebrow: 'Confirmación de reserva', icono: 'badge-check',
       desc: 'Confirma la reserva con los números de vuelo, hotel y traslados.', hojas: '3 hojas',
       boton: 'Generar la confirmación', archivo: 'Confirmacion', codigo: d => d.codigo_reserva, tituloDe: d => d.titulo_viaje, clienteDe: d => d.nombre_viajero,
-      armar: armarConfirmacion, flujo: { limite: 1178, juntar: true, compacto: true }, desdeBase: true,
+      armar: armarConfirmacion, flujo: { limite: 1178, juntar: true, compacto: true, politicasCaminos: true }, desdeBase: true,
       pegar: 'Pega aquí las reservas del sistema',
       ayuda: ['Las reservas copiadas del sistema: tiquete, récord, vuelos', 'Confirmaciones de hoteles y traslados', 'Pagos recibidos y lo que falta por pagar'],
       grupos: [
