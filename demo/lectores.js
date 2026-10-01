@@ -317,6 +317,7 @@ function crearLectores({ ciudadIata = c => c } = {}) {
   function diaUTC(f) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(f || ''); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : null; }
   function resumen(v) {
     const h = v.hoteles[0], s = v.servicio || {};
+    if (v.programa && !h && !v.vuelos.length) return { destino: v.destino || '', titulo: v.programa.titulo || '' };
     if (h) {
       const lugar = h.ciudad || v.destino || '';
       return { destino: v.destino || lugar, titulo: [lugar || h.hotel, h.noches ? `${h.noches} ${+h.noches === 1 ? 'noche' : 'noches'}` : ''].filter(Boolean).join(', ') };
@@ -335,7 +336,10 @@ function crearLectores({ ciudadIata = c => c } = {}) {
       const lista = nombres.length > 1 ? nombres.slice(0, -1).join(', ') + ' y ' + nombres.at(-1) : nombres[0];
       return { destino: v.destino || lista, titulo: `Viaje a ${lista}` };
     }
-    if (s.tipo === 'tren') { const t = v.traslados[0]; return { destino: v.destino || '', titulo: (t?.viaje || s.nombre || '').replace(/^Tren\s+/, '') + ' en tren' }; }
+    if (s.tipo === 'tren') {
+      const t = v.traslados[0], viaje = (t?.viaje || s.nombre || '').replace(/^Tren\s+/, '');
+      return { destino: v.destino || viaje.split(' — ')[1] || '', titulo: viaje + ' en tren' };
+    }
     if (s.nombre) return { destino: v.destino || '', titulo: s.nombre };
     return { destino: v.destino || '', titulo: '' };
   }
@@ -373,6 +377,7 @@ function crearLectores({ ciudadIata = c => c } = {}) {
       traslados: v.traslados.map(x => ({ operador: x.operador || '', trayecto: x.trayecto || '', fecha: x.fecha || '', hora: x.hora || '', confirmacion: x.confirmacion || '' })),
       servicios_confirmados: serviciosDe(v),
       incluye: v.programa?.incluye || [], no_incluye: v.programa?.no_incluye || [],
+      ...(v.programa?.tarifas?.length ? { pagos: v.programa.tarifas.map(t => ({ concepto: `Valor por persona${t.acomodacion ? ' — acomodación ' + t.acomodacion.toLowerCase() : ''}`, valor: t.valor, estado: '' })) } : {}),
       nota_importante: [...(v.instrucciones || []), ...(v.condiciones || [])].join(' '),
     };
     if (doc === 'voucher') {
@@ -381,18 +386,20 @@ function crearLectores({ ciudadIata = c => c } = {}) {
       const s = v.servicio || {};
       // La habitación ya va en la tabla del hotel; aquí solo lo que no se ve allí.
       const incluye = h ? [h.noches && `${h.noches} ${+h.noches === 1 ? 'noche' : 'noches'}${h.ocupacion ? ` para ${h.ocupacion}` : ''}`, h.regimen && `Plan ${h.regimen.toLowerCase()}`].filter(Boolean)
+        : v.programa && !a ? v.programa.incluye // voucher de un programa: lo que ampara es lo que incluye
         : []; // en trenes y excursiones el servicio ya está en el título y en la tabla: no se repite
       const extra = !h && s.ocupacion ? [`Cupón para ${s.ocupacion}.`] : [];
       return {
         tipo, codigo_reserva: v.referencia || '',
-        nombre_servicio: h ? `Alojamiento — ${h.hotel}` : a ? `Tiquete aéreo — ${a.aerolinea || ''}`.trim() : s.tipo === 'excursion' ? (/^excursi/i.test(s.nombre) ? s.nombre : `Excursión — ${s.nombre}`) : s.nombre || (v.traslados[0]?.trayecto || ''),
+        nombre_servicio: v.programa && !h && !a && !v.traslados.length ? v.programa.titulo : h ? `Alojamiento — ${h.hotel}` : a ? `Tiquete aéreo — ${a.aerolinea || ''}`.trim() : s.tipo === 'excursion' ? (/^excursi/i.test(s.nombre) ? s.nombre : `Excursión — ${s.nombre}`) : s.nombre || (v.traslados[0]?.trayecto || ''),
         proveedor: h ? h.hotel : a ? a.aerolinea || '' : s.proveedor || '',
         vigencia: { desde, hasta }, nombre_viajero: v.titular, acompanantes: v.pasajeros.filter(p => p !== v.titular),
         ubicacion: h ? [h.direccion].filter(Boolean).join('') : s.ubicacion || '',
         hoteles: h ? [{ hotel: h.hotel || '', entrada: h.entrada || '', salida: h.salida || '', acomodacion: h.acomodacion || '', confirmacion: h.confirmacion || '' }] : [],
         aereo: a ? { aerolinea: a.aerolinea || '', tiquete: (a.tiquetes || []).join(' · '), record: a.record || '',
           trayectos: a.trayectos.map(t => ({ vuelo: t.vuelo || '', fecha: t.fecha || '', ruta: t.origen && t.destino ? `${t.origen} — ${t.destino}` : '', sale: t.sale || '', llega: llegaCon(t) })) } : undefined,
-        traslados: tipo === 'traslado' ? v.traslados.map(x => ({ trayecto: x.trayecto || '', fecha: x.fecha || '', hora: x.hora || '', confirmacion: x.confirmacion || '' })) : [],
+        traslados: tipo !== 'traslado' ? [] : v.traslados.length ? v.traslados.map(x => ({ trayecto: x.trayecto || '', fecha: x.fecha || '', hora: x.hora || '', confirmacion: x.confirmacion || '' }))
+          : v.programa ? [{ trayecto: v.programa.titulo, fecha: '', hora: '', confirmacion: '' }] : [], // la fecha y la confirmación las pone la asesora
         incluye, instrucciones: [...extra, ...(v.instrucciones || [])].join(' '), condiciones: (v.condiciones || []).join(' '),
       };
     }

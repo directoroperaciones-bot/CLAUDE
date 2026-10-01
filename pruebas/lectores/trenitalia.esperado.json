@@ -6,7 +6,7 @@
       "titulo_viaje": "Roma Termini — Pietrasanta en tren",
       "nombre_viajero": "Marta Lucia Rojas",
       "pasajeros": "1 persona",
-      "destino": "",
+      "destino": "Pietrasanta",
       "fecha_salida": "2026-07-27",
       "fecha_regreso": "2026-07-29",
       "aereo": [],
@@ -94,7 +94,7 @@
     "cotizacion": {
       "codigo_cotizacion": "",
       "titulo_destino": "Roma Termini — Pietrasanta en tren",
-      "destino": "",
+      "destino": "Pietrasanta",
       "fecha_llegada": "2026-07-27",
       "fecha_salida": "2026-07-29",
       "noches": "",

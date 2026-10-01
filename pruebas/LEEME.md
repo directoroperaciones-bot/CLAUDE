@@ -14,6 +14,7 @@ y se maneja con Playwright (Chromium ya viene instalado en las sesiones en la nu
 | `mocksample-pdf.js` | `sample` con `limits()` (imágenes incluidas, salvo `window.__sinImagenes = true`): guarda cada llamada en `window.__llamadas` (prompt, nivel, imágenes) y responde `window.__respuesta`, o `window.__plantilla` si se le pide una plantilla. |
 | `probar-pdf.js` | Prueba del lector de PDF: PDF de proveedor, e-ticket (datos personales ocultos), escaneado, archivo dañado, varios a la vez, cdnjs caído, sin lector, texto muy largo. Los PDF de prueba no van en el repositorio (ver el encabezado del archivo). |
 | `probar-lectores.js` | Lectores por código y plantillas aprendidas, en Node y sin navegador: `node pruebas/probar-lectores.js`. Los casos están en `lectores/` (texto **anonimizado** + resultado esperado); `--guardar` reescribe los esperados (revísalos a mano). |
+| `probar-matriz.js` | Revisión completa del lector: cada PDF de prueba en cada uno de los 5 documentos. Comprueba que se llene sin IA, que se genere, que los datos clave lleguen al documento y que no se cuele nada personal o interno. Los PDF y su `claves.json` (datos reales) quedan fuera del repositorio. |
 | `texto-de-pdf.js` | Saca el texto de un PDF tal como lo ve la app, para escribir un lector nuevo (ver la skill `nuevo-lector`). |
 | `auditar.js` | Auditoría de saltos de hoja: abre cada documento guardado y mide dónde termina el contenido de cada hoja. |
 

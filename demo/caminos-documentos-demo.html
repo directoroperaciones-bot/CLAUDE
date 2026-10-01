@@ -823,6 +823,7 @@ function crearLectores({ ciudadIata = c => c } = {}) {
   function diaUTC(f) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(f || ''); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : null; }
   function resumen(v) {
     const h = v.hoteles[0], s = v.servicio || {};
+    if (v.programa && !h && !v.vuelos.length) return { destino: v.destino || '', titulo: v.programa.titulo || '' };
     if (h) {
       const lugar = h.ciudad || v.destino || '';
       return { destino: v.destino || lugar, titulo: [lugar || h.hotel, h.noches ? `${h.noches} ${+h.noches === 1 ? 'noche' : 'noches'}` : ''].filter(Boolean).join(', ') };
@@ -841,7 +842,10 @@ function crearLectores({ ciudadIata = c => c } = {}) {
       const lista = nombres.length > 1 ? nombres.slice(0, -1).join(', ') + ' y ' + nombres.at(-1) : nombres[0];
       return { destino: v.destino || lista, titulo: `Viaje a ${lista}` };
     }
-    if (s.tipo === 'tren') { const t = v.traslados[0]; return { destino: v.destino || '', titulo: (t?.viaje || s.nombre || '').replace(/^Tren\s+/, '') + ' en tren' }; }
+    if (s.tipo === 'tren') {
+      const t = v.traslados[0], viaje = (t?.viaje || s.nombre || '').replace(/^Tren\s+/, '');
+      return { destino: v.destino || viaje.split(' — ')[1] || '', titulo: viaje + ' en tren' };
+    }
     if (s.nombre) return { destino: v.destino || '', titulo: s.nombre };
     return { destino: v.destino || '', titulo: '' };
   }
@@ -879,6 +883,7 @@ function crearLectores({ ciudadIata = c => c } = {}) {
       traslados: v.traslados.map(x => ({ operador: x.operador || '', trayecto: x.trayecto || '', fecha: x.fecha || '', hora: x.hora || '', confirmacion: x.confirmacion || '' })),
       servicios_confirmados: serviciosDe(v),
       incluye: v.programa?.incluye || [], no_incluye: v.programa?.no_incluye || [],
+      ...(v.programa?.tarifas?.length ? { pagos: v.programa.tarifas.map(t => ({ concepto: `Valor por persona${t.acomodacion ? ' — acomodación ' + t.acomodacion.toLowerCase() : ''}`, valor: t.valor, estado: '' })) } : {}),
       nota_importante: [...(v.instrucciones || []), ...(v.condiciones || [])].join(' '),
     };
     if (doc === 'voucher') {
@@ -887,18 +892,20 @@ function crearLectores({ ciudadIata = c => c } = {}) {
       const s = v.servicio || {};
       // La habitación ya va en la tabla del hotel; aquí solo lo que no se ve allí.
       const incluye = h ? [h.noches && `${h.noches} ${+h.noches === 1 ? 'noche' : 'noches'}${h.ocupacion ? ` para ${h.ocupacion}` : ''}`, h.regimen && `Plan ${h.regimen.toLowerCase()}`].filter(Boolean)
+        : v.programa && !a ? v.programa.incluye // voucher de un programa: lo que ampara es lo que incluye
         : []; // en trenes y excursiones el servicio ya está en el título y en la tabla: no se repite
       const extra = !h && s.ocupacion ? [`Cupón para ${s.ocupacion}.`] : [];
       return {
         tipo, codigo_reserva: v.referencia || '',
-        nombre_servicio: h ? `Alojamiento — ${h.hotel}` : a ? `Tiquete aéreo — ${a.aerolinea || ''}`.trim() : s.tipo === 'excursion' ? (/^excursi/i.test(s.nombre) ? s.nombre : `Excursión — ${s.nombre}`) : s.nombre || (v.traslados[0]?.trayecto || ''),
+        nombre_servicio: v.programa && !h && !a && !v.traslados.length ? v.programa.titulo : h ? `Alojamiento — ${h.hotel}` : a ? `Tiquete aéreo — ${a.aerolinea || ''}`.trim() : s.tipo === 'excursion' ? (/^excursi/i.test(s.nombre) ? s.nombre : `Excursión — ${s.nombre}`) : s.nombre || (v.traslados[0]?.trayecto || ''),
         proveedor: h ? h.hotel : a ? a.aerolinea || '' : s.proveedor || '',
         vigencia: { desde, hasta }, nombre_viajero: v.titular, acompanantes: v.pasajeros.filter(p => p !== v.titular),
         ubicacion: h ? [h.direccion].filter(Boolean).join('') : s.ubicacion || '',
         hoteles: h ? [{ hotel: h.hotel || '', entrada: h.entrada || '', salida: h.salida || '', acomodacion: h.acomodacion || '', confirmacion: h.confirmacion || '' }] : [],
         aereo: a ? { aerolinea: a.aerolinea || '', tiquete: (a.tiquetes || []).join(' · '), record: a.record || '',
           trayectos: a.trayectos.map(t => ({ vuelo: t.vuelo || '', fecha: t.fecha || '', ruta: t.origen && t.destino ? `${t.origen} — ${t.destino}` : '', sale: t.sale || '', llega: llegaCon(t) })) } : undefined,
-        traslados: tipo === 'traslado' ? v.traslados.map(x => ({ trayecto: x.trayecto || '', fecha: x.fecha || '', hora: x.hora || '', confirmacion: x.confirmacion || '' })) : [],
+        traslados: tipo !== 'traslado' ? [] : v.traslados.length ? v.traslados.map(x => ({ trayecto: x.trayecto || '', fecha: x.fecha || '', hora: x.hora || '', confirmacion: x.confirmacion || '' }))
+          : v.programa ? [{ trayecto: v.programa.titulo, fecha: '', hora: '', confirmacion: '' }] : [], // la fecha y la confirmación las pone la asesora
         incluye, instrucciones: [...extra, ...(v.instrucciones || [])].join(' '), condiciones: (v.condiciones || []).join(' '),
       };
     }
@@ -4140,6 +4147,13 @@ ${texto.slice(0, 40000)}
     }, `el voucher ${v.codigo_voucher}`);
   }
 
+  // Pasajero del itinerario: si la confirmación nombra hasta 4 viajeros («2 personas: Ana, Luis»), van todos.
+  function pasajerosItinerario(c) {
+    const nombres = (/^\s*\d+\s+personas?:\s*(.+)$/i.exec(c.pasajeros || '') || [])[1];
+    const lista = nombres ? nombres.split(/\s*,\s*/).filter(Boolean) : [];
+    if (lista.length > 1 && lista.length <= 4) return lista.slice(0, -1).join(', ') + ' y ' + lista.at(-1);
+    return c.nombre_viajero || '';
+  }
   function confAItinerario(c, desde, { doc: forzar, texto } = {}) {
     c = { ...c, hoteles: (c.hoteles || []).filter(h => !vacio(h.hotel)) }; // un hotel sin nombre no se menciona en el día a día
     const trayectos = (c.aereo || []).flatMap(a => a.trayectos || []).filter(t => !vacio(t.ruta) || !vacio(t.vuelo))
@@ -4169,7 +4183,7 @@ ${texto.slice(0, 40000)}
       }
       // Trenes, buses y excursiones se escriben tal cual; los traslados comunes, en minúscula tras «Traslado».
       (c.traslados || []).filter(x => x.fecha === f).forEach(x => hechos.push(`${x.hora ? x.hora + ' · ' : ''}${/^(tren|bus|ferry|crucero|excursi|tour)/i.test(x.trayecto || '')
-        ? x.trayecto : `Traslado ${String(x.trayecto || '').toLowerCase()}`}`));
+        ? x.trayecto : `Traslado ${String(x.trayecto || '').toLowerCase()}`}${x.confirmacion ? ` (código ${x.confirmacion})` : ''}`));
       (c.hoteles || []).filter(h => h.salida === f).forEach(h => hechos.push(`Salida del ${h.hotel}`));
       (c.hoteles || []).filter(h => h.entrada === f).forEach(h => { hechos.push(`Registro en el ${h.hotel}`); if (llegaHoy && !aBordo) ciudadHotel[h.hotel] = llegaHoy; });
       const hotel = (c.hoteles || []).find(h => h.entrada <= f && f < h.salida);
@@ -4194,7 +4208,7 @@ ${texto.slice(0, 40000)}
     const largo = forzar ? forzar === 'itinerario' : vuelos.length > 0 || dias.length > 4;
     const datos = {
       codigo: expedienteDe(c.codigo_reserva), titulo: c.titulo_viaje || '', subtitulo: '', destino: c.destino || '',
-      fecha_inicio: c.fecha_salida || '', fecha_fin: c.fecha_regreso || '', grupo: '', acompanamiento: '', pasajero: c.nombre_viajero || '',
+      fecha_inicio: c.fecha_salida || '', fecha_fin: c.fecha_regreso || '', grupo: '', acompanamiento: '', pasajero: pasajerosItinerario(c),
       acomodacion: (c.hoteles || [])[0]?.acomodacion || '', bienvenida: '', dias, incluye, no_incluye: noIncluye,
       recomendaciones: [], nota: c.nota_importante || '',
       ...(largo ? { frase: '', vuelos: vuelos.map(({ _mas, ...v }) => v), vuelos_internos: [], hoteles } : {}),

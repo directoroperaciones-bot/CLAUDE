@@ -2397,6 +2397,13 @@ ${texto.slice(0, 40000)}
     }, `el voucher ${v.codigo_voucher}`);
   }
 
+  // Pasajero del itinerario: si la confirmación nombra hasta 4 viajeros («2 personas: Ana, Luis»), van todos.
+  function pasajerosItinerario(c) {
+    const nombres = (/^\s*\d+\s+personas?:\s*(.+)$/i.exec(c.pasajeros || '') || [])[1];
+    const lista = nombres ? nombres.split(/\s*,\s*/).filter(Boolean) : [];
+    if (lista.length > 1 && lista.length <= 4) return lista.slice(0, -1).join(', ') + ' y ' + lista.at(-1);
+    return c.nombre_viajero || '';
+  }
   function confAItinerario(c, desde, { doc: forzar, texto } = {}) {
     c = { ...c, hoteles: (c.hoteles || []).filter(h => !vacio(h.hotel)) }; // un hotel sin nombre no se menciona en el día a día
     const trayectos = (c.aereo || []).flatMap(a => a.trayectos || []).filter(t => !vacio(t.ruta) || !vacio(t.vuelo))
@@ -2426,7 +2433,7 @@ ${texto.slice(0, 40000)}
       }
       // Trenes, buses y excursiones se escriben tal cual; los traslados comunes, en minúscula tras «Traslado».
       (c.traslados || []).filter(x => x.fecha === f).forEach(x => hechos.push(`${x.hora ? x.hora + ' · ' : ''}${/^(tren|bus|ferry|crucero|excursi|tour)/i.test(x.trayecto || '')
-        ? x.trayecto : `Traslado ${String(x.trayecto || '').toLowerCase()}`}`));
+        ? x.trayecto : `Traslado ${String(x.trayecto || '').toLowerCase()}`}${x.confirmacion ? ` (código ${x.confirmacion})` : ''}`));
       (c.hoteles || []).filter(h => h.salida === f).forEach(h => hechos.push(`Salida del ${h.hotel}`));
       (c.hoteles || []).filter(h => h.entrada === f).forEach(h => { hechos.push(`Registro en el ${h.hotel}`); if (llegaHoy && !aBordo) ciudadHotel[h.hotel] = llegaHoy; });
       const hotel = (c.hoteles || []).find(h => h.entrada <= f && f < h.salida);
@@ -2451,7 +2458,7 @@ ${texto.slice(0, 40000)}
     const largo = forzar ? forzar === 'itinerario' : vuelos.length > 0 || dias.length > 4;
     const datos = {
       codigo: expedienteDe(c.codigo_reserva), titulo: c.titulo_viaje || '', subtitulo: '', destino: c.destino || '',
-      fecha_inicio: c.fecha_salida || '', fecha_fin: c.fecha_regreso || '', grupo: '', acompanamiento: '', pasajero: c.nombre_viajero || '',
+      fecha_inicio: c.fecha_salida || '', fecha_fin: c.fecha_regreso || '', grupo: '', acompanamiento: '', pasajero: pasajerosItinerario(c),
       acomodacion: (c.hoteles || [])[0]?.acomodacion || '', bienvenida: '', dias, incluye, no_incluye: noIncluye,
       recomendaciones: [], nota: c.nota_importante || '',
       ...(largo ? { frase: '', vuelos: vuelos.map(({ _mas, ...v }) => v), vuelos_internos: [], hoteles } : {}),

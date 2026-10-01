@@ -3,7 +3,7 @@
   "documentos": {
     "confirmacion": {
       "codigo_reserva": "",
-      "titulo_viaje": "",
+      "titulo_viaje": "Tour La Paz + Uyuni Completo",
       "nombre_viajero": "",
       "pasajeros": "",
       "destino": "",
@@ -43,12 +43,24 @@
         "Costo de ingreso para ingreso a las Aguas Termales (30 Bs)",
         "Costo ingreso a Charquini (20 Bs)"
       ],
+      "pagos": [
+        {
+          "concepto": "Valor por persona — acomodación sencilla",
+          "valor": "USD 949",
+          "estado": ""
+        },
+        {
+          "concepto": "Valor por persona — acomodación doble",
+          "valor": "USD 849",
+          "estado": ""
+        }
+      ],
       "nota_importante": ""
     },
     "voucher": {
       "tipo": "traslado",
       "codigo_reserva": "",
-      "nombre_servicio": "",
+      "nombre_servicio": "Tour La Paz + Uyuni Completo",
       "proveedor": "",
       "vigencia": {
         "desde": "",
@@ -58,8 +70,35 @@
       "acompanantes": [],
       "ubicacion": "",
       "hoteles": [],
-      "traslados": [],
-      "incluye": [],
+      "traslados": [
+        {
+          "trayecto": "Tour La Paz + Uyuni Completo",
+          "fecha": "",
+          "hora": "",
+          "confirmacion": ""
+        }
+      ],
+      "incluye": [
+        "Traslados IN / OUT terrapuerto - hotel en La Paz",
+        "City Tour La Paz",
+        "Tour Charquini",
+        "1 Noche HOSTAL NAIRA (3 estrellas) (hab Simple / Doble) - Check Out 12:00 pm",
+        "Transporte 4x4 para todo el recorrido.",
+        "Tickets de bus La Paz - Uyuni - La Paz",
+        "HOSPEDAJE “PEDRESAL” (1ra Noche) / HOSPEDAJE “AMANECER” ó “POLQUES” (2da Noche)",
+        "1 noche en HOTEL KACHI (3ra Noche) (Hab Single / Doble) - Check Out 10:00 Am",
+        "3 Desayunos",
+        "4 Almuerzos (Normal / Vegetariano)",
+        "2 Cenas (Normal / Vegetariano)",
+        "Tour por el Salar de Uyuni",
+        "Tour en Volcán Ollagüe",
+        "Tour al Árbol de Piedra",
+        "Tour a Laguna Colorada",
+        "Visita a los Geysers y Aguas termales",
+        "Tour de Noche Estrellada.",
+        "Tour en Tomave y Aguas Termales",
+        "Tour a Laguna Orko y China Kasilla"
+      ],
       "instrucciones": "",
       "condiciones": ""
     },
