@@ -1,5 +1,7 @@
 # Demo — app de documentos de Caminos
 
+> Traspaso completo del proyecto (estado, reglas, arquitectura, pendientes): `docs/TRASPASO.md`.
+
 Maqueta funcional de la app para asesores. Funcionan de punta a punta los cinco
 documentos del plugin: **cotización**, **confirmación**, **voucher**,
 **itinerario** e **itinerario corto** (con fotos de portada, de los días y de
