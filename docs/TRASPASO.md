@@ -320,12 +320,25 @@ vez, por ejemplo e-ticket + confirmación del hotel). Sección `lector de PDF` d
   no se tocan.
 - Si el PDF casi no tiene texto (escaneado), sus hojas van a Claude como imágenes (`sample` con `images`,
   hasta `limits().images.maxCount`); si la vista no admite imágenes, se avisa.
-- El texto leído queda en el cuadro de texto para revisarlo y se ordena de inmediato con `ordenar()`.
+- **Tres niveles** (cada PDF por separado):
+  1. **Lectores por código** (`demo/lectores.js`, sin IA): e-ticket de aerolínea por GDS (Amadeus/Avianca),
+     tiquete de tren Trenitalia, voucher de hotel de agencia («Código del alojamiento»), cupón de excursión
+     («PICK UP»), programa de tour en Word («DIA 1 – …», «► INCLUYE»). Cada uno lleva el PDF a un «viaje»
+     neutro y `aDocumento(viaje, doc)` lo pasa al documento elegido. Trenes y excursiones van como traslados.
+     Aviso en el paso 2 con botón «Leer con Claude» (opcional, para pulir la redacción).
+  2. **Formatos aprendidos**: si ningún lector lo reconoce, lo lee Claude y, si fue un solo PDF con texto, Claude
+     arma además una *plantilla* (frases de huella + expresiones regulares por campo, sin código). Se guarda en
+     `db` `lectores/<id>` solo si aplicada al mismo PDF saca ≥ 80 % de las fechas, horas y códigos que leyó Claude.
+     La próxima vez ese formato se lee sin IA, para todas las asesoras. Una plantilla mala se borra de esa colección.
+  3. **Claude** para lo demás (y para escaneados, como imágenes).
+- Para pasar un proveedor a lector por código: skill `.claude/skills/nuevo-lector/SKILL.md`.
+- El texto leído queda en el cuadro de texto para revisarlo.
   `ordenar()` recorta el texto si el mensaje pasa `limits().maxPromptBytes` (65.536) y lo avisa.
 - Reglas nuevas en `instruccion()`: monedas extranjeras se conservan («USD 949»); no se copian datos del
   proveedor (nombre comercial, contactos, cuentas, formas de pago, comisiones, «su agente»), salvo hoteles,
   aerolíneas de los vuelos y operadores de traslados; de los pasajeros solo el nombre.
-- Prueba: `pruebas/probar-pdf.js` (ver `pruebas/LEEME.md`).
+- Pruebas: `pruebas/probar-lectores.js` (lectores, sin navegador, con textos anonimizados) y
+  `pruebas/probar-pdf.js` (en el navegador). Ver `pruebas/LEEME.md`.
 
 ### 6.3 Reparto entre hojas (`fluir()`)
 
@@ -503,6 +516,7 @@ se activa en contexto seguro (https o localhost).
 | `fotos` | `<tipo>__<slug>` | banco de fotos |
 | `publicados` | `<codigo>` | {codigo, ruta, url, titulo, fecha, cuando, documento} |
 | `diagnostico` | `<timestamp>` | intentos de publicación fallidos o con reintentos |
+| `lectores` | `aprendido-<nombre>` | formatos de proveedor aprendidos: {nombre, huella, servicio, campos, repetir?, creado, documento, prueba} |
 
 ---
 

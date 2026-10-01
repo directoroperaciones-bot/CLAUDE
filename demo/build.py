@@ -89,6 +89,7 @@ def main():
 
     app = leer(os.path.join(DEMO, 'app.html')).replace('/*__APP_JS__*/', leer(os.path.join(DEMO, 'app.js')))
     app = app.replace('/*__INTERACTIVO__*/', leer(os.path.join(DEMO, 'interactivo.js')))
+    app = app.replace('/*__LECTORES__*/', leer(os.path.join(DEMO, 'lectores.js')))
     reemplazos = {
         '"__ICONOS__"': json.dumps(iconos),
         '"__FUENTES__"': json.dumps(fuentes),

@@ -1,0 +1,111 @@
+{
+  "lector": "trenitalia",
+  "documentos": {
+    "confirmacion": {
+      "codigo_reserva": "",
+      "nombre_viajero": "Marta Lucia Rojas",
+      "pasajeros": "1 persona",
+      "destino": "",
+      "fecha_salida": "2026-07-27",
+      "fecha_regreso": "2026-07-29",
+      "aereo": [],
+      "hoteles": [],
+      "traslados": [
+        {
+          "operador": "Trenitalia",
+          "trayecto": "Tren Regionale Veloce 4130: Roma Termini — Pisa Centrale",
+          "fecha": "2026-07-27",
+          "hora": "10:12",
+          "confirmacion": "9000000001"
+        },
+        {
+          "operador": "Trenitalia",
+          "trayecto": "Tren Regionale 18373: Pisa Centrale — Pietrasanta",
+          "fecha": "2026-07-27",
+          "hora": "15:06",
+          "confirmacion": "9000000001"
+        },
+        {
+          "operador": "Trenitalia",
+          "trayecto": "Tren Regionale 19351: Pietrasanta — Pisa Centrale",
+          "fecha": "2026-07-29",
+          "hora": "09:03",
+          "confirmacion": "9000000002"
+        },
+        {
+          "operador": "Trenitalia",
+          "trayecto": "Tren Regionale Veloce 4131: Pisa Centrale — Roma Termini",
+          "fecha": "2026-07-29",
+          "hora": "11:37",
+          "confirmacion": "9000000002"
+        }
+      ],
+      "servicios_confirmados": [
+        "Tren Roma Termini — Pietrasanta y Tren Pietrasanta — Roma Termini"
+      ],
+      "nota_importante": "Presenta el tiquete (impreso o en el celular) al personal del tren cuando lo pidan."
+    },
+    "voucher": {
+      "tipo": "traslado",
+      "codigo_reserva": "",
+      "nombre_servicio": "Tren Roma Termini — Pietrasanta y Tren Pietrasanta — Roma Termini",
+      "proveedor": "Trenitalia",
+      "vigencia": {
+        "desde": "2026-07-27",
+        "hasta": "2026-07-29"
+      },
+      "nombre_viajero": "Marta Lucia Rojas",
+      "acompanantes": [],
+      "ubicacion": "",
+      "hoteles": [],
+      "traslados": [
+        {
+          "trayecto": "Tren Regionale Veloce 4130: Roma Termini — Pisa Centrale",
+          "fecha": "2026-07-27",
+          "hora": "10:12",
+          "confirmacion": "9000000001"
+        },
+        {
+          "trayecto": "Tren Regionale 18373: Pisa Centrale — Pietrasanta",
+          "fecha": "2026-07-27",
+          "hora": "15:06",
+          "confirmacion": "9000000001"
+        },
+        {
+          "trayecto": "Tren Regionale 19351: Pietrasanta — Pisa Centrale",
+          "fecha": "2026-07-29",
+          "hora": "09:03",
+          "confirmacion": "9000000002"
+        },
+        {
+          "trayecto": "Tren Regionale Veloce 4131: Pisa Centrale — Roma Termini",
+          "fecha": "2026-07-29",
+          "hora": "11:37",
+          "confirmacion": "9000000002"
+        }
+      ],
+      "incluye": [],
+      "instrucciones": "Presenta el tiquete (impreso o en el celular) al personal del tren cuando lo pidan.",
+      "condiciones": ""
+    },
+    "cotizacion": {
+      "codigo_cotizacion": "",
+      "titulo_destino": "",
+      "destino": "",
+      "fecha_llegada": "2026-07-27",
+      "fecha_salida": "2026-07-29",
+      "noches": "",
+      "pasajeros": "1 persona",
+      "acomodacion": "",
+      "incluye": [
+        "Tren Roma Termini — Pietrasanta y Tren Pietrasanta — Roma Termini"
+      ],
+      "no_incluye": [],
+      "tarifas": [],
+      "modo_valor": "persona",
+      "itinerario": [],
+      "vigencia": ""
+    },
+    "itinerario": null
+  }
+}

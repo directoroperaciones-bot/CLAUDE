@@ -33,8 +33,8 @@ const servir = (route, f) => route.fulfill({ status: 200, contentType: 'applicat
   await p.setInputFiles('#pdf-archivo', T + '/tour.pdf');
   await esperar(p);
   let ll = await p.evaluate(() => window.__llamadas);
-  console.log('1) estado:', await est(p), '| llamadas', ll.length, 'imgs', ll[0]?.imagenes.length, '| pedidos', p.pedidos.map(u => u.split('/').slice(2,3)+'/'+u.split('/').pop()));
-  console.log('   prompt bytes', Buffer.byteLength(ll[0].prompt), '| tiene USD $949', ll[0].prompt.includes('USD $949'), '| DIA 07', ll[0].prompt.includes('DIA 07'), '| HOTEL NAIRA', ll[0].prompt.includes('NAIRA'));
+  console.log('1) estado:', await est(p), '| llamadas a Claude', ll.length, '(0: lo leyó el código) | pedidos', p.pedidos.map(u => u.split('/').slice(2,3)+'/'+u.split('/').pop()));
+  console.log('   aviso:', await p.textContent('#leido-txt'));
   console.log('   tarifas en formulario:', await p.$$eval('#form-grupos input', xs => xs.map(x => x.value).filter(v => /USD/.test(v))));
   fs.writeFileSync(T + '/texto-tour.txt', await p.evaluate(() => document.querySelector('#pegado').value));
   await p.screenshot({ path: T + '/2-paso2.png' });
@@ -46,9 +46,14 @@ const servir = (route, f) => route.fulfill({ status: 200, contentType: 'applicat
   await p.setInputFiles('#pdf-archivo', T + '/eticket.pdf');
   await esperar(p);
   ll = await p.evaluate(() => window.__llamadas);
-  console.log('2) estado:', await est(p), '| pedidos', p.pedidos.map(u => u.split('/')[2]+'/'+u.split('/').pop()));
-  fs.writeFileSync(T + '/texto-eticket.txt', await p.evaluate(() => document.querySelector('#pegado').value));
-  console.log('   sin cedula/nacimiento/tel:', !/80101979|1082862212|1984|1986|3176479703/.test(ll[0].prompt), '| reglas privacidad en prompt:', ll[0].prompt.includes('nunca números de documento'), '| AJKAVC', ll[0].prompt.includes('AJKAVC'));
+  console.log('2) estado:', await est(p), '| llamadas a Claude', ll.length, '| pedidos', p.pedidos.map(u => u.split('/')[2]+'/'+u.split('/').pop()));
+  const texto2 = await p.evaluate(() => document.querySelector('#pegado').value);
+  fs.writeFileSync(T + '/texto-eticket.txt', texto2);
+  console.log('   texto sin documento, nacimiento ni celular:', !/80101979|1082862212|1984|1986|3176479703/.test(texto2));
+  // «Leer con Claude»: el texto que recibe Claude también va limpio y con las reglas de privacidad.
+  await p.click('#btn-leer-ia'); await esperar(p);
+  ll = await p.evaluate(() => window.__llamadas);
+  console.log('   Leer con Claude → llamadas', ll.length, '| reglas de privacidad en el prompt:', ll[0].prompt.includes('nunca números de documento'), '| sin datos personales:', !/80101979|1984|3176479703/.test(ll[0].prompt));
   await p.close();
 
   // 3) Voucher con PDF escaneado → imágenes
@@ -78,7 +83,7 @@ const servir = (route, f) => route.fulfill({ status: 200, contentType: 'applicat
   await p.setInputFiles('#pdf-archivo', [T + '/eticket.pdf', T + '/tour.pdf']);
   await esperar(p);
   ll = await p.evaluate(() => window.__llamadas);
-  console.log('5) estado:', await est(p), '| llamadas', ll.length, '| ambos', ll[0].prompt.includes('AJKAVC') && ll[0].prompt.includes('UYUNI'));
+  console.log('5) estado:', await est(p), '| llamadas a Claude', ll.length, '| aviso:', await p.textContent('#leido-txt'));
   await p.close();
 
   // 6) Sin imágenes disponibles + escaneado → mensaje; ambos CDN caídos → mensaje

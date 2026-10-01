@@ -1,0 +1,130 @@
+{
+  "lector": "eticket-gds",
+  "documentos": {
+    "confirmacion": {
+      "codigo_reserva": "",
+      "nombre_viajero": "Ana Maria Perez Ruiz",
+      "pasajeros": "2 personas: Ana Maria Perez Ruiz, Luis Carlos Gomez Diaz",
+      "destino": "",
+      "fecha_salida": "2026-10-27",
+      "fecha_regreso": "2026-10-28",
+      "aereo": [
+        {
+          "aerolinea": "Avianca",
+          "record": "QWERTY",
+          "tiquete": "134-1111111111 · 134-1111111112",
+          "trayectos": [
+            {
+              "vuelo": "AV 9385",
+              "fecha": "2026-10-27",
+              "ruta": "SMR — BOG",
+              "sale": "06:00",
+              "llega": "07:30"
+            },
+            {
+              "vuelo": "AV 8465",
+              "fecha": "2026-10-27",
+              "ruta": "BOG — CLO",
+              "sale": "08:30",
+              "llega": "09:45"
+            },
+            {
+              "vuelo": "AV 9844",
+              "fecha": "2026-10-27",
+              "ruta": "CLO — BOG",
+              "sale": "19:25",
+              "llega": "20:25"
+            },
+            {
+              "vuelo": "AV 4862",
+              "fecha": "2026-10-28",
+              "ruta": "BOG — SMR",
+              "sale": "19:50",
+              "llega": "21:20"
+            }
+          ]
+        }
+      ],
+      "hoteles": [],
+      "traslados": [],
+      "servicios_confirmados": [
+        "Tiquetes aéreos Avianca (récord QWERTY)"
+      ],
+      "nota_importante": ""
+    },
+    "voucher": {
+      "tipo": "aereo",
+      "codigo_reserva": "",
+      "nombre_servicio": "Tiquete aéreo — Avianca",
+      "proveedor": "Avianca",
+      "vigencia": {
+        "desde": "2026-10-27",
+        "hasta": "2026-10-28"
+      },
+      "nombre_viajero": "Ana Maria Perez Ruiz",
+      "acompanantes": [
+        "Luis Carlos Gomez Diaz"
+      ],
+      "ubicacion": "",
+      "hoteles": [],
+      "aereo": {
+        "aerolinea": "Avianca",
+        "tiquete": "134-1111111111 · 134-1111111112",
+        "record": "QWERTY",
+        "trayectos": [
+          {
+            "vuelo": "AV 9385",
+            "fecha": "2026-10-27",
+            "ruta": "SMR — BOG",
+            "sale": "06:00",
+            "llega": "07:30"
+          },
+          {
+            "vuelo": "AV 8465",
+            "fecha": "2026-10-27",
+            "ruta": "BOG — CLO",
+            "sale": "08:30",
+            "llega": "09:45"
+          },
+          {
+            "vuelo": "AV 9844",
+            "fecha": "2026-10-27",
+            "ruta": "CLO — BOG",
+            "sale": "19:25",
+            "llega": "20:25"
+          },
+          {
+            "vuelo": "AV 4862",
+            "fecha": "2026-10-28",
+            "ruta": "BOG — SMR",
+            "sale": "19:50",
+            "llega": "21:20"
+          }
+        ]
+      },
+      "traslados": [],
+      "incluye": [],
+      "instrucciones": "",
+      "condiciones": ""
+    },
+    "cotizacion": {
+      "codigo_cotizacion": "",
+      "titulo_destino": "",
+      "destino": "",
+      "fecha_llegada": "2026-10-27",
+      "fecha_salida": "2026-10-28",
+      "noches": "",
+      "pasajeros": "2 personas: Ana Maria Perez Ruiz, Luis Carlos Gomez Diaz",
+      "acomodacion": "",
+      "incluye": [
+        "Tiquetes aéreos Avianca (récord QWERTY)"
+      ],
+      "no_incluye": [],
+      "tarifas": [],
+      "modo_valor": "persona",
+      "itinerario": [],
+      "vigencia": ""
+    },
+    "itinerario": null
+  }
+}

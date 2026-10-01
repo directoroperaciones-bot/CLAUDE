@@ -11,8 +11,10 @@ y se maneja con Playwright (Chromium ya viene instalado en las sesiones en la nu
 | `mockpub.js` | `mcp` para «Publicar para el grupo»: registra cada llamada en `window.__llamadas`, guarda lo enviado en `window.__ultimo` y falla a propósito con lo que se ponga en `window.__fallos` (por ejemplo `[{code:'bad_request', message:'file upload failed (415)'}]`). |
 | `mockmcp.js` | `mcp` mínimo que acepta todo (contenido en base64 o como archivo). |
 | `mocksample.js` | `sample` (Claude): devuelve un JSON fijo y guarda el prompt en `window.__prompt`. |
-| `mocksample-pdf.js` | `sample` con `limits()` (imágenes incluidas, salvo `window.__sinImagenes = true`): guarda cada llamada en `window.__llamadas` (prompt, nivel, imágenes) y responde `window.__respuesta`. |
+| `mocksample-pdf.js` | `sample` con `limits()` (imágenes incluidas, salvo `window.__sinImagenes = true`): guarda cada llamada en `window.__llamadas` (prompt, nivel, imágenes) y responde `window.__respuesta`, o `window.__plantilla` si se le pide una plantilla. |
 | `probar-pdf.js` | Prueba del lector de PDF: PDF de proveedor, e-ticket (datos personales ocultos), escaneado, archivo dañado, varios a la vez, cdnjs caído, sin lector, texto muy largo. Los PDF de prueba no van en el repositorio (ver el encabezado del archivo). |
+| `probar-lectores.js` | Lectores por código y plantillas aprendidas, en Node y sin navegador: `node pruebas/probar-lectores.js`. Los casos están en `lectores/` (texto **anonimizado** + resultado esperado); `--guardar` reescribe los esperados (revísalos a mano). |
+| `texto-de-pdf.js` | Saca el texto de un PDF tal como lo ve la app, para escribir un lector nuevo (ver la skill `nuevo-lector`). |
 | `auditar.js` | Auditoría de saltos de hoja: abre cada documento guardado y mide dónde termina el contenido de cada hoja. |
 
 No se incluye la simulación de la base de operación (Google Sheets), porque se armó con filas reales de la

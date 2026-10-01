@@ -1,0 +1,138 @@
+[PDF «ejemplo.pdf», 2 hojas]
+--- Hoja 1 ---
+Fecha Emision: 16:34 30/09/2026
+Usuario: Usuario Prueba
+Cia: Avianca ‐ Localizador: QWERTY
+GDS: Amadeus ‐ Localizador: QWERTY
+E‐Ticket
+[paginaEticketHeader]
+LOC Interno: ZZZZZZZ
+Fecha Emision: 16:34 30/09/2026
+Agencia:
+CAMINOS
+COLOMBIA J
+Vuelos
+Pasajeros
+Nombre | Trayecto | Aerolínea Viajero frecuente | E‐Ticket
+ANA MARIA PEREZ RUIZ | SMR‐BOG‐CLO‐BOG‐SMR | 134‐1111111111
+LUIS CARLOS GOMEZ DIAZ SMR‐BOG‐CLO‐BOG‐SMR | 134‐1111111112
+Información adicional
+Nombre y apellidos
+Tipo
+Documento
+Nº
+Documento
+Fecha de
+nacimiento
+Correo Electrónico
+Teléfono /
+Celular
+LUIS CARLOS GOMEZ
+DIAZ
+Cédula | [oculto] [fecha oculta] correo@ejemplo.com [teléfono oculto]
+ANA MARIA PEREZ RUIZ | Cédula [oculto] [fecha oculta] correo@ejemplo.com [teléfono oculto]
+Itinerario
+Salida | Llegada | Duración Aerolínea Vuelo | Clase | Asientos Equipaje
+Santa Marta
+(SMR)
+27/10/2026 ‐
+06:00
+Simon Bolivar
+Bogota (BOG)
+27/10/2026 ‐
+07:30
+El Dorado
+1 h 30 m
+Avianca
+9385
+Standard economy / (S)
+FLEX
+Bogota (BOG)
+27/10/2026 ‐
+08:30
+El Dorado
+Cali (CLO)
+27/10/2026 ‐
+09:45
+Alfonso B. Aragon
+1 h 15 m
+Avianca
+8465
+Standard economy / (S)
+FLEX
+Cali (CLO)
+27/10/2026 ‐
+19:25
+Alfonso B. Aragon
+Bogota (BOG)
+27/10/2026 ‐
+20:25
+El Dorado
+1 h
+Avianca
+9844
+Standard economy / (S)
+FLEX
+Bogota (BOG)
+28/10/2026 ‐
+19:50
+El Dorado
+Santa Marta
+(SMR)
+28/10/2026 ‐
+21:20
+Simon Bolivar
+1 h 30 m
+Avianca
+4862
+Standard economy / (S)
+FLEX
+Reglas de la tarifa
+Reglas tarifarias
+Cambios y Reembolsos
+SMR ‐ CLO
+CAMBIOS DE FECHA O ITINERARIO
+¿Y si quiero hacer un cambio antes de viajar?
+La aerolínea te permite realizar cambios. Puede
+tener restricciones*.
+¿Y si quiero cambiar uno de los vuelos y ya tomé
+el primer avión?
+La aerolínea no te permite realizar cambios.
+¿Y si no me presenté al aeropuerto y quiero
+realizar el viaje?
+La aerolínea no te permite realizar cambios.
+CANCELACIÓN
+¿Y si quiero cancelar el pasaje antes de viajar?
+El pasaje es reembolsable.
+¿Y si quiero cancelar el pasaje y ya tomé el
+primer avión?
+El pasaje no es reembolsable.
+¿Y si no me presenté al aeropuerto y quiero
+cancelar el pasaje?
+La aerolínea te cobrará una penalidad de 242,000
+COP.
+CLO ‐ SMR
+CAMBIOS DE FECHA O ITINERARIO
+¿Y si quiero hacer un cambio antes de viajar?
+La aerolínea te permite realizar cambios. Puede
+tener restricciones*.
+¿Y si quiero cambiar uno de los vuelos y ya tomé
+el primer avión?
+La aerolínea no te permite realizar cambios.
+¿Y si no me presenté al aeropuerto y quiero
+realizar el viaje?
+La aerolínea no te permite realizar cambios.
+CANCELACIÓN
+¿Y si quiero cancelar el pasaje antes de viajar?
+El pasaje es reembolsable.
+¿Y si quiero cancelar el pasaje y ya tomé el
+primer avión?
+El pasaje no es reembolsable.
+¿Y si no me presenté al aeropuerto y quiero
+cancelar el pasaje?
+El pasaje no es reembolsable.
+Los costos anunciados aplican para cada pasajero y están convertidos a moneda local según el cambio del día.
+--- Hoja 2 ---
+Los cambios pueden realizarse hasta 24 horas previas al embarque y durante un año a partir de la fecha de
+compra siempre y cuando sean permitidos por la aerolínea. * Pueden existir restricciones adicionales, consultar
+condiciones de la aerolínea.

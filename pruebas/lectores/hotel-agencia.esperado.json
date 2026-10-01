@@ -1,0 +1,76 @@
+{
+  "lector": "hotel-agencia",
+  "documentos": {
+    "confirmacion": {
+      "codigo_reserva": "",
+      "nombre_viajero": "Jorge Ivan Mesa Lara",
+      "pasajeros": "1 persona",
+      "destino": "Punta Cana, República Dominicana",
+      "fecha_salida": "2026-09-23",
+      "fecha_regreso": "2026-09-26",
+      "aereo": [],
+      "hoteles": [
+        {
+          "hotel": "Meliá Caribe Beach Resort",
+          "entrada": "2026-09-23",
+          "salida": "2026-09-26",
+          "acomodacion": "Suite de Lujo · All inclusive",
+          "confirmacion": "222222222"
+        }
+      ],
+      "traslados": [],
+      "servicios_confirmados": [
+        "Alojamiento en Meliá Caribe Beach Resort, 3 noches, plan all inclusive"
+      ],
+      "nota_importante": "Check-in desde las 15:00; check-out hasta las 12:00. Código del alojamiento: 222222222 / 33333333333. En el check-in pueden pedirte documento de identidad con foto y tarjeta de crédito o depósito para imprevistos. Solicitud especial: camas individuales (sujeta a disponibilidad). Tarifa no reembolsable. Cancelación hasta el 23/09/2026, 14:00 (hora local): penalidad del 66%. Si no te presentas: 66% del total. No se permiten cambios de nombre."
+    },
+    "voucher": {
+      "tipo": "hotel",
+      "codigo_reserva": "",
+      "nombre_servicio": "Alojamiento — Meliá Caribe Beach Resort",
+      "proveedor": "Meliá Caribe Beach Resort",
+      "vigencia": {
+        "desde": "2026-09-23",
+        "hasta": "2026-09-26"
+      },
+      "nombre_viajero": "Jorge Ivan Mesa Lara",
+      "acompanantes": [],
+      "ubicacion": "Playas de Bávaro, Punta Cana, República Dominicana",
+      "hoteles": [
+        {
+          "hotel": "Meliá Caribe Beach Resort",
+          "entrada": "2026-09-23",
+          "salida": "2026-09-26",
+          "acomodacion": "Suite de Lujo",
+          "confirmacion": "222222222"
+        }
+      ],
+      "traslados": [],
+      "incluye": [
+        "3 noches para 2 adultos",
+        "Plan all inclusive"
+      ],
+      "instrucciones": "Check-in desde las 15:00; check-out hasta las 12:00. Código del alojamiento: 222222222 / 33333333333. En el check-in pueden pedirte documento de identidad con foto y tarjeta de crédito o depósito para imprevistos. Solicitud especial: camas individuales (sujeta a disponibilidad).",
+      "condiciones": "Tarifa no reembolsable. Cancelación hasta el 23/09/2026, 14:00 (hora local): penalidad del 66%. Si no te presentas: 66% del total. No se permiten cambios de nombre."
+    },
+    "cotizacion": {
+      "codigo_cotizacion": "",
+      "titulo_destino": "",
+      "destino": "Punta Cana, República Dominicana",
+      "fecha_llegada": "2026-09-23",
+      "fecha_salida": "2026-09-26",
+      "noches": "3 noches",
+      "pasajeros": "1 persona",
+      "acomodacion": "Suite de Lujo",
+      "incluye": [
+        "Alojamiento en Meliá Caribe Beach Resort, 3 noches, plan all inclusive"
+      ],
+      "no_incluye": [],
+      "tarifas": [],
+      "modo_valor": "persona",
+      "itinerario": [],
+      "vigencia": ""
+    },
+    "itinerario": null
+  }
+}

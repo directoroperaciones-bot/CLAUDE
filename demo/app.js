@@ -1520,6 +1520,7 @@ Recomendaciones: llevar ropa abrigada y paraguas, tomar agua durante el viaje, l
     conversion = null;
     ultimaLectura = null;
     $('#releer').hidden = true;
+    $('#leido-codigo').hidden = true;
     mostrarConversion();
     const d = doc();
     $('#doc-eyebrow').textContent = d.eyebrow;
@@ -1691,6 +1692,7 @@ ${texto}
       paso(2);
       return;
     }
+    $('#leido-codigo').hidden = true;
     const btns = ['#btn-ordenar', '#btn-mano', '#btn-releer'].map(x => $(x));
     btns.forEach(x => { x.disabled = true; }); $('#btn-detener').hidden = false;
     estado1(nivel === 'quick' ? 'Leyendo la información… suele tardar entre 10 y 30 segundos.' : 'Leyendo con más precisión… puede tardar hasta un minuto.', 'cargando');
@@ -1718,6 +1720,7 @@ ${texto}
       $('#estado-releer').textContent = recortado ? 'El texto era muy largo y leímos solo la primera parte: revisa que no falte nada.' : '';
       marcarFaltantes();
       paso(2);
+      return datos;
     } catch (err) {
       const msj = MENSAJES[err?.code] || 'No pudimos ordenar la información. Revisa el texto o llena el documento a mano.';
       if (!$('#paso-2').hidden) $('#estado-releer').textContent = msj; else estado1(msj, 'error');
@@ -1855,6 +1858,105 @@ ${texto}
     el.innerHTML = txt ? (tipo === 'cargando' ? '<i data-lucide="loader-circle"></i>' : tipo === 'error' ? '<i data-lucide="circle-alert"></i>' : '<i data-lucide="check"></i>') + `<span>${esc(txt)}</span>` : '';
     iconos(el);
   }
+  // ----- lectores por código (demo/lectores.js) y formatos aprendidos -----
+  const lectoresPDF = crearLectores();
+  // Los formatos que Claude aprendió viven en la colección «lectores» de la base de la app (son datos: frases y
+  // expresiones regulares, nunca código). Se comparten entre asesoras.
+  let plantillas = [], plantillasDb;
+  async function cargarPlantillas() {
+    if (plantillasDb !== undefined) return;
+    plantillasDb = window.claude?.use ? await window.claude.use('db').catch(() => null) : null;
+    if (!plantillasDb) return;
+    await new Promise(ok => {
+      setTimeout(ok, 4000);
+      plantillasDb.collection('lectores').onSnapshot(snap => { plantillas = snap.docs.filter(d => d.exists).map(d => ({ id: d.id, ...d.data() })); ok(); }, () => ok());
+    });
+  }
+  function combinarViajes(vs) {
+    const v = { pasajeros: [], titular: '', referencia: '', destino: '', vuelos: [], hoteles: [], traslados: [], condiciones: [], instrucciones: [], servicio: null, programa: null };
+    for (const x of vs) {
+      for (const k of ['pasajeros', 'vuelos', 'hoteles', 'traslados', 'condiciones', 'instrucciones']) v[k].push(...(x[k] || []));
+      for (const k of ['titular', 'referencia', 'destino']) v[k] ||= x[k] || '';
+      v.servicio ||= x.servicio || null; v.programa ||= x.programa || null;
+    }
+    v.pasajeros = [...new Set(v.pasajeros)];
+    return v;
+  }
+  let leidoTexto = '';
+  function avisoPaso2(txt, conBoton) {
+    $('#leido-txt').textContent = txt;
+    $('#btn-leer-ia').hidden = !conBoton;
+    $('#leido-codigo').hidden = false;
+  }
+  function usarLectores(reconocidos, texto, nombres) {
+    const v = combinarViajes(reconocidos.map(r => r.viaje));
+    const quienes = [...new Set(reconocidos.map(r => r.lector.nombre + (r.lector.tipo === 'aprendido' ? ' (aprendido)' : '')))].join('», «');
+    const aviso = `Leímos ${nombres} sin usar IA, con ${reconocidos.length > 1 ? 'los lectores' : 'el lector'} «${quienes}». Revisa los datos; si quieres que Claude pula la redacción o complete algo, usa «Leer con Claude».`;
+    let datos = lectoresPDF.aDocumento(v, docId);
+    if (!datos && (docId === 'itinerario' || docId === 'itinerario_corto')) {
+      // Sin programa de viaje: el borrador del día a día sale de los vuelos, hoteles y traslados, como desde una confirmación.
+      confAItinerario(lectoresPDF.aDocumento(v, 'confirmacion'), `el PDF ${nombres}`, { doc: docId,
+        texto: 'Armamos un borrador de cada día con los vuelos, hoteles y traslados del PDF. Completa las actividades de cada día, o sube el programa del proveedor.' });
+    } else {
+      if (conversion?.base) { datos = fusionar(conversion.base, datos); conversion.base = datos; }
+      const d = doc();
+      dibujarFormulario(d, d.preparar(datos || {}));
+      marcarFaltantes();
+      paso(2);
+    }
+    leidoTexto = texto;
+    avisoPaso2(aviso, true);
+  }
+  $('#btn-leer-ia').addEventListener('click', () => {
+    if (!leidoTexto) return;
+    $('#pegado').value = leidoTexto;
+    paso(1);
+    ordenar(leidoTexto, conversion?.base, 'quick');
+  });
+  // Aprender un formato nuevo: Claude arma una plantilla (frases que identifican al proveedor + expresiones
+  // regulares por campo). Se guarda solo si, aplicada al mismo PDF, saca lo mismo que Claude leyó.
+  const senales = obj => { const s = new Set(); const ver = x => { if (Array.isArray(x)) x.forEach(ver); else if (x && typeof x === 'object') Object.values(x).forEach(ver);
+    else if (typeof x === 'string') { const t = x.trim(); if (/^\d{4}-\d{2}-\d{2}$/.test(t) || /^\d{2}:\d{2}$/.test(t) || /^(?=.*\d)[A-Z0-9-]{5,}$/i.test(t)) s.add(t.toUpperCase()); } }; ver(obj); return s; };
+  function coincidencia(ia, plantilla) {
+    const a = senales(ia), b = senales(plantilla);
+    if (a.size < 3) return 0;
+    return [...a].filter(x => b.has(x)).length / a.size;
+  }
+  const instruccionPlantilla = texto => `Eres el asistente de Caminos, una agencia de viajes. Este texto salió del PDF de un proveedor que todavía no sabemos leer con código. Escribe una PLANTILLA para leer con expresiones regulares todos los PDF de este mismo proveedor y formato.
+
+Reglas:
+- "nombre": proveedor y tipo de documento, corto. Ejemplo: "Voucher de hotel Hotelbeds".
+- "huella": de 3 a 5 frases fijas que aparecen en TODOS los documentos de este proveedor y formato y lo distinguen de otros (encabezados, etiquetas, nombre o web del proveedor, textos legales). Nunca datos que cambian (nombres de pasajeros, fechas, códigos, hoteles).
+- "servicio": "hotel", "vuelo" o "traslado" (traslados, trenes, buses y excursiones son "traslado").
+- "campos": lista de {"campo","patron"}. "campo" es uno de: ${lectoresPDF.CAMPOS_PLANTILLA.join(', ')}. "patron" es una expresión regular de JavaScript (se aplica con las banderas "im"), de máximo 300 caracteres, anclada en las etiquetas del documento y con UN grupo de captura para el valor. Para "pasajero", "condicion", "instruccion" y "vuelo.tiquete" se toman todas las coincidencias.
+- "repetir" (solo si hay varios vuelos, trayectos o traslados): {"inicio": expresión que marca el comienzo de cada bloque, "campos": [...]} con campos "tramo.*" (vuelos) o "traslado.*".
+- Las fechas y horas se capturan tal como vienen; el código las convierte.
+- No incluyas campos con datos internos del proveedor (netos, comisiones, formas de pago) ni datos personales (documentos, teléfonos de pasajeros).
+
+Responde solo con JSON: {"nombre":"","huella":[],"servicio":"","campos":[{"campo":"","patron":""}],"repetir":{"inicio":"","campos":[]}}
+
+Texto del PDF:
+"""
+${texto.slice(0, 40000)}
+"""`;
+  async function aprenderFormato(archivo, datosIA) {
+    try {
+      const sample = await obtenerSample();
+      if (!sample || !plantillasDb) return;
+      const pl = await sample.json(instruccionPlantilla(archivo.limpio.texto), { modelTier: 'quick' });
+      if (pl && pl.repetir && !pl.repetir.inicio) delete pl.repetir;
+      if (!lectoresPDF.plantillaValida(pl)) return;
+      const id = 'aprendido-' + String(pl.nombre || 'proveedor').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').slice(0, 60);
+      const r = lectoresPDF.reconocer(archivo.limpio.texto, [{ ...pl, id }]);
+      if (r?.lector.tipo !== 'aprendido') return;
+      const comoDoc = lectoresPDF.aDocumento(r.viaje, docId) || lectoresPDF.aDocumento(r.viaje, 'confirmacion');
+      const puntaje = coincidencia(datosIA, comoDoc);
+      if (puntaje < 0.8) return;
+      await plantillasDb.doc('lectores/' + id).set({ nombre: String(pl.nombre).slice(0, 80), huella: pl.huella, servicio: pl.servicio || '', campos: pl.campos,
+        ...(pl.repetir ? { repetir: pl.repetir } : {}), creado: new Date().toISOString(), documento: doc().nombre, prueba: Math.round(puntaje * 100) });
+      avisoPaso2(`Aprendimos a leer «${pl.nombre}»: la próxima vez ese formato se leerá sin IA.`, false);
+    } catch (_) { /* aprender es opcional: si falla, todo sigue igual */ }
+  }
   let leyendoPdf = false;
   async function subirPdfs(archivos) {
     archivos = [...archivos];
@@ -1876,16 +1978,35 @@ ${texto}
       const sinTexto = leidos.filter(r => !r.imagenes.length && r.letras < 80);
       if (sinTexto.length === leidos.length) { estadoPdf(MENSAJES_PDF.escaneado, 'error'); return; }
       const imagenes = leidos.flatMap(r => r.imagenes);
-      const texto = leidos.map(r => r.imagenes.length
-        ? `[PDF «${r.nombre}»: es una imagen escaneada; sus hojas van como imágenes adjuntas, en orden. Lee su contenido.]`
-        : `[PDF «${r.nombre}», ${r.paginas} ${r.paginas === 1 ? 'hoja' : 'hojas'}]\n` + r.hojas.map((h, i) => (r.paginas > 1 ? `--- Hoja ${i + 1} ---\n` : '') + h).filter(h => h.trim()).join('\n')).join('\n\n');
-      const limpio = ocultarPersonales(texto);
-      $('#pegado').value = limpio.texto;
+      // Cada PDF por separado: su texto (sin datos personales) y, si es de un formato conocido, su lector.
+      await cargarPlantillas();
+      const porArchivo = leidos.map(r => {
+        const limpio = ocultarPersonales(r.imagenes.length
+          ? `[PDF «${r.nombre}»: es una imagen escaneada; sus hojas van como imágenes adjuntas, en orden. Lee su contenido.]`
+          : `[PDF «${r.nombre}», ${r.paginas} ${r.paginas === 1 ? 'hoja' : 'hojas'}]\n` + r.hojas.map((h, i) => (r.paginas > 1 ? `--- Hoja ${i + 1} ---\n` : '') + h).filter(h => h.trim()).join('\n'));
+        let reconocido = null;
+        try { reconocido = r.imagenes.length ? null : lectoresPDF.reconocer(limpio.texto, plantillas); } catch (_) { /* si un lector falla, lo lee Claude */ }
+        return { ...r, limpio, reconocido };
+      });
+      const texto = porArchivo.map(r => r.limpio.texto).join('\n\n');
+      const ocultos = porArchivo.some(r => r.limpio.n) ? ' Ocultamos documentos de identidad, fechas de nacimiento y teléfonos de los pasajeros.' : '';
+      $('#pegado').value = texto;
       const nombres = leidos.map(r => `«${r.nombre}»`).join(', ');
-      estadoPdf(`Leímos ${nombres}.${limpio.n ? ' Ocultamos documentos de identidad, fechas de nacimiento y teléfonos de los pasajeros.' : ''} El texto quedó abajo por si quieres revisarlo.`);
       $('#releer').hidden = true;
-      await ordenar(limpio.texto, conversion?.base, 'quick', imagenes.length ? imagenes : null);
+      // 1) Formatos conocidos: se leen con código, sin IA.
+      if (porArchivo.every(r => r.reconocido)) {
+        estadoPdf(`Leímos ${nombres} sin usar IA.${ocultos}`);
+        usarLectores(porArchivo.map(r => r.reconocido), texto, nombres);
+        return;
+      }
+      // 2) Proveedor nuevo: lo lee Claude y, si es un solo PDF con texto, aprende su formato para la próxima vez.
+      const motivo = imagenes.length ? 'Es una imagen escaneada' : porArchivo.some(r => r.reconocido) ? 'Uno de los formatos es nuevo' : 'Es un formato nuevo';
+      estadoPdf(`Leímos ${nombres}.${ocultos} ${motivo}: lo lee Claude.`);
+      const datosIA = await ordenar(texto, conversion?.base, 'quick', imagenes.length ? imagenes : null);
+      const nuevos = porArchivo.filter(r => !r.reconocido);
+      if (datosIA && nuevos.length === 1 && !nuevos[0].imagenes.length && porArchivo.length === 1) aprenderFormato(nuevos[0], datosIA);
     } catch (err) {
+      if (!err?.code) console.warn('Lector de PDF:', err);
       estadoPdf(MENSAJES_PDF[err?.code] || 'No pudimos leer el PDF. Intenta de nuevo o copia y pega su texto.', 'error');
     } finally {
       leyendoPdf = false;
@@ -2152,7 +2273,9 @@ ${texto}
         hechos.push(`Vuelo ${v.vuelo} de ${v.origen} a ${v.destino}, sale a las ${v.sale}${v._mas ? ' y llega al día siguiente' : v.llega ? `, llega a las ${v.llega}` : ''}`);
         if (v._mas) { aBordo = true; llegaManana = v.destino; } else llegaHoy = v.destino;
       }
-      (c.traslados || []).filter(x => x.fecha === f).forEach(x => hechos.push(`Traslado ${String(x.trayecto || '').toLowerCase()}${x.hora ? ` a las ${x.hora}` : ''}`));
+      // Trenes, buses y excursiones se escriben tal cual; los traslados comunes, en minúscula tras «Traslado».
+      (c.traslados || []).filter(x => x.fecha === f).forEach(x => hechos.push(/^(tren|bus|ferry|crucero|excursi|tour)/i.test(x.trayecto || '')
+        ? `${x.trayecto}${x.hora ? `, sale a las ${x.hora}` : ''}` : `Traslado ${String(x.trayecto || '').toLowerCase()}${x.hora ? ` a las ${x.hora}` : ''}`));
       (c.hoteles || []).filter(h => h.salida === f).forEach(h => hechos.push(`Salida del ${h.hotel}`));
       (c.hoteles || []).filter(h => h.entrada === f).forEach(h => { hechos.push(`Registro en el ${h.hotel}`); if (llegaHoy && !aBordo) ciudadHotel[h.hotel] = llegaHoy; });
       const hotel = (c.hoteles || []).find(h => h.entrada <= f && f < h.salida);
