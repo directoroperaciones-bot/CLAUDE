@@ -3,8 +3,9 @@
   "documentos": {
     "confirmacion": {
       "codigo_reserva": "CAM-2026-1234",
+      "titulo_viaje": "Excursión Saona — Saona Catamarán",
       "nombre_viajero": "Jorge Ivan Mesa Lara",
-      "pasajeros": "1 persona",
+      "pasajeros": "3 adultos",
       "destino": "",
       "fecha_salida": "2026-09-24",
       "fecha_regreso": "2026-09-24",
@@ -51,20 +52,32 @@
     },
     "cotizacion": {
       "codigo_cotizacion": "CA1234",
-      "titulo_destino": "",
+      "titulo_destino": "Excursión Saona — Saona Catamarán",
       "destino": "",
       "fecha_llegada": "2026-09-24",
       "fecha_salida": "2026-09-24",
       "noches": "",
-      "pasajeros": "1 persona",
+      "pasajeros": "3 adultos",
       "acomodacion": "",
       "incluye": [
         "Excursión: Excursión Saona — Saona Catamarán"
       ],
       "no_incluye": [],
-      "tarifas": [],
+      "tarifas": [
+        {
+          "hotel": "Excursión Saona — Saona Catamarán",
+          "acomodacion": "",
+          "valor": ""
+        }
+      ],
       "modo_valor": "persona",
-      "itinerario": [],
+      "itinerario": [
+        {
+          "servicio": "Excursión Saona — Saona Catamarán",
+          "fecha": "2026-09-24",
+          "detalle": "Excursión Saona — Saona Catamarán (recogida en Meliá Caribe Beach Resort), a las 07:30."
+        }
+      ],
       "vigencia": ""
     },
     "itinerario": null

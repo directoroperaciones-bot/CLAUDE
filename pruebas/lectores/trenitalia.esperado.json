@@ -3,6 +3,7 @@
   "documentos": {
     "confirmacion": {
       "codigo_reserva": "",
+      "titulo_viaje": "Roma Termini — Pietrasanta en tren",
       "nombre_viajero": "Marta Lucia Rojas",
       "pasajeros": "1 persona",
       "destino": "",
@@ -90,7 +91,7 @@
     },
     "cotizacion": {
       "codigo_cotizacion": "",
-      "titulo_destino": "",
+      "titulo_destino": "Roma Termini — Pietrasanta en tren",
       "destino": "",
       "fecha_llegada": "2026-07-27",
       "fecha_salida": "2026-07-29",
@@ -101,9 +102,26 @@
         "Tren Roma Termini — Pietrasanta y Tren Pietrasanta — Roma Termini"
       ],
       "no_incluye": [],
-      "tarifas": [],
+      "tarifas": [
+        {
+          "hotel": "Tren Roma Termini — Pietrasanta y Tren Pietrasanta — Roma Termini",
+          "acomodacion": "",
+          "valor": ""
+        }
+      ],
       "modo_valor": "persona",
-      "itinerario": [],
+      "itinerario": [
+        {
+          "servicio": "Viaje en tren",
+          "fecha": "2026-07-27",
+          "detalle": "Tren Regionale Veloce 4130: Roma Termini — Pisa Centrale, a las 10:12. Tren Regionale 18373: Pisa Centrale — Pietrasanta, a las 15:06."
+        },
+        {
+          "servicio": "Viaje en tren",
+          "fecha": "2026-07-29",
+          "detalle": "Tren Regionale 19351: Pietrasanta — Pisa Centrale, a las 09:03. Tren Regionale Veloce 4131: Pisa Centrale — Roma Termini, a las 11:37."
+        }
+      ],
       "vigencia": ""
     },
     "itinerario": null

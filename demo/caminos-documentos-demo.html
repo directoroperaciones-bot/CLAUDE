@@ -805,19 +805,74 @@ function crearLectores({ ciudadIata = c => c } = {}) {
   // ---------- del viaje neutro a cada documento ----------
   const anio = f => (f || '').slice(0, 4);
   const fechasDe = v => [...v.vuelos.flatMap(x => x.trayectos.map(t => t.fecha)), ...v.hoteles.flatMap(h => [h.entrada, h.salida]), ...v.traslados.map(x => x.fecha)].filter(f => /^\d{4}-\d{2}-\d{2}$/.test(f || '')).sort();
-  const textoPasajeros = v => { const n = v.pasajeros.length; return n ? `${n} ${n === 1 ? 'persona' : 'personas'}${n > 1 ? ': ' + v.pasajeros.join(', ') : ''}` : ''; };
+  // Si el PDF solo nombra al titular pero dice la ocupación («2 adultos»), manda la ocupación.
+  const textoPasajeros = v => {
+    const n = v.pasajeros.length, ocupacion = v.hoteles[0]?.ocupacion || v.servicio?.ocupacion || '';
+    if (n <= 1 && ocupacion) return ocupacion;
+    return n ? `${n} ${n === 1 ? 'persona' : 'personas'}${n > 1 ? ': ' + v.pasajeros.join(', ') : ''}` : '';
+  };
   const llegaCon = t => (/\+1/.test(t.llega || '') ? t.llega : t.llega || '');
   const serviciosDe = v => [
     ...v.vuelos.map(x => `Tiquetes aéreos${x.aerolinea ? ' ' + x.aerolinea : ''}${x.record ? ` (récord ${x.record})` : ''}`),
     ...v.hoteles.map(h => `Alojamiento en ${h.hotel}${h.noches ? `, ${h.noches} ${+h.noches === 1 ? 'noche' : 'noches'}` : ''}${h.regimen ? `, plan ${h.regimen.toLowerCase()}` : ''}`),
     ...(v.servicio?.tipo === 'tren' ? [v.servicio.nombre] : v.servicio?.tipo === 'excursion' ? [`Excursión: ${v.servicio.nombre}`] : v.traslados.map(x => x.trayecto)),
   ].filter(Boolean);
+  // Destino y título deducidos del propio PDF: en vuelos, la ciudad donde se pasa más tiempo entre un aterrizaje y
+  // el siguiente despegue (no la escala); en hoteles, su ciudad; en trenes y excursiones, el nombre del servicio.
+  const minutos = (f, h) => { const m = /(\d{1,2}):(\d{2})/.exec(h || ''); return (diaUTC(f) || 0) / 6e4 + (m ? +m[1] * 60 + +m[2] : 0); };
+  function diaUTC(f) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(f || ''); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : null; }
+  function resumen(v) {
+    const h = v.hoteles[0], s = v.servicio || {};
+    if (h) {
+      const lugar = h.ciudad || v.destino || '';
+      return { destino: v.destino || lugar, titulo: [lugar || h.hotel, h.noches ? `${h.noches} ${+h.noches === 1 ? 'noche' : 'noches'}` : ''].filter(Boolean).join(', ') };
+    }
+    const tr = v.vuelos.flatMap(x => x.trayectos).filter(t => t.fecha).sort((a, b) => minutos(a.fecha, a.sale) - minutos(b.fecha, b.sale));
+    if (tr.length) {
+      // Ciudades donde se queda 6 horas o más (no las escalas), en el orden en que se visitan, sin la de origen.
+      const estadias = [];
+      for (let i = 0; i < tr.length - 1; i++) {
+        const llega = minutos(tr[i].fecha, String(tr[i].llega || '').replace(/\s*\+1/, '')) + (/\+1/.test(tr[i].llega || '') ? 1440 : 0);
+        if (minutos(tr[i + 1].fecha, tr[i + 1].sale) - llega >= 360) estadias.push(tr[i].destino);
+      }
+      let ciudades = [...new Set(estadias)].filter(c => c !== tr[0].origen);
+      if (!ciudades.length) ciudades = [tr.at(-1).destino !== tr[0].origen ? tr.at(-1).destino : tr[0].destino];
+      const nombres = ciudades.map(ciudadIata);
+      const lista = nombres.length > 1 ? nombres.slice(0, -1).join(', ') + ' y ' + nombres.at(-1) : nombres[0];
+      return { destino: v.destino || lista, titulo: `Viaje a ${lista}` };
+    }
+    if (s.tipo === 'tren') { const t = v.traslados[0]; return { destino: v.destino || '', titulo: (t?.viaje || s.nombre || '').replace(/^Tren\s+/, '') + ' en tren' }; }
+    if (s.nombre) return { destino: v.destino || '', titulo: s.nombre };
+    return { destino: v.destino || '', titulo: '' };
+  }
+  const lugarIata = c => { const n = ciudadIata(c); return n && n !== c ? `${n} (${c})` : c; };
+  // Día a día solo con lo que dice el PDF: vuelos, entrada y salida de hoteles, trenes, traslados y excursiones.
+  function diasDe(v) {
+    const ev = [];
+    for (const a of v.vuelos) for (const t of a.trayectos) if (t.fecha) ev.push({ fecha: t.fecha, orden: minutos(t.fecha, t.sale), titulo: `Vuelo a ${ciudadIata(t.destino)}`,
+      texto: `Vuelo ${t.vuelo || ''} de ${lugarIata(t.origen)} a ${lugarIata(t.destino)}${t.sale ? `, sale a las ${t.sale}` : ''}${t.llega ? `${/\+1/.test(t.llega) ? ' y llega al día siguiente a las ' + t.llega.replace(/\s*\+1/, '') : ', llega a las ' + t.llega}` : ''}.`.replace('Vuelo  de', 'Vuelo de') });
+    for (const h of v.hoteles) {
+      if (h.entrada) ev.push({ fecha: h.entrada, orden: minutos(h.entrada, '15:00'), titulo: `Llegada a ${h.ciudad || h.hotel}`, texto: `Registro en el ${h.hotel}${h.regimen ? `, plan ${h.regimen.toLowerCase()}` : ''}.`, ciudad: h.ciudad });
+      if (h.salida) ev.push({ fecha: h.salida, orden: minutos(h.salida, '12:00'), titulo: 'Salida del hotel', texto: `Salida del ${h.hotel}.` });
+    }
+    for (const x of v.traslados) if (x.fecha) ev.push({ fecha: x.fecha, orden: minutos(x.fecha, x.hora), titulo: /^tren/i.test(x.trayecto || '') ? 'Viaje en tren' : v.servicio?.tipo === 'excursion' ? v.servicio.nombre : 'Traslado',
+      texto: `${x.trayecto}${x.hora ? `, a las ${x.hora}` : ''}.` });
+    const porDia = new Map();
+    for (const e of ev.sort((a, b) => a.orden - b.orden)) { if (!porDia.has(e.fecha)) porDia.set(e.fecha, []); porDia.get(e.fecha).push(e); }
+    return [...porDia].map(([fecha, es]) => {
+      const hotel = v.hoteles.find(h => h.entrada <= fecha && fecha < h.salida);
+      const vuelosDia = v.vuelos.flatMap(a => a.trayectos).filter(t => t.fecha === fecha).sort((a, b) => minutos(fecha, a.sale) - minutos(fecha, b.sale));
+      const ruta = vuelosDia.length > 1 ? [vuelosDia[0].origen, ...vuelosDia.map(t => t.destino)].map(ciudadIata).join(' – ') : '';
+      const titulo = ruta ? `Vuelos ${ruta}` : (es.find(e => e.ciudad) || es[es.length - 1]).titulo;
+      return { servicio: titulo, fecha, detalle: es.map(e => e.texto).join(' ') + (hotel?.ciudad ? ` Alojamiento: ${hotel.ciudad}` : '') };
+    });
+  }
   function aDocumento(v, doc) {
     const f = fechasDe(v), desde = f[0] || '', hasta = f[f.length - 1] || '';
     const num = (v.referencia || '').replace(/^CA/, '');
     if (doc === 'confirmacion') return {
       codigo_reserva: num ? `CAM-${anio(desde) || new Date().getFullYear()}-${num}` : '',
-      nombre_viajero: v.titular, pasajeros: textoPasajeros(v), destino: v.destino || '', fecha_salida: desde, fecha_regreso: hasta,
+      titulo_viaje: resumen(v).titulo, nombre_viajero: v.titular, pasajeros: textoPasajeros(v), destino: resumen(v).destino, fecha_salida: desde, fecha_regreso: hasta,
       aereo: v.vuelos.map(x => ({ aerolinea: x.aerolinea || '', record: x.record || '', tiquete: (x.tiquetes || []).join(' · '),
         trayectos: x.trayectos.map(t => ({ vuelo: t.vuelo || '', fecha: t.fecha || '', ruta: t.origen && t.destino ? `${t.origen} — ${t.destino}` : t.ruta || '', sale: t.sale || '', llega: llegaCon(t) })) })),
       hoteles: v.hoteles.map(h => ({ hotel: h.hotel || '', entrada: h.entrada || '', salida: h.salida || '', acomodacion: [h.acomodacion, h.regimen].filter(Boolean).join(' · '), confirmacion: h.confirmacion || '' })),
@@ -847,16 +902,21 @@ function crearLectores({ ciudadIata = c => c } = {}) {
       };
     }
     if (doc === 'cotizacion') {
-      const p = v.programa;
+      const p = v.programa, r = resumen(v);
       const noches = p?.noches || v.hoteles.reduce((n, h) => n + (+h.noches || 0), 0);
+      // Sin programa: una tarifa por servicio con su nombre y acomodación; el valor lo pone la asesora (el PDF no lo trae).
+      const s = v.servicio || {};
+      const tarifasServicio = v.hoteles.length ? v.hoteles.map(h => ({ hotel: h.hotel || '', acomodacion: h.acomodacion || '', valor: '' }))
+        : v.vuelos.length ? v.vuelos.map(a => ({ hotel: `Tiquetes aéreos${a.aerolinea ? ' ' + a.aerolinea : ''}`, acomodacion: '', valor: '' }))
+        : s.nombre ? [{ hotel: s.nombre, acomodacion: '', valor: '' }] : [];
       return {
-        codigo_cotizacion: v.referencia || '', titulo_destino: p?.titulo || '', destino: v.destino || '',
+        codigo_cotizacion: v.referencia || '', titulo_destino: p?.titulo || r.titulo, destino: r.destino,
         fecha_llegada: desde, fecha_salida: hasta, noches: noches ? `${noches} ${noches === 1 ? 'noche' : 'noches'}` : '', pasajeros: textoPasajeros(v),
         acomodacion: v.hoteles[0]?.acomodacion || '',
         incluye: p ? p.incluye : serviciosDe(v), no_incluye: p ? p.no_incluye : [],
-        tarifas: p?.tarifas?.length ? p.tarifas.map(x => ({ ...x, hotel: x.hotel || p.titulo })) : [],
+        tarifas: p?.tarifas?.length ? p.tarifas.map(x => ({ ...x, hotel: x.hotel || p.titulo })) : tarifasServicio,
         modo_valor: 'persona',
-        itinerario: p ? p.dias.map(d => ({ servicio: d.titulo, fecha: '', detalle: d.detalle.replace(/\n/g, ' ') })) : [],
+        itinerario: p ? p.dias.map(d => ({ servicio: d.titulo, fecha: '', detalle: d.detalle.replace(/\n/g, ' ') })) : diasDe(v),
         vigencia: p?.vigencia || '',
       };
     }
@@ -3641,7 +3701,7 @@ ${texto}
     iconos(el);
   }
   // ----- lectores por código (demo/lectores.js) y formatos aprendidos -----
-  const lectoresPDF = crearLectores();
+  const lectoresPDF = crearLectores({ ciudadIata: c => ciudadIata(c) }); // se llama ya cargada la página
   // Los formatos que Claude aprendió viven en la colección «lectores» de la base de la app (son datos: frases y
   // expresiones regulares, nunca código). Se comparten entre asesoras.
   let plantillas = [], plantillasDb;

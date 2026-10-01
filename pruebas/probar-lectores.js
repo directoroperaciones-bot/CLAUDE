@@ -4,7 +4,9 @@
 // Cada caso es pruebas/lectores/<lector>.txt (texto de un PDF real, ANONIMIZADO: nombres y códigos inventados)
 // y su <lector>.esperado.json con el lector que debe reconocerlo y lo que debe salir en cada documento.
 const fs = require('fs'), path = require('path'), assert = require('assert');
-const L = require('../demo/lectores.js')();
+// Como en la app, los códigos de aeropuerto se escriben con el nombre de la ciudad.
+const IATA = { SMR: 'Santa Marta', BOG: 'Bogotá', CLO: 'Cali' };
+const L = require('../demo/lectores.js')({ ciudadIata: c => IATA[c] || c });
 const dir = path.join(__dirname, 'lectores');
 const DOCS = ['confirmacion', 'voucher', 'cotizacion', 'itinerario'];
 const guardar = process.argv.includes('--guardar');

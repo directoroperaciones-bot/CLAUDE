@@ -3,6 +3,7 @@
   "documentos": {
     "confirmacion": {
       "codigo_reserva": "",
+      "titulo_viaje": "",
       "nombre_viajero": "",
       "pasajeros": "",
       "destino": "",

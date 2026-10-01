@@ -1963,7 +1963,7 @@ ${texto}
     iconos(el);
   }
   // ----- lectores por código (demo/lectores.js) y formatos aprendidos -----
-  const lectoresPDF = crearLectores();
+  const lectoresPDF = crearLectores({ ciudadIata: c => ciudadIata(c) }); // se llama ya cargada la página
   // Los formatos que Claude aprendió viven en la colección «lectores» de la base de la app (son datos: frases y
   // expresiones regulares, nunca código). Se comparten entre asesoras.
   let plantillas = [], plantillasDb;
