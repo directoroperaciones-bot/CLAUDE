@@ -4243,7 +4243,7 @@ ${texto.slice(0, 40000)}
     $('#vistas').hidden = !d.interactivo;
     $('#btn-html').hidden = !d.interactivo;
     $('#btn-publicar').hidden = !d.interactivo;
-    $('#btn-omniaxis').hidden = !OMNIAXIS.docs.includes(docId);
+    $('#btn-omniaxis').hidden = !OMNIAXIS.activo || !OMNIAXIS.docs.includes(docId);
     pintarSiguiente(datos);
     mostrarPublicado(d.interactivo ? publicacionDe(datos) : null);
     const fuentes = `<style>${FUENTES}</style>`;
@@ -4763,6 +4763,7 @@ ${texto.slice(0, 40000)}
   // consecutivo y anota en la bandeja el que asignó. La app NUNCA escribe en la base: escribirBandeja() se niega
   // si el destino fuera la hoja de la base. Guía del bot: docs/OMNIAXIS-BANDEJA.md.
   const OMNIAXIS = {
+    activo: false, // envío oculto temporalmente hasta verificar la configuración en AppSheet; true lo vuelve a mostrar
     bandeja: '12x_xmEeK4neZZfgRq3ISDsMkLDH4GQCFbVUI-wGMm2M', hoja: 'BANDEJA', columnas: 'A:AC',
     docs: ['cotizacion', 'confirmacion'],
     tiposVenta: ['Vacacional', 'Religioso', 'Mayorista', 'Receptivo', 'Referido', 'Propio'],
@@ -4859,7 +4860,7 @@ ${texto.slice(0, 40000)}
       const clave = fila[3];
       try { await dbOmniaxis?.doc('envios_omniaxis/' + clave).set({ id: fila[0], fecha: fila[1], codigo, consecutivo: consecutivo || '' }); } catch (_) {}
       out.className = 'estado';
-      out.textContent = consecutivo ? `Listo: OMNIAXIS actualizará la venta CA${consecutivo}.` : 'Listo: OMNIAXIS creará la venta con su consecutivo. La verás en la app en unos minutos.';
+      out.textContent = consecutivo ? `Listo: quedó en la bandeja de OMNIAXIS como pendiente, para la venta CA${consecutivo}.` : 'Listo: quedó en la bandeja de OMNIAXIS como pendiente.';
     } catch (err) {
       out.className = 'estado error';
       out.textContent = MENSAJES_MCP[err?.code] || (err?.code === 'no_enviado' ? 'No pudimos escribir en la bandeja de OMNIAXIS. Revisa que la cuenta de Google en Composio tenga acceso a la hoja «BANDEJA - Caminos Documentos».' : 'No se pudo enviar a OMNIAXIS. Inténtalo de nuevo.');
@@ -4902,7 +4903,7 @@ ${texto.slice(0, 40000)}
       const nombre = `${doc().archivo}-${doc().codigo(docActual)}.pdf`;
       await downloads.save({ filename: nombre, data: pdf.output('blob') });
       out.className = 'estado'; out.textContent = `Guardaste ${nombre}.`;
-      if (OMNIAXIS.docs.includes(docId) && mcp) ofrecerOmniaxis(true);
+      if (OMNIAXIS.activo && OMNIAXIS.docs.includes(docId) && mcp) ofrecerOmniaxis(true);
     } catch (err) {
       out.className = 'estado error';
       out.textContent = err?.code === 'declined' ? 'Cancelaste la descarga.' : 'No se pudo generar el PDF. Inténtalo de nuevo.';
