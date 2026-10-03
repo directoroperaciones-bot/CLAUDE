@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<base href="../">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Intranet Caminos · Demo</title>
+<meta name="theme-color" content="#F25061">
+<link rel="icon" type="image/png" href="assets/icono-caminos.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/estilos.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+<!-- Igual que index.html, pero con Supabase simulado en memoria (sin proyecto real).
+     Cuentas: laura@ (gerencia y admin, primer ingreso), andrea@ (directora), camilo@, valentina@, julian@ (revisa incapacidades), sofia@
+     — todas @caminos.simulado con la contraseña clave1234. ?sedes=2 simula una segunda sede. -->
+<div id="app"><div class="cargando">Cargando la intranet…</div></div>
+<script src="pruebas/supabase-simulado.js"></script>
+<script>window.INTRANET_CONFIG = { supabaseUrl: 'https://simulado.supabase.co', supabaseKey: 'sb_publishable_simulado' };</script>
+<script src="assets/app.js"></script>
+</body>
+</html>
